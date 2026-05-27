@@ -4,7 +4,7 @@ Turan is a Python-based web security scanner and hardening assistant.
 
 ## Status
 
-Active CLI slice with scan, crawl, report, baseline, compare, audit, doctor, server-check, fix, and demo-site commands.
+Active CLI slice with scan, crawl, report, baseline, compare, audit, doctor, server-check, incident, fix, and demo-site commands.
 
 ## Documentation
 
@@ -23,6 +23,7 @@ Active CLI slice with scan, crawl, report, baseline, compare, audit, doctor, ser
 - `compare` shows what changed between two saved scans, including crawl coverage deltas for crawl runs
 - `doctor` checks the local machine and app environment
 - `server-check` checks the server-facing config, discovers the app target, and scans it locally
+- `incident` detects suspicious activity from logs and can generate or apply a denylist containment artifact
 - `fix` applies the first real local fix lane with `--local`
 - `demo-site` starts the local test site
 
@@ -51,6 +52,18 @@ If you want Turan to discover the app target on a VPS, you can leave the URL off
 
 ```powershell
 .\venv\Scripts\python.exe -m app.main scan
+```
+
+Check logs for active probing and, if needed, apply containment:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main incident --logs outputs\access.log --apply-blocks
+```
+
+You can also write a fail2ban-style snippet:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main incident --logs outputs\access.log --fail2ban-output outputs\incident-fail2ban.conf
 ```
 
 Turan looks for `APP_URL`, then `TARGET_URL`, then `BASE_URL`.
@@ -133,6 +146,7 @@ Example phase-4 command:
 ```powershell
 .\venv\Scripts\python.exe -m app.main doctor --env-file C:\path\to\autoentrytrack\.env
 .\venv\Scripts\python.exe -m app.main server-check --env-file C:\path\to\autoentrytrack\.env --nginx-config /etc/nginx/nginx.conf
+.\venv\Scripts\python.exe -m app.main incident --logs C:\path\to\logs --apply-blocks
 ```
 
 ## Export reports

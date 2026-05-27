@@ -11,6 +11,7 @@ from app.artifacts import load_scan_result
 from app.audit import (
     append_audit_event,
     build_fix_audit_event,
+    build_incident_audit_event,
     build_local_fix_audit_event,
     build_scan_audit_event,
     filter_audit_events,
@@ -30,10 +31,12 @@ from app.baseline import build_baseline_metadata, summarize_baseline_metadata, w
 from app.comparison import compare_scan_files, summarize_comparison
 from app.context import resolve_application_context, summarize_application_context
 from app.demo_site import serve_demo_site
+from app.incident import analyze_incident_sources, default_incident_sources
 from app.http.auth import CrawlAuthConfig
 from app.hardening.backup import create_backup
 from app.hardening.applied_artifacts import applied_artifact_path, create_applied_artifact_backup
 from app.hardening.executor import evaluate_fix_plan, execute_fix
+from app.hardening.incident import apply_nginx_denylist, write_fail2ban_artifact
 from app.hardening.local_fixes import apply_local_nginx_hardening_fix, choose_local_fix_target
 from app.output_paths import expand_optional_output_arguments, normalize_output_path
 from app.models import LocalFixResult
@@ -47,11 +50,13 @@ from app.reports.console import (
     render_crawl_summary,
     render_doctor_report,
     render_fix_decisions,
+    render_incident_report,
     render_interactive_fix_catalog,
     render_local_fix_preview,
     render_local_fix_result,
     render_policy,
 )
+from app.reports.incident_report import write_html_incident_report, write_json_incident_report, write_markdown_incident_report
 from app.reports.html_report import write_html_report
 from app.reports.json_report import write_json_report
 from app.reports.markdown_report import write_markdown_report
@@ -88,6 +93,7 @@ app = typer.Typer(
         "- Compares two saved scan reports and crawl coverage deltas\n"
         "- Checks the local machine and app environment without a URL\n"
         "- Checks server-only paths and local config without a URL\n"
+        "- Detects suspicious server or app activity from logs and can write a denylist containment artifact\n"
         "- Runs a local demo site for testing\n\n"
         "**Safety**\n"
         "- `--yes` skips the permission prompt for trusted automation\n\n"
@@ -160,6 +166,8 @@ app = typer.Typer(
         "doctor --env-file /path/to/autoentrytrack/.env\n"
         "server-check\n"
         "server-check --env-file /path/to/autoentrytrack/.env --nginx-config /etc/nginx/nginx.conf\n"
+        "incident --logs outputs\\access.log --apply-blocks\n"
+        "incident --logs C:\\logs --html-output\n"
         "baseline http://127.0.0.1:8000 --label vps-west\n"
         "baseline http://127.0.0.1:8000 --output baselines\\vps-west.json\n"
         "compare old.json new.json --markdown-output compare.md\n"
@@ -340,6 +348,34 @@ def write_scan_outputs(
         html_output_path.parent.mkdir(parents=True, exist_ok=True)
         write_html_report(result, html_output_path, include_fix_plans=include_fix_plans)
         console.print(f"Wrote HTML report to {html_output_path}")
+
+
+def write_incident_outputs(
+    report,
+    json_output_path: Path | None,
+    markdown_output_path: Path | None,
+    html_output_path: Path | None,
+    fail2ban_output_path: Path | None,
+) -> None:
+    if json_output_path is not None:
+        json_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_json_incident_report(report, json_output_path)
+        console.print(f"Wrote JSON report to {json_output_path}")
+
+    if markdown_output_path is not None:
+        markdown_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_markdown_incident_report(report, markdown_output_path)
+        console.print(f"Wrote Markdown report to {markdown_output_path}")
+
+    if html_output_path is not None:
+        html_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_html_incident_report(report, html_output_path)
+        console.print(f"Wrote HTML report to {html_output_path}")
+
+    if fail2ban_output_path is not None:
+        fail2ban_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_fail2ban_artifact(report, fail2ban_output_path)
+        console.print(f"Wrote fail2ban-style artifact to {fail2ban_output_path}")
 
 
 @app.callback(invoke_without_command=True)
@@ -901,6 +937,103 @@ def server_check(
         console.print(f"Scanning discovered target: {context.target.value}")
         result = scan_target(context.target.value, timeout_seconds=timeout_seconds)
         console.print(render_console(result, include_fix_plans=False))
+
+
+@app.command(help="Detect suspicious server or app activity from logs and optionally apply an Nginx denylist.")
+def incident(
+    url: str | None = typer.Argument(
+        None,
+        metavar="URL",
+        help="Target URL. If omitted, Turan discovers the local app target before analyzing logs.",
+    ),
+    logs: Path | None = typer.Option(None, "--logs", help="Log file or directory to analyze"),
+    env_file: Path | None = typer.Option(None, "--env-file", help="Read local defaults from a specific .env file"),
+    nginx_config: Path | None = typer.Option(None, "--nginx-config", help="Apply containment to a specific Nginx config file"),
+    block_threshold: int = typer.Option(5, "--block-threshold", min=1, help="Score needed before an IP is auto-blocked"),
+    apply_blocks: bool = typer.Option(False, "--apply-blocks/--no-apply-blocks", help="Write the denylist and include it when suspicious IPs are found"),
+    yes: bool = typer.Option(False, "--yes", help="Skip the permission prompt for trusted automation"),
+    policy_file: Path | None = typer.Option(None, "--policy", help="Load incident settings from a JSON file"),
+    audit_log: Path | None = typer.Option(None, "--audit-log", help="Write audit events to a specific file"),
+    json_output: Path | None = typer.Option(None, "--json-output", help="Write a JSON report"),
+    markdown_output: Path | None = typer.Option(None, "--markdown-output", help="Write a Markdown report"),
+    html_output: Path | None = typer.Option(None, "--html-output", help="Write an HTML report"),
+    fail2ban_output: Path | None = typer.Option(None, "--fail2ban-output", help="Write a fail2ban-style filter and jail snippet"),
+) -> None:
+    if not confirm_risky_command("incident response", assume_yes=yes):
+        raise typer.Abort()
+
+    policy_file_path = path_option_value(policy_file)
+    env_file_path = path_option_value(env_file)
+    nginx_config_path = path_option_value(nginx_config)
+    logs_path = path_option_value(logs)
+    audit_log_path, audit_log_note = normalize_output_option(path_option_value(audit_log))
+    json_output_path, json_output_note = normalize_output_option(path_option_value(json_output))
+    markdown_output_path, markdown_output_note = normalize_output_option(path_option_value(markdown_output))
+    html_output_path, html_output_note = normalize_output_option(path_option_value(html_output))
+    fail2ban_output_path, fail2ban_output_note = normalize_output_option(path_option_value(fail2ban_output))
+
+    policy = load_app_config(policy_file_path)
+    context = resolve_application_context(url, Path.cwd(), env_file_path, nginx_config_path, require_target=False)
+    if context.target is None and context.discovery.discovered:
+        console.print("No URL supplied. Discovery:")
+        console.print(f"Discovery: {summarize_application_context(context)}")
+        console.print(render_application_context(context))
+    elif context.target is not None and context.target.source != "command line":
+        console.print(f"Using {context.target.key} from {context.target.source} for the incident target.")
+
+    if logs_path is None:
+        sources = default_incident_sources(Path.cwd(), context.target.value if context.target is not None else url)
+    else:
+        sources = [logs_path]
+
+    report = analyze_incident_sources(
+        sources,
+        root=Path.cwd(),
+        url=str(context.target.value) if context.target is not None else url,
+        block_threshold=block_threshold,
+        env_file=env_file_path,
+        nginx_config=nginx_config_path,
+    )
+    report.context = context
+    if report.target is None and context.target is not None:
+        report.target = str(context.target.value)
+
+    console.print(render_incident_report(report))
+
+    containment_result = None
+    if apply_blocks and report.blocked_ips:
+        if nginx_config_path is None:
+            nginx_config_path = Path(context.discovery.nginx_config) if context.discovery.nginx_config is not None else None
+        if nginx_config_path is None:
+            console.print("No Nginx config was available for containment.")
+        elif yes or typer.confirm("Apply the Nginx denylist containment now?", default=False):
+            containment_result = apply_nginx_denylist(nginx_config_path, report.blocked_ips)
+            console.print(render_local_fix_result(containment_result))
+            report.containment_applied = containment_result.status == "applied"
+            report.containment_target = str(nginx_config_path)
+            denylist_path = nginx_config_path.with_name("incident-denylist.conf")
+            report.containment_artifact = str(denylist_path)
+            report.notes.append(containment_result.reason)
+            if containment_result.backup_path:
+                report.notes.append(f"Backup: {containment_result.backup_path}")
+        else:
+            report.notes.append("Containment was not applied.")
+
+    if fail2ban_output_path is not None:
+        write_fail2ban_artifact(report, fail2ban_output_path)
+        report.containment_artifact = str(fail2ban_output_path)
+        if report.blocked_ips:
+            report.notes.append(f"Fail2ban-style artifact written to {fail2ban_output_path}")
+
+    write_audit_path = audit_log_path or Path(policy.audit_log_path)
+    append_audit_event(write_audit_path, build_incident_audit_event(report, policy.allowed_fix_level))
+    if audit_log_note is not None:
+        console.print(f"[info] {audit_log_note}")
+    for note in (json_output_note, markdown_output_note, html_output_note, fail2ban_output_note):
+        if note is not None:
+            console.print(f"[info] {note}")
+    print_optional_output_notes()
+    write_incident_outputs(report, json_output_path, markdown_output_path, html_output_path, fail2ban_output_path)
 
 
 @app.command(help="Apply one real local fix to a discovered server file.")

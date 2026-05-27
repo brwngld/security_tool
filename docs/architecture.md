@@ -3,7 +3,7 @@
 ## Purpose
 
 Turan is a Python-based web security scanner and hardening assistant.
-It supports HTTP/HTTPS scanning, passive crawling, detection of common website/server misconfigurations, WAF/firewall impact notes, and safe defensive fixes where possible.
+It supports HTTP/HTTPS scanning, passive crawling, detection of common website/server misconfigurations, WAF/firewall impact notes, incident log analysis for Apache/auth/systemd-style logs, and safe defensive fixes where possible.
 
 For a command-by-command usage guide, see [docs/turan-user-guide.md](docs/turan-user-guide.md) and the matching PDF at [turan-user-guide.pdf](turan-user-guide.pdf).
 For a short version history, see [docs/changelog.md](docs/changelog.md).
@@ -34,6 +34,7 @@ That gate lives in one place only: the remediation executor.
 - The executor is the only module that can perform changes.
 - All other modules produce findings, plans, or recommendations only.
 - The first live-edit lane is `fix --local`, and it only touches a discovered server file after backup and validation.
+- The incident-response lane is `incident`, and it only writes a denylist include after analysis and confirmation.
 
 ## Working Agreement
 
@@ -70,6 +71,7 @@ turan/
 |   |-- artifacts.py            # load saved scan reports
 |   |-- comparison.py           # compare two saved scan reports
 |   |-- doctor.py               # local machine and environment checks
+|   |-- incident.py             # suspicious activity analysis and containment planning
 |   |-- scanner.py              # coordinates scan flow
 |   |-- models.py               # Target, Finding, FixPlan, ScanResult, ComparisonResult
 |   |-- policy.py               # fix levels, approval rules, redaction rules
@@ -97,12 +99,14 @@ turan/
 |   |   |-- recommendations.py  # fix suggestions and remediation plans
 |   |   |-- executor.py         # applies only approved, reversible fixes
 |   |   |-- backup.py           # creates restore points before changes
+|   |   |-- incident.py         # denylist containment for suspicious activity
 |   |   `-- local_fixes.py      # first real local edit lane for a discovered server file
 |   |   `-- nginx.py            # safe nginx snippet templates only
 |   |
 |   `-- reports/
 |       |-- __init__.py
 |       |-- console.py          # terminal output
+|       |-- incident_report.py  # incident report export
 |       |-- json_report.py      # JSON export
 |       |-- markdown_report.py  # Markdown export
 |       `-- html_report.py      # optional later
@@ -496,6 +500,14 @@ Server check:
 ```powershell
 .\venv\Scripts\python.exe -m app.main server-check --env-file /path/to/autoentrytrack/.env --nginx-config /etc/nginx/nginx.conf
 ```
+
+Incident response:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main incident --logs /var/log/nginx/access.log --apply-blocks
+```
+
+`incident` analyzes suspicious activity in log files, groups repeated attacker signals, and can write a denylist include or a fail2ban-style snippet when you explicitly opt into containment.
 
 Scan fallback:
 

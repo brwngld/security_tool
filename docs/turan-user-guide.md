@@ -37,6 +37,7 @@ Turan is intentionally defensive:
 | `compare` | Compares two saved scans and crawl coverage | See what changed |
 | `doctor` | Checks the local machine and app environment | Health check without a URL |
 | `server-check` | Discovers the server layout and scans the local app target | VPS/server discovery mode |
+| `incident` | Detects suspicious activity in logs and can apply a denylist or fail2ban snippet | Defensive incident response |
 | `fix --local` | Applies the first real local edit lane | Backup, edit, validate, rollback if needed |
 | `demo-site` | Runs the local demo site | Test target for development |
 
@@ -72,6 +73,18 @@ Run the server discovery workflow:
 .\venv\Scripts\python.exe -m app.main server-check --yes
 ```
 
+Check logs for suspicious activity and optionally apply containment:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main incident --logs outputs\access.log --apply-blocks
+```
+
+Write a fail2ban-style snippet:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main incident --logs outputs\access.log --fail2ban-output outputs\incident-fail2ban.conf
+```
+
 Apply the first real local fix lane:
 
 ```powershell
@@ -85,6 +98,7 @@ Risky commands ask for confirmation by default:
 - `scan`
 - `crawl`
 - `server-check`
+- `incident`
 - `fix --local`
 
 The prompt is a reminder that you should only test systems you own or have explicit permission to test.
@@ -517,6 +531,13 @@ Typical doctor or server-check output adds:
 - environment file discovery
 - Nginx/systemd hints
 - localhost port checks
+
+Typical incident output adds:
+
+- source log paths
+- suspect IPs and blocked IPs
+- log family hints such as `apache-access`, `apache-error`, `auth`, and `systemd`
+- optional denylist or fail2ban-style containment artifacts
 
 ## Troubleshooting
 

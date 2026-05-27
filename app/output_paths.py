@@ -18,6 +18,7 @@ OPTIONAL_OUTPUT_FLAGS = {
     "--json-output",
     "--markdown-output",
     "--html-output",
+    "--fail2ban-output",
     "--output",
     "--audit-log",
     "--log-file",
@@ -37,6 +38,7 @@ def default_output_path(command_name: str | None, option_name: str, *, stamp: st
         "--json-output": ".json",
         "--markdown-output": ".md",
         "--html-output": ".html",
+        "--fail2ban-output": ".conf",
         "--output": ".json",
     }
     suffix = suffix_map.get(option_name, ".txt")

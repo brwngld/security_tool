@@ -106,3 +106,33 @@ class ComparisonResult(BaseModel):
     old_risk_score: int = 0
     new_risk_score: int = 0
     risk_trend: str = Field(pattern=r"^(improved|worsened|unchanged)$")
+
+
+class IncidentFinding(BaseModel):
+    id: str
+    source_file: str
+    log_family: str = ""
+    title: str
+    category: str
+    severity: str = Field(pattern=r"^(info|low|medium|high|critical)$")
+    confidence: str = Field(default="high", pattern=r"^(low|medium|high)$")
+    description: str
+    evidence: dict[str, str | int | bool | None] = Field(default_factory=dict)
+    affected_ips: list[str] = Field(default_factory=list)
+    recommended_action: str = ""
+    block_action: str | None = None
+    count: int = 0
+
+
+class IncidentReport(BaseModel):
+    context: ApplicationContext | None = None
+    target: str | None = None
+    source_files: list[str] = Field(default_factory=list)
+    total_lines: int = 0
+    findings: list[IncidentFinding] = Field(default_factory=list)
+    suspect_ips: list[str] = Field(default_factory=list)
+    blocked_ips: list[str] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+    containment_applied: bool = False
+    containment_target: str | None = None
+    containment_artifact: str | None = None

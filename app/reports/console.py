@@ -11,7 +11,7 @@ from app.audit import AuditEvent, describe_audit_event
 from app.context import ApplicationContext
 from app.doctor import DoctorCheck, DoctorReport
 from app.config import AppConfig
-from app.models import ComparisonResult, FixDecision, LocalFixResult, ScanResult
+from app.models import ComparisonResult, FixDecision, IncidentReport, LocalFixResult, ScanResult
 
 
 def summarize_evidence(evidence: dict[str, object]) -> str:
@@ -470,3 +470,66 @@ def render_comparison(comparison: ComparisonResult) -> Group:
         new.add_row("-", "-", "No new findings showed up")
 
     return Group(summary, crawl, fixed, new)
+
+
+def render_incident_report(report: IncidentReport) -> Group:
+    summary = Table(title="Incident Response")
+    summary.add_column("Field", style="cyan", no_wrap=True)
+    summary.add_column("Value", style="white")
+    summary.add_row("Target", report.target or "not resolved")
+    summary.add_row("Sources", str(len(report.source_files)))
+    summary.add_row("Log lines", str(report.total_lines))
+    summary.add_row("Findings", str(len(report.findings)))
+    summary.add_row("Suspect IPs", ", ".join(report.suspect_ips) if report.suspect_ips else "-")
+    summary.add_row("Blocked IPs", ", ".join(report.blocked_ips) if report.blocked_ips else "-")
+    summary.add_row("Containment applied", "yes" if report.containment_applied else "no")
+
+    sources = Table(title="Incident Sources")
+    sources.add_column("Source", style="cyan")
+    sources.add_column("Status", style="white")
+    if report.source_files:
+        for source in report.source_files[:10]:
+            sources.add_row(source, "read")
+        if len(report.source_files) > 10:
+            sources.add_row("...", f"+{len(report.source_files) - 10} more")
+    else:
+        sources.add_row("-", "no sources")
+
+    findings = Table(title="Incident Findings")
+    findings.add_column("Severity", style="magenta", no_wrap=True)
+    findings.add_column("Category", style="cyan", no_wrap=True)
+    findings.add_column("Log family", style="white", no_wrap=True)
+    findings.add_column("Title", style="white")
+    findings.add_column("Source", style="white")
+    findings.add_column("Action", style="white")
+    findings.add_column("Evidence", style="white")
+
+    if report.findings:
+        for finding in report.findings:
+            evidence = ", ".join(
+                f"{key}={value}"
+                for key, value in finding.evidence.items()
+                if value not in (None, "")
+            )
+            findings.add_row(
+                finding.severity,
+                finding.category,
+                finding.log_family or "-",
+                finding.title,
+                finding.source_file,
+                finding.recommended_action or "-",
+                evidence or "-",
+            )
+    else:
+        findings.add_row("-", "-", "-", "No active attack indicators found", "-", "-", "-")
+
+    containment = Table(title="Containment")
+    containment.add_column("Field", style="cyan", no_wrap=True)
+    containment.add_column("Value", style="white")
+    containment.add_row("Containment target", report.containment_target or "-")
+    containment.add_row("Containment artifact", report.containment_artifact or "-")
+    containment.add_row("Notes", "; ".join(report.notes) if report.notes else "-")
+
+    if report.context is not None:
+        return Group(summary, render_application_context(report.context), sources, findings, containment)
+    return Group(summary, sources, findings, containment)

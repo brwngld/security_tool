@@ -12,6 +12,7 @@ It is intentionally short and practical so it can stay current as the app grows.
 - Added generic authenticated scan and crawl support, including browser-assisted login flows.
 - Added `fix --local` as the first real live-edit lane with backup, validation, and rollback.
 - Added `doctor` and `server-check` discovery workflows for local and VPS environments.
+- Added `incident` log analysis with Apache/auth/systemd patterns, optional Nginx denylist containment, and fail2ban-style output for suspicious activity.
 
 ## Notes
 
