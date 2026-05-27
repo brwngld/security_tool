@@ -1,0 +1,12 @@
+{
+  "allowed_fix_level": 0,
+  "require_backup_for_level_1": true,
+  "require_approval_for_level_2": true,
+  "block_level_3": true,
+  "redact_secrets_in_reports": true,
+  "redact_secrets_in_logs": true,
+  "audit_log_path": "reports/audit.log",
+  "max_crawl_depth": 2,
+  "max_pages": 100,
+  "timeout_seconds": 10.0
+}

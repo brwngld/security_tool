@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "turan"
+version = "0.1.0"
+description = "Python web security scanner and hardening assistant"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "httpx",
+  "beautifulsoup4",
+  "rich",
+  "typer",
+  "pydantic",
+  "jinja2",
+]
+
+[project.optional-dependencies]
+browser = ["playwright"]
+
+[project.scripts]
+turan = "app.main:app"
+
+[tool.setuptools]
+
+[tool.setuptools.packages.find]
+include = ["app*"]

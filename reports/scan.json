@@ -1,0 +1,55 @@
+{
+  "target": {
+    "url": "https://example.com/",
+    "scheme": "https",
+    "host": "example.com",
+    "port": null,
+    "scope_root": null
+  },
+  "findings": [
+    {
+      "id": "target-unreachable",
+      "target_url": "https://example.com/",
+      "title": "Target unreachable",
+      "description": "Turan could not complete the initial request.",
+      "severity": "low",
+      "category": "connectivity",
+      "evidence": {
+        "error": "ConnectError",
+        "url": "https://example.com/"
+      },
+      "fix_level": 0,
+      "risk_level": "low",
+      "requires_approval": false,
+      "backup_path": null,
+      "rollback_command": null,
+      "expected_impact": "Report only; no system change required.",
+      "references": []
+    }
+  ],
+  "fix_plans": [
+    {
+      "finding_id": "target-unreachable",
+      "fix_level": 0,
+      "risk_level": "low",
+      "requires_approval": false,
+      "backup_path": null,
+      "rollback_command": "echo rollback not yet implemented",
+      "expected_impact": "Report only; no system change required.",
+      "status": "proposed",
+      "approved_by": null,
+      "approved_at": null,
+      "applied_at": null,
+      "confidence": 1.0
+    }
+  ],
+  "scanned_urls": [
+    "https://example.com/"
+  ],
+  "notes": [
+    "Request failed: ConnectError"
+  ],
+  "waf_signals": [],
+  "tls_summary": {},
+  "scan_confidence": 0.0
+}

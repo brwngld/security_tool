@@ -1,0 +1,92 @@
+{
+  "target": {
+    "url": "http://69.10.53.250/",
+    "scheme": "http",
+    "host": "69.10.53.250",
+    "port": null,
+    "scope_root": null
+  },
+  "findings": [
+    {
+      "id": "weak-cookie-0",
+      "target_url": "http://69.10.53.250/",
+      "title": "Weak cookie flags",
+      "description": "A cookie is missing Secure or HttpOnly.",
+      "severity": "low",
+      "category": "cookies",
+      "evidence": {
+        "set_cookie": "csrf_token=EuQAY-B4F1kMoMTwMEXa8DCBYin-ZYbqYlzapmbuaUM; Path=/; SameSite=Lax",
+        "status_code": 200,
+        "url": "http://69.10.53.250/"
+      },
+      "fix_level": 0,
+      "risk_level": "low",
+      "requires_approval": false,
+      "backup_path": null,
+      "rollback_command": null,
+      "expected_impact": "Report only; no system change required.",
+      "references": [
+        "https://owasp.org/www-community/HttpOnly"
+      ]
+    },
+    {
+      "id": "server-banner-disclosure",
+      "target_url": "http://69.10.53.250/",
+      "title": "Server information disclosure",
+      "description": "The response reveals a server banner or framework header.",
+      "severity": "low",
+      "category": "server_info",
+      "evidence": {
+        "header_value": "nginx",
+        "status_code": 200,
+        "url": "http://69.10.53.250/"
+      },
+      "fix_level": 0,
+      "risk_level": "low",
+      "requires_approval": false,
+      "backup_path": null,
+      "rollback_command": null,
+      "expected_impact": "Report only; no system change required.",
+      "references": [
+        "https://owasp.org/www-project-web-security-testing-guide/"
+      ]
+    }
+  ],
+  "fix_plans": [
+    {
+      "finding_id": "weak-cookie-0",
+      "fix_level": 0,
+      "risk_level": "low",
+      "requires_approval": false,
+      "backup_path": null,
+      "rollback_command": "Restore the previous cookie settings.",
+      "expected_impact": "Set Secure and HttpOnly on session cookies.",
+      "status": "proposed",
+      "approved_by": null,
+      "approved_at": null,
+      "applied_at": null,
+      "confidence": 1.0
+    },
+    {
+      "finding_id": "server-banner-disclosure",
+      "fix_level": 0,
+      "risk_level": "low",
+      "requires_approval": false,
+      "backup_path": null,
+      "rollback_command": "Re-enable the banner only if you really need it.",
+      "expected_impact": "Hide the server banner and framework version.",
+      "status": "proposed",
+      "approved_by": null,
+      "approved_at": null,
+      "applied_at": null,
+      "confidence": 1.0
+    }
+  ],
+  "scanned_urls": [
+    "http://69.10.53.250/"
+  ],
+  "notes": [],
+  "waf_signals": [],
+  "tls_summary": {},
+  "scan_confidence": 1.0
+}
