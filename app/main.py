@@ -572,6 +572,12 @@ def main(ctx: typer.Context) -> None:
         console.print(ctx.get_help())
 
 
+def cli_main() -> None:
+    global CLI_OPTIONAL_OUTPUT_NOTES
+    sys.argv, CLI_OPTIONAL_OUTPUT_NOTES = expand_optional_output_arguments(sys.argv)
+    app()
+
+
 @app.command(help="Scan a target URL, or discover one from the local server layout when no URL is supplied.")
 def scan(
     url: str | None = typer.Argument(None, metavar="URL", help="Target URL. If omitted, PsyberShield looks for APP_URL, TARGET_URL, or BASE_URL in .env."),
@@ -1760,6 +1766,5 @@ def compare(
 
 
 if __name__ == "__main__":
-    sys.argv, CLI_OPTIONAL_OUTPUT_NOTES = expand_optional_output_arguments(sys.argv)
-    app()
+    cli_main()
 

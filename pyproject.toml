@@ -21,9 +21,9 @@ dependencies = [
 browser = ["playwright"]
 
 [project.scripts]
-pshield = "app.main:app"
-psybershield = "app.main:app"
-PsyberShield = "app.main:app"
+pshield = "app.main:cli_main"
+psybershield = "app.main:cli_main"
+PsyberShield = "app.main:cli_main"
 
 [tool.setuptools]
 
