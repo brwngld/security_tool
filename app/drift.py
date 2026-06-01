@@ -6,12 +6,16 @@ from typing import Any
 
 from app.comparison import compare_scan_results, summarize_comparison
 from app.diagnostics import DoctorReport
-from app.models import ComparisonResult, DriftFinding, DriftReport, IncidentReport, IntegrityReport, ScanResult
+from app.models import ComparisonResult, DriftFinding, DriftReport, IncidentReport, IntegrityReport, ReportBundle, ScanResult, SecretExposureReport
 
 
 def _load_model(path: Path) -> Any:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if isinstance(payload, dict):
+        if "output_path" in payload and "source_report" in payload:
+            return ReportBundle.model_validate(payload)
+        if "root" in payload and "source_files" in payload and "findings" in payload:
+            return SecretExposureReport.model_validate(payload)
         if "checks" in payload:
             return DoctorReport.model_validate(payload)
         if "files" in payload and "monitored_paths" in payload:
@@ -274,6 +278,140 @@ def _compare_doctor_reports(baseline_path: Path, current_path: Path, baseline: D
     )
 
 
+def _compare_secret_reports(baseline_path: Path, current_path: Path, baseline: SecretExposureReport, current: SecretExposureReport) -> DriftReport:
+    baseline_files = set(baseline.source_files)
+    current_files = set(current.source_files)
+    findings: list[DriftFinding] = []
+
+    added_files = sorted(current_files - baseline_files)
+    removed_files = sorted(baseline_files - current_files)
+    if added_files:
+        findings.append(
+            DriftFinding(
+                id="drift-secrets-added-files",
+                category="sources",
+                kind="secrets",
+                severity="medium",
+                title=f"{len(added_files)} new source file(s) scanned",
+                baseline_value=", ".join(sorted(baseline_files)) or "-",
+                current_value=", ".join(sorted(current_files)) or "-",
+                note=", ".join(added_files[:3]),
+            )
+        )
+    if removed_files:
+        findings.append(
+            DriftFinding(
+                id="drift-secrets-removed-files",
+                category="sources",
+                kind="secrets",
+                severity="info",
+                title=f"{len(removed_files)} source file(s) disappeared",
+                baseline_value=", ".join(sorted(baseline_files)) or "-",
+                current_value=", ".join(sorted(current_files)) or "-",
+                note=", ".join(removed_files[:3]),
+            )
+        )
+
+    baseline_titles = {finding.title for finding in baseline.findings}
+    current_titles = {finding.title for finding in current.findings}
+    new_findings = sorted(current_titles - baseline_titles)
+    cleared_findings = sorted(baseline_titles - current_titles)
+    if new_findings:
+        findings.append(
+            DriftFinding(
+                id="drift-secrets-new-findings",
+                category="findings",
+                kind="secrets",
+                severity="high",
+                title=f"{len(new_findings)} new secret finding(s) appeared",
+                baseline_value=str(len(baseline.findings)),
+                current_value=str(len(current.findings)),
+                note=", ".join(new_findings[:3]),
+            )
+        )
+    if cleared_findings:
+        findings.append(
+            DriftFinding(
+                id="drift-secrets-cleared-findings",
+                category="findings",
+                kind="secrets",
+                severity="low",
+                title=f"{len(cleared_findings)} secret finding(s) disappeared",
+                baseline_value=str(len(baseline.findings)),
+                current_value=str(len(current.findings)),
+                note=", ".join(cleared_findings[:3]),
+            )
+        )
+
+    summary = f"Secret drift: {len(current.findings)} current finding(s) across {len(current.source_files)} source file(s)."
+    return DriftReport(
+        baseline_report=str(baseline_path),
+        current_report=str(current_path),
+        report_type="secrets",
+        summary=summary,
+        findings=findings,
+        notes=[summary],
+    )
+
+
+def _compare_bundle_reports(baseline_path: Path, current_path: Path, baseline: ReportBundle, current: ReportBundle) -> DriftReport:
+    baseline_arcnames = {item.arcname for item in baseline.items}
+    current_arcnames = {item.arcname for item in current.items}
+    added = sorted(current_arcnames - baseline_arcnames)
+    removed = sorted(baseline_arcnames - current_arcnames)
+    findings: list[DriftFinding] = []
+
+    if added:
+        findings.append(
+            DriftFinding(
+                id="drift-bundle-added-items",
+                category="bundle",
+                kind="bundle",
+                severity="medium",
+                title=f"{len(added)} bundled item(s) added",
+                baseline_value=str(len(baseline.items)),
+                current_value=str(len(current.items)),
+                note=", ".join(added[:3]),
+            )
+        )
+    if removed:
+        findings.append(
+            DriftFinding(
+                id="drift-bundle-removed-items",
+                category="bundle",
+                kind="bundle",
+                severity="info",
+                title=f"{len(removed)} bundled item(s) removed",
+                baseline_value=str(len(baseline.items)),
+                current_value=str(len(current.items)),
+                note=", ".join(removed[:3]),
+            )
+        )
+    if baseline.output_path != current.output_path:
+        findings.append(
+            DriftFinding(
+                id="drift-bundle-output-path",
+                category="bundle",
+                kind="bundle",
+                severity="low",
+                title="Bundle output path changed",
+                baseline_value=baseline.output_path,
+                current_value=current.output_path,
+                note=current.source_report,
+            )
+        )
+
+    summary = f"Bundle drift: {len(current.items)} bundled item(s) in the current archive."
+    return DriftReport(
+        baseline_report=str(baseline_path),
+        current_report=str(current_path),
+        report_type="bundle",
+        summary=summary,
+        findings=findings,
+        notes=[summary],
+    )
+
+
 def analyze_report_drift(baseline_path: Path, current_path: Path) -> DriftReport:
     baseline = _load_model(Path(baseline_path))
     current = _load_model(Path(current_path))
@@ -286,6 +424,10 @@ def analyze_report_drift(baseline_path: Path, current_path: Path) -> DriftReport
         return _compare_incident_reports(Path(baseline_path), Path(current_path), baseline, current)
     if isinstance(baseline, DoctorReport) and isinstance(current, DoctorReport):
         return _compare_doctor_reports(Path(baseline_path), Path(current_path), baseline, current)
+    if isinstance(baseline, SecretExposureReport) and isinstance(current, SecretExposureReport):
+        return _compare_secret_reports(Path(baseline_path), Path(current_path), baseline, current)
+    if isinstance(baseline, ReportBundle) and isinstance(current, ReportBundle):
+        return _compare_bundle_reports(Path(baseline_path), Path(current_path), baseline, current)
 
     raise ValueError("Baseline and current reports must be the same PsyberShield report type.")
 

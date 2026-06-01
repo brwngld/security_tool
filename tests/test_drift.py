@@ -3,7 +3,7 @@ from rich.console import Console
 from app import main
 from app.doctor import DoctorCheck, DoctorReport
 from app.drift import analyze_report_drift
-from app.models import Finding, IncidentReport, ScanResult, Target
+from app.models import Finding, IncidentReport, ReportBundle, ReportBundleItem, ScanResult, SecretExposureFinding, SecretExposureReport, Target
 from app.reports.json_report import write_json_report
 
 
@@ -126,3 +126,93 @@ def test_analyze_report_drift_handles_sparse_incident_reports(workspace_temp_dir
 
     assert report.report_type == "incident"
     assert any(finding.category == "containment" for finding in report.findings)
+
+
+def test_analyze_report_drift_handles_secret_reports(workspace_temp_dir) -> None:
+    baseline = SecretExposureReport(
+        root=str(workspace_temp_dir),
+        source_files=[".env"],
+        findings=[
+            SecretExposureFinding(
+                id="secret-1",
+                path=".env",
+                line_number=1,
+                category="secrets",
+                severity="medium",
+                confidence="high",
+                title="SECRET_KEY exposed",
+                evidence={"path": ".env"},
+                recommended_action="Rotate the key.",
+            )
+        ],
+        notes=[],
+    )
+    current = SecretExposureReport(
+        root=str(workspace_temp_dir),
+        source_files=[".env", "config.py"],
+        findings=[
+            SecretExposureFinding(
+                id="secret-1",
+                path=".env",
+                line_number=1,
+                category="secrets",
+                severity="medium",
+                confidence="high",
+                title="SECRET_KEY exposed",
+                evidence={"path": ".env"},
+                recommended_action="Rotate the key.",
+            ),
+            SecretExposureFinding(
+                id="secret-2",
+                path="config.py",
+                line_number=4,
+                category="secrets",
+                severity="high",
+                confidence="high",
+                title="DATABASE_URL exposed",
+                evidence={"path": "config.py"},
+                recommended_action="Move credentials out of the file.",
+            ),
+        ],
+        notes=[],
+    )
+
+    baseline_path = workspace_temp_dir / "baseline-secrets.json"
+    current_path = workspace_temp_dir / "current-secrets.json"
+    baseline_path.write_text(baseline.model_dump_json(indent=2), encoding="utf-8")
+    current_path.write_text(current.model_dump_json(indent=2), encoding="utf-8")
+
+    report = analyze_report_drift(baseline_path, current_path)
+
+    assert report.report_type == "secrets"
+    assert any(finding.kind == "secrets" for finding in report.findings)
+
+
+def test_analyze_report_drift_handles_bundle_reports(workspace_temp_dir) -> None:
+    baseline = ReportBundle(
+        output_path=str(workspace_temp_dir / "bundle-old.zip"),
+        source_report=str(workspace_temp_dir / "incident.json"),
+        items=[
+            ReportBundleItem(path=str(workspace_temp_dir / "incident.json"), arcname="incident.json", kind="report", size=128),
+        ],
+        notes=[],
+    )
+    current = ReportBundle(
+        output_path=str(workspace_temp_dir / "bundle-new.zip"),
+        source_report=str(workspace_temp_dir / "incident.json"),
+        items=[
+            ReportBundleItem(path=str(workspace_temp_dir / "incident.json"), arcname="incident.json", kind="report", size=128),
+            ReportBundleItem(path=str(workspace_temp_dir / "incident-fail2ban.conf"), arcname="incident-fail2ban.conf", kind="artifact", size=64),
+        ],
+        notes=[],
+    )
+
+    baseline_path = workspace_temp_dir / "baseline-bundle.json"
+    current_path = workspace_temp_dir / "current-bundle.json"
+    baseline_path.write_text(baseline.model_dump_json(indent=2), encoding="utf-8")
+    current_path.write_text(current.model_dump_json(indent=2), encoding="utf-8")
+
+    report = analyze_report_drift(baseline_path, current_path)
+
+    assert report.report_type == "bundle"
+    assert any(finding.kind == "bundle" for finding in report.findings)
