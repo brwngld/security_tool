@@ -88,3 +88,47 @@ def test_integrity_command_renders_report_and_writes_outputs(monkeypatch, worksp
     assert output_calls
     assert audit_events
     assert audit_events[0][1].action == "integrity"
+
+
+def test_integrity_command_forwards_notification_targets(monkeypatch, workspace_temp_dir) -> None:
+    report = IntegrityReport(
+        root=str(workspace_temp_dir),
+        baseline_path=str(workspace_temp_dir / "baseline.json"),
+        monitored_paths=[str(workspace_temp_dir / "app" / "main.py")],
+        files=[],
+        findings=[],
+        notes=[],
+    )
+
+    recorded_console = Console(record=True, width=120)
+    notification_calls = []
+    monkeypatch.setattr(main, "console", recorded_console)
+    monkeypatch.setattr(main, "analyze_integrity_sources", lambda root, baseline_path=None, extra_paths=None: report)
+    monkeypatch.setattr(main, "append_audit_event", lambda path, event: None)
+    monkeypatch.setattr(
+        main,
+        "send_notification_outputs",
+        lambda report, **kwargs: notification_calls.append((report, kwargs)),
+    )
+    monkeypatch.setattr(main, "write_integrity_outputs", lambda *args, **kwargs: None)
+
+    main.integrity(
+        workspace_temp_dir,
+        baseline=workspace_temp_dir / "baseline.json",
+        webhook_url=["https://hooks.example/webhook"],
+        slack_webhook_url=["https://hooks.example/slack"],
+        discord_webhook_url=["https://hooks.example/discord"],
+        email_to=["ops@example.com"],
+        email_from="turan@example.com",
+        smtp_host="smtp.example.com",
+        smtp_username="turan",
+        smtp_password_env="SMTP_PASSWORD",
+    )
+
+    assert notification_calls
+    forwarded = notification_calls[0][1]
+    assert forwarded["webhook_urls"] == ["https://hooks.example/webhook"]
+    assert forwarded["slack_webhook_urls"] == ["https://hooks.example/slack"]
+    assert forwarded["discord_webhook_urls"] == ["https://hooks.example/discord"]
+    assert forwarded["email_recipients"] == ["ops@example.com"]
+    assert forwarded["email_sender"] == "turan@example.com"

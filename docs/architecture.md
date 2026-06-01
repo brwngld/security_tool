@@ -3,7 +3,7 @@
 ## Purpose
 
 Turan is a Python-based web security scanner and hardening assistant.
-It supports HTTP/HTTPS scanning, passive crawling, detection of common website/server misconfigurations, WAF/firewall impact notes, incident log analysis for Apache/auth/systemd-style logs, file integrity monitoring, and safe defensive fixes where possible.
+It supports HTTP/HTTPS scanning, passive crawling, detection of common website/server misconfigurations, WAF/firewall impact notes, incident log analysis for Apache/auth/systemd-style logs, file integrity monitoring, baseline drift detection, secret exposure checks, report bundling, report notifications, and safe defensive fixes where possible.
 
 For a command-by-command usage guide, see [docs/turan-user-guide.md](docs/turan-user-guide.md) and the matching PDF at [turan-user-guide.pdf](turan-user-guide.pdf).
 For a short version history, see [docs/changelog.md](docs/changelog.md).
@@ -507,7 +507,9 @@ Incident response:
 .\venv\Scripts\python.exe -m app.main incident --logs /var/log/nginx/access.log --apply-blocks
 ```
 
-`incident` analyzes suspicious activity in log files, groups repeated attacker signals, and can write a denylist include or a fail2ban-style snippet when you explicitly opt into containment.
+`incident` analyzes suspicious activity in log files, groups repeated attacker signals, and can write denylist, fail2ban, rate-limit, or maintenance-mode containment presets when you explicitly opt into containment.
+
+`timeline` turns a saved incident report and optional audit log into a chronological view of log-derived findings and containment actions.
 
 Scan fallback:
 
@@ -566,16 +568,7 @@ Compare runs:
 ```
 
 When the saved reports came from `crawl`, compare also shows crawl coverage deltas, including added and removed pages.
-
-TODO:
-- Add a short terminal note when `compare` includes crawl coverage deltas.
-- Add process and port checks for suspicious listeners and outbound connections.
-- Add containment presets for Nginx denylist, fail2ban, rate limits, and maintenance mode.
-- Add a timeline view that shows what happened first across logs, findings, and containment actions.
-- Add notification hooks for email, Slack, Discord, or webhooks.
-- Add baseline drift detection across logs, headers, files, and config state.
-- Add secret exposure checks for logs and config files with safe redaction.
-- Add report bundles that package JSON, Markdown, HTML, and containment artifacts together.
+When crawl coverage changes, compare prints a short terminal note with the added and removed page counts.
 
 Comparison reports:
 

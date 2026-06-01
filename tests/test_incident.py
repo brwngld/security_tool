@@ -6,7 +6,14 @@ from rich.console import Console
 from app import main
 from app.config import AppConfig
 from app.context import ApplicationContext, DiscoveryReport
-from app.hardening.incident import apply_nginx_denylist, write_fail2ban_artifact
+from app.hardening.incident import (
+    apply_nginx_denylist,
+    build_maintenance_mode_artifact,
+    build_rate_limit_artifact,
+    write_fail2ban_artifact,
+    write_maintenance_mode_artifact,
+    write_rate_limit_artifact,
+)
 from app.incident import analyze_incident_sources, collect_live_incident_sources
 from app.models import IncidentFinding, IncidentReport, LocalFixResult
 
@@ -124,6 +131,30 @@ def test_write_fail2ban_artifact_includes_detected_patterns(workspace_temp_dir) 
     assert "failregex" in text
     assert "sqlmap" in text
     assert "logpath =" in text
+
+
+def test_containment_presets_include_rate_limit_and_maintenance_mode(workspace_temp_dir) -> None:
+    report = IncidentReport(
+        target="http://127.0.0.1:8000",
+        source_files=[str(workspace_temp_dir / "access.log")],
+        blocked_ips=["10.0.0.1"],
+    )
+
+    rate_limit_text = build_rate_limit_artifact(report)
+    maintenance_text = build_maintenance_mode_artifact(report)
+
+    assert "limit_req_zone" in rate_limit_text
+    assert "limit_req" in rate_limit_text
+    assert "maintenance-mode" in maintenance_text
+    assert "return 503" in maintenance_text
+
+    rate_limit_path = workspace_temp_dir / "rate-limit.conf"
+    maintenance_path = workspace_temp_dir / "maintenance.conf"
+    write_rate_limit_artifact(report, rate_limit_path)
+    write_maintenance_mode_artifact(report, maintenance_path)
+
+    assert rate_limit_path.exists()
+    assert maintenance_path.exists()
 
 
 def test_collect_live_incident_sources_tails_a_file(workspace_temp_dir) -> None:
@@ -251,3 +282,104 @@ def test_incident_command_uses_live_tail_snapshots(monkeypatch, workspace_temp_d
     assert "Live capture:" in text
     assert "Incident Response" in text
     assert "10.0.0.9" in text
+
+
+def test_incident_command_writes_containment_presets(monkeypatch, workspace_temp_dir) -> None:
+    access_log = workspace_temp_dir / "access.log"
+    access_log.write_text(
+        '10.0.0.1 - - [27/May/2026:10:00:00 +0000] "GET /.env HTTP/1.1" 404 0 "-" "sqlmap/1.6"\n',
+        encoding="utf-8",
+    )
+
+    recorded_console = Console(record=True, width=120)
+    write_calls = []
+    monkeypatch.setattr(main, "console", recorded_console)
+    monkeypatch.setattr(main, "confirm_risky_command", lambda action, assume_yes=False: True)
+    monkeypatch.setattr(main, "load_app_config", lambda policy_file: AppConfig(audit_log_path=str(workspace_temp_dir / "audit.log")))
+    monkeypatch.setattr(main, "append_audit_event", lambda path, event: None)
+    monkeypatch.setattr(
+        main,
+        "write_fail2ban_artifact",
+        lambda report, output_path: write_calls.append(("fail2ban", Path(output_path))),
+    )
+    monkeypatch.setattr(
+        main,
+        "write_rate_limit_artifact",
+        lambda report, output_path: write_calls.append(("rate-limit", Path(output_path))),
+    )
+    monkeypatch.setattr(
+        main,
+        "write_maintenance_mode_artifact",
+        lambda report, output_path: write_calls.append(("maintenance", Path(output_path))),
+    )
+
+    main.incident(
+        None,
+        logs=access_log,
+        fail2ban_output=workspace_temp_dir / "incident-fail2ban.conf",
+        rate_limit_output=workspace_temp_dir / "incident-rate-limit.conf",
+        maintenance_output=workspace_temp_dir / "incident-maintenance.conf",
+        yes=True,
+    )
+
+    kinds = {kind for kind, _ in write_calls}
+    assert {"fail2ban", "rate-limit", "maintenance"}.issubset(kinds)
+    assert "incident-rate-limit.conf" in recorded_console.export_text()
+
+
+def test_incident_command_forwards_notification_targets(monkeypatch, workspace_temp_dir) -> None:
+    access_log = workspace_temp_dir / "access.log"
+    access_log.write_text(
+        '10.0.0.1 - - [27/May/2026:10:00:00 +0000] "GET /.env HTTP/1.1" 404 0 "-" "sqlmap/1.6"\n',
+        encoding="utf-8",
+    )
+
+    report = IncidentReport(
+        context=ApplicationContext(
+            root=str(workspace_temp_dir),
+            discovery=DiscoveryReport(discovered=False),
+        ),
+        target="http://127.0.0.1:8000",
+        source_files=[str(access_log)],
+        total_lines=1,
+        findings=[],
+        suspect_ips=["10.0.0.1"],
+        blocked_ips=[],
+    )
+
+    recorded_console = Console(record=True, width=120)
+    notification_calls = []
+    monkeypatch.setattr(main, "console", recorded_console)
+    monkeypatch.setattr(main, "confirm_risky_command", lambda action, assume_yes=False: True)
+    monkeypatch.setattr(main, "load_app_config", lambda policy_file: AppConfig(audit_log_path=str(workspace_temp_dir / "audit.log")))
+    monkeypatch.setattr(main, "resolve_application_context", lambda url, root, env_file, nginx_config=None, require_target=False: report.context)
+    monkeypatch.setattr(main, "analyze_incident_sources", lambda sources, **kwargs: report)
+    monkeypatch.setattr(main, "append_audit_event", lambda path, event: None)
+    monkeypatch.setattr(
+        main,
+        "send_notification_outputs",
+        lambda report, **kwargs: notification_calls.append((report, kwargs)),
+    )
+    monkeypatch.setattr(main, "write_incident_outputs", lambda *args, **kwargs: None)
+
+    main.incident(
+        None,
+        logs=access_log,
+        webhook_url=["https://hooks.example/webhook"],
+        slack_webhook_url=["https://hooks.example/slack"],
+        discord_webhook_url=["https://hooks.example/discord"],
+        email_to=["ops@example.com"],
+        email_from="turan@example.com",
+        smtp_host="smtp.example.com",
+        smtp_username="turan",
+        smtp_password_env="SMTP_PASSWORD",
+        yes=True,
+    )
+
+    assert notification_calls
+    forwarded = notification_calls[0][1]
+    assert forwarded["webhook_urls"] == ["https://hooks.example/webhook"]
+    assert forwarded["slack_webhook_urls"] == ["https://hooks.example/slack"]
+    assert forwarded["discord_webhook_urls"] == ["https://hooks.example/discord"]
+    assert forwarded["email_recipients"] == ["ops@example.com"]
+    assert forwarded["email_sender"] == "turan@example.com"

@@ -170,3 +170,71 @@ class IntegrityReport(BaseModel):
     files: list[IntegrityFile] = Field(default_factory=list)
     findings: list[IntegrityFinding] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
+
+
+class TimelineEvent(BaseModel):
+    timestamp: str | None = None
+    kind: str
+    title: str
+    source: str | None = None
+    details: dict[str, str | int | bool | None] = Field(default_factory=dict)
+
+
+class TimelineReport(BaseModel):
+    incident_report: str | None = None
+    audit_log: str | None = None
+    events: list[TimelineEvent] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+
+
+class DriftFinding(BaseModel):
+    id: str
+    category: str
+    kind: str
+    severity: str = Field(pattern=r"^(info|low|medium|high|critical)$")
+    title: str
+    baseline_value: str | None = None
+    current_value: str | None = None
+    note: str = ""
+
+
+class DriftReport(BaseModel):
+    baseline_report: str
+    current_report: str
+    report_type: str
+    summary: str
+    findings: list[DriftFinding] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+
+
+class SecretExposureFinding(BaseModel):
+    id: str
+    path: str
+    line_number: int
+    category: str
+    severity: str = Field(pattern=r"^(info|low|medium|high|critical)$")
+    confidence: str = Field(default="high", pattern=r"^(low|medium|high)$")
+    title: str
+    evidence: dict[str, str | int | bool | None] = Field(default_factory=dict)
+    recommended_action: str = ""
+
+
+class SecretExposureReport(BaseModel):
+    root: str
+    source_files: list[str] = Field(default_factory=list)
+    findings: list[SecretExposureFinding] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+
+
+class ReportBundleItem(BaseModel):
+    path: str
+    arcname: str
+    kind: str
+    size: int | None = None
+
+
+class ReportBundle(BaseModel):
+    output_path: str
+    source_report: str
+    items: list[ReportBundleItem] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)

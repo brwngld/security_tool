@@ -16,6 +16,14 @@ It is intentionally short and practical so it can stay current as the app grows.
 - Added live log snapshot ingestion for `incident` from `journalctl`, Windows Event Log, and file tails.
 - Added richer incident signatures for Apache, Nginx, Gunicorn, uWSGI, SSH, sudo, and auth middleware.
 - Added `integrity` file monitoring with baseline comparison for config files, web roots, and startup scripts.
+- Added process and port checks that flag suspicious listeners and outbound connections in `doctor` and `server-check`.
+- Added rate-limit and maintenance-mode containment presets alongside the Nginx denylist and fail2ban artifacts.
+- Added `timeline` reports that order findings, containment actions, and audit events chronologically.
+- Added report notification hooks for webhooks, Slack, Discord, and email across `incident`, `integrity`, and `timeline`.
+- Added a short `compare` terminal note when crawl coverage changes between saved crawl reports.
+- Added `drift` for baseline drift detection across saved reports.
+- Added `secrets` for redacted secret exposure checks in logs and config files.
+- Added `bundle` for packaging reports and related containment artifacts into ZIP archives.
 
 ## Notes
 

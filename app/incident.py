@@ -170,6 +170,10 @@ _INJECTION_PATTERNS = [
     )
 ]
 
+_ISO_TIMESTAMP_RE = re.compile(r"\b(?P<ts>\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?)\b")
+_APACHE_TIMESTAMP_RE = re.compile(r"\[(?P<ts>\d{1,2}/[A-Za-z]{3}/\d{4}:\d{2}:\d{2}:\d{2}(?: [+-]\d{4})?)\]")
+_SYSLOG_TIMESTAMP_RE = re.compile(r"(?P<ts>[A-Z][a-z]{2}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})")
+
 
 @dataclass
 class _IpActivity:
@@ -185,6 +189,8 @@ class _IpActivity:
     suspicious_paths: set[str] = field(default_factory=set)
     user_agents: set[str] = field(default_factory=set)
     source_files: set[str] = field(default_factory=set)
+    first_seen: datetime | None = None
+    last_seen: datetime | None = None
 
     def score(self) -> int:
         return (
@@ -203,6 +209,8 @@ class _FamilyActivity:
     count: int = 0
     source_files: set[str] = field(default_factory=set)
     reasons: set[str] = field(default_factory=set)
+    first_seen: datetime | None = None
+    last_seen: datetime | None = None
 
 
 _FINDING_FAMILIES = {"gunicorn", "uwsgi", "auth-middleware", "ssh", "sudo"}
@@ -365,6 +373,38 @@ def _extract_user_agent(line: str) -> str:
     if len(parts) >= 6:
         return parts[5].strip()
     return ""
+
+
+def _parse_timestamp_value(raw: str) -> datetime | None:
+    candidate = raw.strip()
+    if candidate.endswith("Z"):
+        candidate = candidate[:-1] + "+00:00"
+    if "/" in candidate:
+        try:
+            return datetime.strptime(candidate, "%d/%b/%Y:%H:%M:%S %z")
+        except ValueError:
+            try:
+                return datetime.strptime(candidate, "%d/%b/%Y:%H:%M:%S")
+            except ValueError:
+                return None
+    try:
+        parsed = datetime.fromisoformat(candidate)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+    return parsed
+
+
+def _extract_line_timestamp(line: str) -> datetime | None:
+    for pattern in (_ISO_TIMESTAMP_RE, _APACHE_TIMESTAMP_RE, _SYSLOG_TIMESTAMP_RE):
+        match = pattern.search(line)
+        if not match:
+            continue
+        parsed = _parse_timestamp_value(match.group("ts"))
+        if parsed is not None:
+            return parsed
+    return None
 
 
 def _extract_client_ip(line: str) -> str | None:
@@ -556,6 +596,7 @@ def analyze_incident_sources(
 
         for line in text.splitlines():
             total_lines += 1
+            line_timestamp = _extract_line_timestamp(line)
             ip = _extract_client_ip(line)
             request_path = _extract_request_path(line)
             status = _extract_status(line)
@@ -570,6 +611,11 @@ def analyze_incident_sources(
                 family_activity.count += 1
                 family_activity.source_files.add(str(source_file))
                 family_activity.reasons.update(reasons)
+                if line_timestamp is not None:
+                    if family_activity.first_seen is None or line_timestamp < family_activity.first_seen:
+                        family_activity.first_seen = line_timestamp
+                    if family_activity.last_seen is None or line_timestamp > family_activity.last_seen:
+                        family_activity.last_seen = line_timestamp
 
             if ip is not None:
                 activity = activities[ip]
@@ -597,6 +643,11 @@ def analyze_incident_sources(
                     error_hits += 1
                 if status in {401, 403}:
                     activity.status_401_403_hits += 1
+                if line_timestamp is not None:
+                    if activity.first_seen is None or line_timestamp < activity.first_seen:
+                        activity.first_seen = line_timestamp
+                    if activity.last_seen is None or line_timestamp > activity.last_seen:
+                        activity.last_seen = line_timestamp
             else:
                 error_hits += 1
                 _ = reasons
@@ -627,6 +678,10 @@ def analyze_incident_sources(
             evidence["user_agents"] = ", ".join(sorted(activity.user_agents))
         if activity.suspicious_paths:
             evidence["paths"] = ", ".join(sorted(activity.suspicious_paths)[:4])
+        if activity.first_seen is not None:
+            evidence["first_seen"] = activity.first_seen.isoformat()
+        if activity.last_seen is not None:
+            evidence["last_seen"] = activity.last_seen.isoformat()
 
         if activity.scanner_hits or activity.probe_hits:
             severity = "high" if score >= block_threshold else "medium"
@@ -698,6 +753,10 @@ def analyze_incident_sources(
             "source_files": ", ".join(sources_list) if sources_list else None,
             "reasons": ", ".join(sorted(family_activity.reasons)[:4]) if family_activity.reasons else None,
         }
+        if family_activity.first_seen is not None:
+            evidence["first_seen"] = family_activity.first_seen.isoformat()
+        if family_activity.last_seen is not None:
+            evidence["last_seen"] = family_activity.last_seen.isoformat()
         if family_name == "gunicorn":
             findings.append(
                 _build_incident_finding(

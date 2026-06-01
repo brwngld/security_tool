@@ -11,7 +11,7 @@ from app.audit import AuditEvent, describe_audit_event
 from app.context import ApplicationContext
 from app.doctor import DoctorCheck, DoctorReport
 from app.config import AppConfig
-from app.models import ComparisonResult, FixDecision, IncidentReport, IntegrityReport, LocalFixResult, ScanResult
+from app.models import ComparisonResult, DriftReport, FixDecision, IncidentReport, IntegrityReport, LocalFixResult, ReportBundle, ScanResult, SecretExposureReport, TimelineReport
 
 
 def summarize_evidence(evidence: dict[str, object]) -> str:
@@ -601,3 +601,150 @@ def render_integrity_report(report: IntegrityReport) -> Group:
     if context_table is not None:
         return Group(summary, context_table, findings, files, notes)
     return Group(summary, findings, files, notes)
+
+
+def render_timeline_report(report: TimelineReport) -> Group:
+    summary = Table(title="Timeline")
+    summary.add_column("Field", style="cyan", no_wrap=True)
+    summary.add_column("Value", style="white")
+    summary.add_row("Incident report", report.incident_report or "-")
+    summary.add_row("Audit log", report.audit_log or "-")
+    summary.add_row("Events", str(len(report.events)))
+
+    events = Table(title="Chronology")
+    events.add_column("Timestamp", style="white", no_wrap=True)
+    events.add_column("Kind", style="cyan", no_wrap=True)
+    events.add_column("Title", style="white")
+    events.add_column("Source", style="white")
+    events.add_column("Details", style="white")
+
+    if report.events:
+        for event in report.events:
+            details = ", ".join(f"{key}={value}" for key, value in event.details.items() if value not in (None, ""))
+            events.add_row(event.timestamp or "-", event.kind, event.title, event.source or "-", details or "-")
+    else:
+        events.add_row("-", "-", "No events", "-", "-")
+
+    notes = Table(title="Notes")
+    notes.add_column("Message", style="white")
+    if report.notes:
+        for note in report.notes[:6]:
+            notes.add_row(note)
+    else:
+        notes.add_row("-")
+
+    return Group(summary, events, notes)
+
+
+def render_drift_report(report: DriftReport) -> Group:
+    summary = Table(title="Baseline Drift")
+    summary.add_column("Field", style="cyan", no_wrap=True)
+    summary.add_column("Value", style="white")
+    summary.add_row("Report type", report.report_type)
+    summary.add_row("Baseline", report.baseline_report)
+    summary.add_row("Current", report.current_report)
+    summary.add_row("Summary", report.summary)
+    summary.add_row("Findings", str(len(report.findings)))
+
+    findings = Table(title="Drift Findings")
+    findings.add_column("Severity", style="magenta", no_wrap=True)
+    findings.add_column("Category", style="cyan", no_wrap=True)
+    findings.add_column("Kind", style="white", no_wrap=True)
+    findings.add_column("Title", style="white")
+    findings.add_column("Baseline", style="white")
+    findings.add_column("Current", style="white")
+    findings.add_column("Note", style="white")
+
+    if report.findings:
+        for finding in report.findings:
+            findings.add_row(
+                finding.severity,
+                finding.category,
+                finding.kind,
+                finding.title,
+                finding.baseline_value or "-",
+                finding.current_value or "-",
+                finding.note or "-",
+            )
+    else:
+        findings.add_row("-", "-", "-", "No drift detected", "-", "-", "-")
+
+    notes = Table(title="Notes")
+    notes.add_column("Message", style="white")
+    if report.notes:
+        for note in report.notes[:6]:
+            notes.add_row(note)
+    else:
+        notes.add_row("-")
+
+    return Group(summary, findings, notes)
+
+
+def render_secret_report(report: SecretExposureReport) -> Group:
+    summary = Table(title="Secret Exposure")
+    summary.add_column("Field", style="cyan", no_wrap=True)
+    summary.add_column("Value", style="white")
+    summary.add_row("Root", report.root)
+    summary.add_row("Source files", str(len(report.source_files)))
+    summary.add_row("Findings", str(len(report.findings)))
+
+    findings = Table(title="Secret Findings")
+    findings.add_column("Severity", style="magenta", no_wrap=True)
+    findings.add_column("Category", style="cyan", no_wrap=True)
+    findings.add_column("Path", style="white")
+    findings.add_column("Line", style="white", no_wrap=True)
+    findings.add_column("Title", style="white")
+    findings.add_column("Action", style="white")
+
+    if report.findings:
+        for finding in report.findings:
+            findings.add_row(
+                finding.severity,
+                finding.category,
+                finding.path,
+                str(finding.line_number),
+                finding.title,
+                finding.recommended_action or "-",
+            )
+    else:
+        findings.add_row("-", "-", "No obvious secret exposures found", "-", "-", "-")
+
+    notes = Table(title="Notes")
+    notes.add_column("Message", style="white")
+    if report.notes:
+        for note in report.notes[:6]:
+            notes.add_row(note)
+    else:
+        notes.add_row("-")
+
+    return Group(summary, findings, notes)
+
+
+def render_bundle_report(report: ReportBundle) -> Group:
+    summary = Table(title="Report Bundle")
+    summary.add_column("Field", style="cyan", no_wrap=True)
+    summary.add_column("Value", style="white")
+    summary.add_row("Source report", report.source_report)
+    summary.add_row("Archive", report.output_path)
+    summary.add_row("Items", str(len(report.items)))
+
+    items = Table(title="Bundle Contents")
+    items.add_column("Kind", style="cyan", no_wrap=True)
+    items.add_column("Path", style="white")
+    items.add_column("Archive name", style="white")
+    items.add_column("Size", style="white", no_wrap=True)
+    if report.items:
+        for item in report.items:
+            items.add_row(item.kind, item.path, item.arcname, str(item.size) if item.size is not None else "-")
+    else:
+        items.add_row("-", "No files bundled", "-", "-")
+
+    notes = Table(title="Notes")
+    notes.add_column("Message", style="white")
+    if report.notes:
+        for note in report.notes[:6]:
+            notes.add_row(note)
+    else:
+        notes.add_row("-")
+
+    return Group(summary, items, notes)

@@ -128,6 +128,83 @@ def write_fail2ban_artifact(report: IncidentReport, output_path: str | Path) -> 
     return path
 
 
+def build_rate_limit_artifact(report: IncidentReport) -> str:
+    zone_name = "turan_rate_limit"
+    target_label = report.target or "incident"
+    lines = [
+        "# Turan rate-limit containment preset",
+        "# Generated automatically from suspicious activity analysis.",
+        "",
+        f"limit_req_zone $binary_remote_addr zone={zone_name}:10m rate=10r/s;",
+        "",
+        "server {",
+        "    # Apply rate limiting to the main request path.",
+        "    location / {",
+        f"        limit_req zone={zone_name} burst=20 nodelay;",
+        "        limit_req_status 429;",
+        "    }",
+    ]
+    if report.blocked_ips:
+        lines.extend(
+            [
+                "",
+                "    # Suspicious IPs identified by Turan can be denied separately.",
+            ]
+        )
+        for ip in report.blocked_ips:
+            lines.append(f"    # deny {ip};")
+    lines.extend(
+        [
+            "}",
+            "",
+            f"# Target: {target_label}",
+            "# Review the burst and rate values before using this in production.",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def write_rate_limit_artifact(report: IncidentReport, output_path: str | Path) -> Path:
+    path = Path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(build_rate_limit_artifact(report), encoding="utf-8")
+    return path
+
+
+def build_maintenance_mode_artifact(report: IncidentReport) -> str:
+    target_label = report.target or "incident"
+    lines = [
+        "# Turan maintenance-mode containment preset",
+        "# Generated automatically from suspicious activity analysis.",
+        "",
+        "server {",
+        "    # Serve a maintenance response while the app is being inspected.",
+        "    location / {",
+        "        return 503;",
+        "    }",
+        "",
+        "    error_page 503 /maintenance.html;",
+        "    location = /maintenance.html {",
+        "        root /usr/share/nginx/html;",
+        "        internal;",
+        "    }",
+        "}",
+        "",
+        f"# Target: {target_label}",
+        "# Update the maintenance page path if your environment stores it elsewhere.",
+    ]
+    if report.blocked_ips:
+        lines.append("# Keep the denylist and maintenance presets in sync if containment escalates.")
+    return "\n".join(lines)
+
+
+def write_maintenance_mode_artifact(report: IncidentReport, output_path: str | Path) -> Path:
+    path = Path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(build_maintenance_mode_artifact(report), encoding="utf-8")
+    return path
+
+
 def apply_nginx_denylist(
     config_path: Path,
     blocked_ips: list[str],
