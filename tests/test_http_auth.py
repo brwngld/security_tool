@@ -6,6 +6,7 @@ import types
 from pathlib import Path
 
 import httpx
+import pytest
 
 from app.http.auth import CrawlAuthConfig, authenticate_client
 
@@ -333,3 +334,21 @@ def test_authenticate_client_uses_browser_auth_and_saves_storage_state(tmp_path:
     assert any("Saved browser storage state to" in note for note in notes)
     assert client.cookies.get("session_id") == "browser-session"
     assert requests == []
+
+
+def test_authenticate_client_requires_login_url_or_storage_state_for_browser_auth() -> None:
+    client = httpx.Client(transport=httpx.MockTransport(lambda request: httpx.Response(200, text="ok")), follow_redirects=True)
+
+    with pytest.raises(ValueError, match="Browser auth requires a login URL or a storage-state file."):
+        authenticate_client(
+            client,
+            "https://example.com",
+            CrawlAuthConfig(
+                auth_method="browser",
+                username="alice",
+                password="secret",
+                browser_username_selector='input[name="identifier"]',
+                browser_password_selector='input[name="password"]',
+                auth_check_url="/account",
+            ),
+        )

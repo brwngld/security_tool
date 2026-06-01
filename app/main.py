@@ -40,6 +40,7 @@ from app.notifications import send_report_notifications, summarize_notification_
 from app.secrets import analyze_secret_exposures
 from app.timeline import load_timeline_report_from_path
 from app.http.auth import CrawlAuthConfig
+from app.http.normalizer import normalize_url
 from app.remediation.backup import create_backup
 from app.remediation.applied_artifacts import applied_artifact_path, create_applied_artifact_backup
 from app.remediation.executor import evaluate_fix_plan, execute_fix
@@ -129,6 +130,7 @@ app = typer.Typer(
         "- `--yes` skips the permission prompt for trusted automation\n\n"
         "**Browser auth**\n"
         "- `--auth-method browser` logs in with a browser session for JS-heavy auth flows\n"
+        "- browser auth requires `--login-url` or `--storage-state`\n"
         "- `--browser-username-selector` and `--browser-password-selector` target login fields\n"
         "- `--browser-submit-selector` clicks the submit control when needed\n"
         "- `--browser-headless/--browser-headed` chooses whether the browser runs visibly\n"
@@ -167,7 +169,7 @@ app = typer.Typer(
         "crawl https://example.com --login-url /auth/login --auth-method json --username alice --password-env PsyberShield_PASSWORD --auth-check-url /account\n"
         "crawl https://example.com --session-file sessions\\autoentrytrack.json --save-session --auth-check-url /account\n"
         "crawl https://example.com --storage-state browser\\storage_state.json --save-storage-state --auth-check-url /account\n"
-        "crawl https://example.com --auth-method browser --browser-username-selector input[name='email'] --browser-password-selector input[name='password'] --username alice --password-env PsyberShield_PASSWORD --auth-check-url /account\n"
+        "crawl https://example.com --auth-method browser --login-url /auth/login --browser-username-selector input[name='email'] --browser-password-selector input[name='password'] --username alice --password-env PsyberShield_PASSWORD --auth-check-url /account\n"
         "scan http://127.0.0.1:8000 --timeout 5\n"
         "scan http://127.0.0.1:8000 --policy policy.json\n"
         "scan http://127.0.0.1:8000 --yes\n"
@@ -246,6 +248,23 @@ def display_path_value(value: str | Path | None) -> str | None:
     return path_value.as_posix()
 
 
+def browser_auth_summary_notes(base_url: str, auth_config: CrawlAuthConfig | None) -> list[str]:
+    if auth_config is None or auth_config.auth_method != "browser":
+        return []
+    notes = ["Browser auth: enabled"]
+    if auth_config.login_url and auth_config.storage_state:
+        notes.append("Browser auth mode: login flow with storage-state preload")
+    elif auth_config.login_url:
+        notes.append("Browser auth mode: fresh login flow")
+    elif auth_config.storage_state:
+        notes.append("Browser auth mode: storage-state reuse")
+    if auth_config.login_url:
+        notes.append(f"Browser login URL: {normalize_url(base_url, auth_config.login_url)}")
+    if auth_config.storage_state:
+        notes.append(f"Browser storage state: {display_path_value(auth_config.storage_state) or auth_config.storage_state}")
+    return notes
+
+
 def normalize_output_option(value: Path | None) -> tuple[Path | None, str | None]:
     normalized = normalize_output_path(value, cwd=Path.cwd())
     if normalized is None:
@@ -291,6 +310,14 @@ def build_auth_config(
     browser_headless: bool,
     auth_check_url: str | None,
 ) -> CrawlAuthConfig | None:
+    auth_method_value = auth_method.strip().lower() or "json"
+    browser_requested = auth_method_value == "browser"
+    login_url_present = text_option_value(login_url) is not None
+    storage_state_present = path_option_value(storage_state) is not None
+
+    if browser_requested and not login_url_present and not storage_state_present:
+        raise typer.BadParameter("Browser auth requires --login-url or --storage-state.")
+
     if not any(
         [
             login_url,
@@ -299,11 +326,11 @@ def build_auth_config(
             password_env,
             user_field != "identifier",
             pass_field != "password",
-            auth_method.strip().lower() != "json",
+            auth_method_value != "json",
             cookie,
             session_file is not None,
             save_session,
-            storage_state is not None,
+            storage_state_present,
             save_storage_state,
             browser_username_selector,
             browser_password_selector,
@@ -315,7 +342,7 @@ def build_auth_config(
         return None
     return CrawlAuthConfig(
         login_url=text_option_value(login_url),
-        auth_method=auth_method.strip().lower() or "json",
+        auth_method=auth_method_value,
         username=text_option_value(username),
         password=text_option_value(password),
         password_env=text_option_value(password_env),
@@ -697,6 +724,8 @@ def scan(
         console.print(render_application_context(context))
     elif context.target.source != "command line":
         console.print(f"Using {context.target.key} from {context.target.source} for the scan target.")
+    for note in browser_auth_summary_notes(context.target.value, auth_config):
+        console.print(f"[info] {note}")
     try:
         if auth_config is None:
             result = scan_target(context.target.value, timeout_seconds=timeout_seconds)
@@ -1033,6 +1062,8 @@ def crawl(
         console.print(render_application_context(context))
     elif context.target.source != "command line":
         console.print(f"Using {context.target.key} from {context.target.source} for the crawl target.")
+    for note in browser_auth_summary_notes(context.target.value, auth_config):
+        console.print(f"[info] {note}")
 
     try:
         if auth_config is None:

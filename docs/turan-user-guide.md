@@ -316,13 +316,29 @@ Common flags:
 Recommended pattern:
 
 ```powershell
-.\venv\Scripts\python.exe -m app.main crawl https://example.com --login-url /auth/login --auth-method json --username alice --password-env PsyberShield_PASSWORD --auth-check-url /account
+.\venv\Scripts\python.exe -m app.main crawl `
+  https://example.com `
+  --login-url /auth/login `
+  --auth-method json `
+  --username alice `
+  --password-env PsyberShield_PASSWORD `
+  --auth-check-url /account
 ```
 
 Browser-assisted quick example:
 
+Browser auth requires either `--login-url` or `--storage-state` so PsyberShield can establish the session before it scans.
+
 ```powershell
-.\venv\Scripts\python.exe -m app.main scan https://example.com --auth-method browser --browser-username-selector 'input[name="identifier"]' --browser-password-selector 'input[name="password"]' --username alice --password-env PsyberShield_PASSWORD --auth-check-url /account
+.\venv\Scripts\python.exe -m app.main scan `
+  https://example.com `
+  --auth-method browser `
+  --login-url /auth/login `
+  --browser-username-selector 'input[name="identifier"]' `
+  --browser-password-selector 'input[name="password"]' `
+  --username alice `
+  --password-env PsyberShield_PASSWORD `
+  --auth-check-url /account
 ```
 
 What to expect:
@@ -539,6 +555,7 @@ These are the main environment variables PsyberShield reads:
 | `SERVER_NAME` | `doctor`, `server-check` | Reported as present or missing |
 | `DATABASE_URL` | `doctor`, `server-check` | Reported as present or missing |
 | `SMTP_PASSWORD` | `doctor`, `server-check` | Reported as present or missing |
+| `PsyberShield_PASSWORD` | `scan`, `crawl` | Secret value read by `--password-env` for browser auth or other password-based login flows |
 
 ## Saved Outputs
 

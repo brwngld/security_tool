@@ -35,8 +35,18 @@ Active CLI slice with scan, crawl, report, baseline, compare, drift, secrets, bu
 
 PsyberShield supports browser-assisted authentication for JS-heavy login flows:
 
+Browser auth requires either `--login-url` or `--storage-state` so PsyberShield knows how to establish the session before it scans.
+
 ```powershell
-.\venv\Scripts\python.exe -m app.main crawl https://example.com --auth-method browser --browser-username-selector 'input[name="identifier"]' --browser-password-selector 'input[name="password"]' --username alice --password-env PsyberShield_PASSWORD --auth-check-url /account
+.\venv\Scripts\python.exe -m app.main crawl `
+  https://example.com `
+  --auth-method browser `
+  --login-url /auth/login `
+  --browser-username-selector 'input[name="identifier"]' `
+  --browser-password-selector 'input[name="password"]' `
+  --username alice `
+  --password-env PsyberShield_PASSWORD `
+  --auth-check-url /account
 ```
 
 Install the optional browser extra with:
@@ -63,7 +73,14 @@ pshield scan
 Browser-assisted login for JS-heavy auth flows:
 
 ```powershell
-pshield scan https://example.com --auth-method browser --browser-username-selector 'input[name="identifier"]' --browser-password-selector 'input[name="password"]' --username alice --password-env PsyberShield_PASSWORD --auth-check-url /account
+pshield scan https://example.com `
+  --auth-method browser `
+  --login-url /auth/login `
+  --browser-username-selector 'input[name="identifier"]' `
+  --browser-password-selector 'input[name="password"]' `
+  --username alice `
+  --password-env PsyberShield_PASSWORD `
+  --auth-check-url /account
 ```
 
 Check logs for active probing and, if needed, apply containment:
@@ -186,7 +203,15 @@ Phase 4, implemented:
 Example phase-4 command:
 
 ```powershell
-.\venv\Scripts\python.exe -m app.main crawl https://example.com --auth-method browser --browser-username-selector 'input[name="identifier"]' --browser-password-selector 'input[name="password"]' --username alice --password-env PsyberShield_PASSWORD --auth-check-url /account
+.\venv\Scripts\python.exe -m app.main crawl `
+  https://example.com `
+  --auth-method browser `
+  --login-url /auth/login `
+  --browser-username-selector 'input[name="identifier"]' `
+  --browser-password-selector 'input[name="password"]' `
+  --username alice `
+  --password-env PsyberShield_PASSWORD `
+  --auth-check-url /account
 ```
 
 ## `.env` variables
@@ -201,6 +226,7 @@ Example phase-4 command:
 | `SERVER_NAME` | `doctor`, `server-check` | Reported as present or missing |
 | `DATABASE_URL` | `doctor`, `server-check` | Reported as present or missing |
 | `SMTP_PASSWORD` | `doctor`, `server-check` | Reported as present or missing |
+| `PsyberShield_PASSWORD` | `scan`, `crawl` | Secret value read by `--password-env` for browser auth or other password-based login flows |
 
 ## Local file overrides
 

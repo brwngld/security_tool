@@ -154,8 +154,8 @@ async def _authenticate_client_with_browser(
     except ImportError as exc:
         raise ValueError("Browser auth requires Playwright. Install it with `pip install .[browser]`.") from exc
 
-    if not config.login_url and not config.auth_check_url and not config.storage_state:
-        raise ValueError("Browser auth requires a login URL, a storage-state file, or an auth-check URL.")
+    if not config.login_url and not config.storage_state:
+        raise ValueError("Browser auth requires a login URL or a storage-state file.")
 
     login_url = normalize_url(base_url, config.login_url) if config.login_url else None
     check_url = normalize_url(base_url, config.auth_check_url) if config.auth_check_url else None

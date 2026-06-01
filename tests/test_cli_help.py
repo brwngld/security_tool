@@ -1,7 +1,11 @@
+from pathlib import Path
+
+import pytest
 from typer.testing import CliRunner
 
 from app.main import app
 from app import main
+import typer
 
 
 def test_top_level_help_mentions_preferred_command() -> None:
@@ -23,3 +27,60 @@ def test_cli_main_expands_optional_output_arguments(monkeypatch) -> None:
     main.cli_main()
 
     assert captured == [["pshield", "scan", "--html-output", "outputs/scan.html"]]
+
+
+def test_build_auth_config_requires_login_url_or_storage_state_for_browser_auth() -> None:
+    with pytest.raises(typer.BadParameter, match="Browser auth requires --login-url or --storage-state."):
+        main.build_auth_config(
+            login_url=None,
+            auth_method="browser",
+            username="alice",
+            password=None,
+            password_env=None,
+            user_field="identifier",
+            pass_field="password",
+            cookie=None,
+            session_file=None,
+            save_session=False,
+            storage_state=None,
+            save_storage_state=False,
+            browser_username_selector='input[name="identifier"]',
+            browser_password_selector='input[name="password"]',
+            browser_submit_selector=None,
+            browser_headless=True,
+            auth_check_url="/account",
+        )
+
+
+def test_browser_auth_summary_notes_resolve_login_url() -> None:
+    notes = main.browser_auth_summary_notes(
+        "https://example.com/base/",
+        main.CrawlAuthConfig(
+            auth_method="browser",
+            login_url="/auth/login",
+            storage_state=Path("browser\\storage_state.json"),
+        ),
+    )
+
+    assert notes == [
+        "Browser auth: enabled",
+        "Browser auth mode: login flow with storage-state preload",
+        "Browser login URL: https://example.com/auth/login",
+        "Browser storage state: browser/storage_state.json",
+    ]
+
+
+def test_browser_auth_summary_notes_show_storage_state_mode() -> None:
+    notes = main.browser_auth_summary_notes(
+        "https://example.com/base/",
+        main.CrawlAuthConfig(
+            auth_method="browser",
+            storage_state=Path("browser\\storage_state.json"),
+        ),
+    )
+
+    assert notes == [
+        "Browser auth: enabled",
+        "Browser auth mode: storage-state reuse",
+        "Browser storage state: browser/storage_state.json",
+    ]

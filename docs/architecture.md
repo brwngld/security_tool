@@ -403,7 +403,7 @@ Authenticated crawl roadmap:
 - Phase 1, implemented: HTTP login/session reuse, JSON or form payloads, custom field names, raw cookie reuse, and an optional protected-page check after login.
 - Phase 2, implemented: saved session import/export with `--session-file` and `--save-session`.
 - Phase 3, implemented: browser storage-state import/export with `--storage-state` and `--save-storage-state`.
-- Phase 4, implemented: browser automation support for JS-heavy login flows when HTTP/session reuse is not enough. Install the optional browser extra with `pip install .[browser]`.
+- Phase 4, implemented: browser automation support for JS-heavy login flows when HTTP/session reuse is not enough. Install the optional browser extra with `pip install .[browser]`. Browser auth requires `--login-url` or `--storage-state` so the session can be established first.
 
 Example phase-1 commands:
 
@@ -427,7 +427,7 @@ Example phase-3 commands:
 Example phase-4 command:
 
 ```powershell
-.\venv\Scripts\python.exe -m app.main crawl https://example.com --auth-method browser --browser-username-selector 'input[name="identifier"]' --browser-password-selector 'input[name="password"]' --username alice --password-env PsyberShield_PASSWORD --auth-check-url /account
+.\venv\Scripts\python.exe -m app.main crawl https://example.com --auth-method browser --login-url /auth/login --browser-username-selector 'input[name="identifier"]' --browser-password-selector 'input[name="password"]' --username alice --password-env PsyberShield_PASSWORD --auth-check-url /account
 ```
 
 Optional report exports:
