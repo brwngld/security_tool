@@ -1,4 +1,4 @@
-from app.checks.exposed_files import check_exposed_files
+from app.probes.exposed_files import check_exposed_files
 
 
 class FakeResponse:

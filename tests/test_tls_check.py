@@ -1,4 +1,4 @@
-from app.checks.tls import summarize_tls
+from app.probes.tls import summarize_tls
 
 
 class FakeTlsSocket:
@@ -36,8 +36,8 @@ class FakeContext:
 
 
 def test_summarize_tls_reports_certificate_details(monkeypatch) -> None:
-    monkeypatch.setattr("app.checks.tls.ssl.create_default_context", lambda: FakeContext())
-    monkeypatch.setattr("app.checks.tls.socket.create_connection", lambda address, timeout=None: FakeRawSocket())
+    monkeypatch.setattr("app.probes.tls.ssl.create_default_context", lambda: FakeContext())
+    monkeypatch.setattr("app.probes.tls.socket.create_connection", lambda address, timeout=None: FakeRawSocket())
 
     result = summarize_tls("https://example.com")
 

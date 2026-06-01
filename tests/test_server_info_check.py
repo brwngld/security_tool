@@ -1,4 +1,4 @@
-from app.checks.server_info import extract_server_banner
+from app.probes.server_info import extract_server_banner
 
 
 def test_extract_server_banner_prefers_server_header() -> None:

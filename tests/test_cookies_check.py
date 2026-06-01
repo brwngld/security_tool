@@ -1,4 +1,4 @@
-from app.checks.cookies import check_cookie_flags
+from app.probes.cookies import check_cookie_flags
 
 
 def test_check_cookie_flags_reports_headers_without_secure_or_httponly() -> None:

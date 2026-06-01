@@ -1,3 +1,3 @@
-"""Check modules for PsyberShield."""
+"""Compatibility shims for the legacy check modules."""
 
 

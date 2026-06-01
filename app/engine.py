@@ -5,12 +5,12 @@ import re
 import httpx
 from urllib.parse import urlparse
 
-from app.checks.headers import check_security_headers
-from app.checks.exposed_files import check_exposed_files
-from app.checks.cookies import check_cookie_flags
-from app.checks.server_info import extract_server_banner
-from app.checks.waf import detect_waf_signals
-from app.checks.tls import summarize_tls
+from app.probes.headers import check_security_headers
+from app.probes.exposed_files import check_exposed_files
+from app.probes.cookies import check_cookie_flags
+from app.probes.server_info import extract_server_banner
+from app.probes.waf import detect_waf_signals
+from app.probes.tls import summarize_tls
 from app.remediation.recommendations import recommend_fix
 from app.http.auth import CrawlAuthConfig, authenticate_client
 from app.http.client import build_client, fetch_page

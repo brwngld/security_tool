@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from app.probes.exposed_files import *  # noqa: F401,F403
-
 from app.models import Finding
 from app.http.normalizer import normalize_url
 
