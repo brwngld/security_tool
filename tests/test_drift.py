@@ -3,7 +3,7 @@ from rich.console import Console
 from app import main
 from app.doctor import DoctorCheck, DoctorReport
 from app.drift import analyze_report_drift
-from app.models import Finding, ScanResult, Target
+from app.models import Finding, IncidentReport, ScanResult, Target
 from app.reports.json_report import write_json_report
 
 
@@ -99,3 +99,30 @@ def test_drift_command_renders_and_writes_outputs(monkeypatch, workspace_temp_di
     assert "Baseline Drift" in text
     assert "SECRET_KEY changed" in text
     assert output_calls
+
+
+def test_analyze_report_drift_handles_sparse_incident_reports(workspace_temp_dir) -> None:
+    baseline = IncidentReport(
+        target="http://127.0.0.1:8000",
+        source_files=[],
+        findings=[],
+        blocked_ips=[],
+        notes=[],
+    )
+    current = IncidentReport(
+        target="http://127.0.0.1:8000",
+        source_files=[],
+        findings=[],
+        blocked_ips=["10.0.0.1"],
+        notes=[],
+    )
+
+    baseline_path = workspace_temp_dir / "baseline-incident.json"
+    current_path = workspace_temp_dir / "current-incident.json"
+    baseline_path.write_text(baseline.model_dump_json(indent=2), encoding="utf-8")
+    current_path.write_text(current.model_dump_json(indent=2), encoding="utf-8")
+
+    report = analyze_report_drift(baseline_path, current_path)
+
+    assert report.report_type == "incident"
+    assert any(finding.category == "containment" for finding in report.findings)

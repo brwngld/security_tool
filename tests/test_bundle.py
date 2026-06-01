@@ -29,6 +29,23 @@ def test_bundle_report_files_packages_related_artifacts(workspace_temp_dir) -> N
         assert "incident-denylist.conf" in names
 
 
+def test_bundle_report_files_skips_missing_artifacts_and_deduplicates(workspace_temp_dir) -> None:
+    report_path = workspace_temp_dir / "scan.json"
+    report_path.write_text('{"kind":"scan"}', encoding="utf-8")
+    duplicate_artifact = workspace_temp_dir / "duplicate.txt"
+    duplicate_artifact.write_text("duplicate", encoding="utf-8")
+
+    bundle = bundle_report_files(
+        report_path,
+        output_path=workspace_temp_dir / "bundle.zip",
+        extra_artifacts=[duplicate_artifact, duplicate_artifact, workspace_temp_dir / "missing.txt"],
+    )
+
+    paths = [item.path for item in bundle.items]
+    assert paths.count(str(duplicate_artifact)) == 1
+    assert all("missing.txt" not in path for path in paths)
+
+
 def test_bundle_command_renders_summary(monkeypatch, workspace_temp_dir) -> None:
     report_path = workspace_temp_dir / "scan.json"
     report_path.write_text('{"kind":"scan"}', encoding="utf-8")

@@ -28,6 +28,16 @@ def test_analyze_secret_exposures_redacts_sensitive_values(workspace_temp_dir) -
     assert "very-secret-cookie" not in evidence_text
 
 
+def test_analyze_secret_exposures_ignores_safe_values(workspace_temp_dir) -> None:
+    notes_file = workspace_temp_dir / "notes.txt"
+    notes_file.write_text("deployment complete\nmonitoring enabled\n", encoding="utf-8")
+
+    report = analyze_secret_exposures(workspace_temp_dir)
+
+    assert report.findings == []
+    assert any("No obvious secret exposure" in note for note in report.notes)
+
+
 def test_secrets_command_renders_and_writes_outputs(monkeypatch, workspace_temp_dir) -> None:
     env_file = workspace_temp_dir / ".env"
     env_file.write_text("PASSWORD=supersecret123\n", encoding="utf-8")
