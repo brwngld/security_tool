@@ -88,7 +88,8 @@ app = typer.Typer(
     add_completion=False,
     rich_markup_mode="markdown",
     help=(
-        "PsyberShield security visibility and response for small servers and web applications.\n\n"
+        "PsyberShield security visibility and response for small servers and web applications.\n"
+        "The preferred CLI command is `pshield`; `psybershield` and `turan` remain compatibility aliases.\n\n"
         "**What it does now**\n"
         "- Normalizes a target URL\n"
         "- Fetches one page safely\n"

@@ -8,10 +8,10 @@ Active CLI slice with scan, crawl, report, baseline, compare, drift, secrets, bu
 
 ## Documentation
 
-- Living user guide: [docs/PsyberShield-user-guide.md](docs/PsyberShield-user-guide.md)
-- PDF version: [PsyberShield-user-guide.pdf](PsyberShield-user-guide.pdf)
+- Living user guide: [docs/turan-user-guide.md](docs/turan-user-guide.md)
+- PDF version: [turan-user-guide.pdf](turan-user-guide.pdf)
 - Changelog: [docs/changelog.md](docs/changelog.md)
-- Regenerate the PDF guide with `python generate_user_guide_pdf.py` after updating [docs/PsyberShield-user-guide.md](docs/PsyberShield-user-guide.md)
+- Regenerate the PDF guide with `python generate_user_guide_pdf.py` after updating [docs/turan-user-guide.md](docs/turan-user-guide.md)
 
 ## Commands
 

@@ -7,7 +7,7 @@ It supports HTTP/HTTPS scanning, passive crawling, detection of common website/s
 
 The preferred CLI command is `pshield`. `psybershield` and `turan` remain compatibility aliases during the transition.
 
-For a command-by-command usage guide, see [docs/PsyberShield-user-guide.md](docs/PsyberShield-user-guide.md) and the matching PDF at [PsyberShield-user-guide.pdf](PsyberShield-user-guide.pdf).
+For a command-by-command usage guide, see [docs/turan-user-guide.md](docs/turan-user-guide.md) and the matching PDF at [turan-user-guide.pdf](turan-user-guide.pdf).
 For a short version history, see [docs/changelog.md](docs/changelog.md).
 
 The core flow is:
