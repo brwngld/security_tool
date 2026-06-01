@@ -6,6 +6,7 @@ from rich.console import Console
 from app import main
 from app.config import AppConfig
 from app.context import ApplicationContext, DiscoveryReport
+from app.models import ReportBundle
 from app.hardening.incident import (
     apply_nginx_denylist,
     build_maintenance_mode_artifact,
@@ -230,12 +231,14 @@ def test_incident_command_applies_containment(monkeypatch, workspace_temp_dir) -
     recorded_console = Console(record=True, width=120)
     audit_events = []
     applied_calls = []
+    bundle_calls = []
 
     monkeypatch.setattr(main, "console", recorded_console)
     monkeypatch.setattr(main, "confirm_risky_command", lambda action, assume_yes=False: True)
     monkeypatch.setattr(main, "load_app_config", lambda policy_file: AppConfig(audit_log_path=str(workspace_temp_dir / "audit.log")))
     monkeypatch.setattr(main, "resolve_application_context", lambda url, root, env_file, nginx_config=None, require_target=False: report.context)
     monkeypatch.setattr(main, "analyze_incident_sources", lambda sources, **kwargs: report)
+    monkeypatch.setattr(main, "default_output_path", lambda command_name, option_name, stamp=None: workspace_temp_dir / "outputs" / "incident-bundle.zip" if option_name == "--bundle-output" else workspace_temp_dir / "outputs" / "incident.json")
     monkeypatch.setattr(
         main,
         "apply_nginx_denylist",
@@ -251,12 +254,21 @@ def test_incident_command_applies_containment(monkeypatch, workspace_temp_dir) -
         ),
     )
     monkeypatch.setattr(main, "append_audit_event", lambda path, event: audit_events.append(event))
+    monkeypatch.setattr(
+        main,
+        "bundle_report_files",
+        lambda report_file, output_path=None, extra_artifacts=None: bundle_calls.append((Path(report_file), Path(output_path), [Path(item) for item in (extra_artifacts or [])]))
+        or ReportBundle(output_path=str(output_path), source_report=str(report_file), items=[], notes=["Bundled"]),
+    )
 
-    main.incident(None, logs=access_log, nginx_config=nginx_config, apply_blocks=True, yes=True)
+    main.incident(None, logs=access_log, nginx_config=nginx_config, apply_blocks=True, yes=True, json_output=workspace_temp_dir / "incident.json")
 
     text = recorded_console.export_text()
     assert "Incident Response" in text
     assert applied_calls == [(nginx_config, ["10.0.0.1"])]
+    assert bundle_calls
+    assert bundle_calls[0][1] == workspace_temp_dir / "outputs" / "incident-bundle.zip"
+    assert workspace_temp_dir / "incident.json" in bundle_calls[0][2]
     assert audit_events
     assert audit_events[0].action == "incident"
     assert audit_events[0].result == "contained"

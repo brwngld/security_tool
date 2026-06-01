@@ -50,7 +50,7 @@ from app.hardening.incident import (
     write_rate_limit_artifact,
 )
 from app.hardening.local_fixes import apply_local_nginx_hardening_fix, choose_local_fix_target
-from app.output_paths import expand_optional_output_arguments, normalize_output_path
+from app.output_paths import default_output_path, expand_optional_output_arguments, normalize_output_path
 from app.models import LocalFixResult
 from app.scanner import crawl_target, scan_target
 from app.reports.comparison_report import write_html_comparison_report, write_markdown_comparison_report
@@ -1202,6 +1202,7 @@ def incident(
     fail2ban_output: Path | None = typer.Option(None, "--fail2ban-output", help="Write a fail2ban-style filter and jail snippet"),
     rate_limit_output: Path | None = typer.Option(None, "--rate-limit-output", help="Write an Nginx rate-limit containment preset"),
     maintenance_output: Path | None = typer.Option(None, "--maintenance-output", help="Write an Nginx maintenance-mode containment preset"),
+    bundle_output: Path | None = typer.Option(None, "--bundle-output", help="Bundle the report and containment artifacts into a ZIP archive"),
     webhook_url: list[str] = typer.Option([], "--webhook-url", help="Send the incident summary to a generic webhook URL"),
     slack_webhook_url: list[str] = typer.Option([], "--slack-webhook-url", help="Send the incident summary to a Slack incoming webhook"),
     discord_webhook_url: list[str] = typer.Option([], "--discord-webhook-url", help="Send the incident summary to a Discord webhook"),
@@ -1232,6 +1233,7 @@ def incident(
     fail2ban_output_path, fail2ban_output_note = normalize_output_option(path_option_value(fail2ban_output))
     rate_limit_output_path, rate_limit_output_note = normalize_output_option(path_option_value(rate_limit_output))
     maintenance_output_path, maintenance_output_note = normalize_output_option(path_option_value(maintenance_output))
+    bundle_output_path, bundle_output_note = normalize_output_option(path_option_value(bundle_output))
     webhook_urls = [str(value).strip() for value in list_option_value(webhook_url) if str(value).strip()]
     slack_webhook_urls = [str(value).strip() for value in list_option_value(slack_webhook_url) if str(value).strip()]
     discord_webhook_urls = [str(value).strip() for value in list_option_value(discord_webhook_url) if str(value).strip()]
@@ -1313,6 +1315,34 @@ def incident(
     for note in (json_output_note, markdown_output_note, html_output_note, fail2ban_output_note, rate_limit_output_note, maintenance_output_note):
         if note is not None:
             console.print(f"[info] {note}")
+    if bundle_output_path is None and report.containment_applied:
+        bundle_output_path = default_output_path("incident", "--bundle-output")
+        bundle_output_note = f"Using default output path for --bundle-output: {bundle_output_path.as_posix()}"
+    if bundle_output_path is not None:
+        primary_report_path = json_output_path
+        if primary_report_path is None:
+            primary_report_path = default_output_path("incident", "--json-output")
+            write_json_incident_report(report, primary_report_path)
+            console.print(f"Wrote JSON report to {primary_report_path}")
+        bundle_items = [
+            path
+            for path in (
+                json_output_path,
+                markdown_output_path,
+                html_output_path,
+                fail2ban_output_path,
+                rate_limit_output_path,
+                maintenance_output_path,
+            )
+            if path is not None
+        ]
+        if report.containment_artifact:
+            bundle_items.append(Path(report.containment_artifact))
+        bundle_report = bundle_report_files(primary_report_path, output_path=bundle_output_path, extra_artifacts=bundle_items)
+        console.print(render_bundle_report(bundle_report))
+        console.print(f"Wrote ZIP bundle to {bundle_output_path}")
+    if bundle_output_note is not None:
+        console.print(f"[info] {bundle_output_note}")
     send_notification_outputs(
         report,
         webhook_urls=webhook_urls,
