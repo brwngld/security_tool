@@ -34,6 +34,7 @@ class DoctorReport(BaseModel):
     python_version: str
     context: ApplicationContext | None = None
     checks: list[DoctorCheck] = Field(default_factory=list)
+    readiness_score: int | None = None
 
 
 @dataclass
@@ -440,7 +441,22 @@ def build_doctor_report(root: Path, checks: list[DoctorCheck], context: Applicat
         python_version=sys.version.split()[0],
         context=context,
         checks=checks,
+        readiness_score=calculate_readiness_score(checks),
     )
+
+
+def calculate_readiness_score(checks: Sequence[DoctorCheck]) -> int | None:
+    if not checks:
+        return None
+
+    status_weights = {
+        "ok": 100,
+        "info": 80,
+        "warn": 45,
+        "unknown": 60,
+    }
+    total = sum(status_weights.get(check.status, 60) for check in checks)
+    return round(total / len(checks))
 
 
 def run_server_checks(

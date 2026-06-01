@@ -9,6 +9,7 @@ from app.context import ApplicationContext
 from app.doctor import DoctorCheck, DoctorReport, run_doctor_checks, run_server_checks
 from app.environment import ResolvedScanTarget
 from app.models import ScanResult, Target
+from app.reports.console import render_doctor_report
 
 
 def test_process_and_port_activity_flags_public_listener_and_outbound_connection(monkeypatch) -> None:
@@ -75,6 +76,8 @@ def test_doctor_checks_flag_local_settings(workspace_temp_dir) -> None:
     assert checks["SERVER_NAME"].status == "warn"
     assert checks["DATABASE_URL"].status == "ok"
     assert checks["SMTP_PASSWORD"].status == "ok"
+    assert report.readiness_score is not None
+    assert report.readiness_score < 100
 
 
 def test_server_checks_focus_on_server_signals(workspace_temp_dir) -> None:
@@ -110,6 +113,7 @@ def test_doctor_command_prints_safe_statuses(monkeypatch, workspace_temp_dir) ->
         os_name="Windows",
         os_release="11",
         python_version="3.14.0",
+        readiness_score=88,
         checks=[
             DoctorCheck(name="SECRET_KEY", status="ok", summary="present", details={"source": ".env"}),
             DoctorCheck(name="DEBUG", status="warn", summary="enabled", details={"source": ".env"}),
@@ -127,6 +131,25 @@ def test_doctor_command_prints_safe_statuses(monkeypatch, workspace_temp_dir) ->
     assert "SECRET_KEY" in text
     assert "present" in text
     assert "supersecret" not in text
+    assert "Readiness score" in text
+
+
+def test_render_doctor_report_shows_readiness_score() -> None:
+    report = DoctorReport(
+        root="C:/workspace",
+        os_name="Windows",
+        os_release="11",
+        python_version="3.14.0",
+        readiness_score=88,
+        checks=[DoctorCheck(name="SECRET_KEY", status="ok", summary="present", details={"source": ".env"})],
+    )
+
+    console = Console(record=True, width=100)
+    console.print(render_doctor_report(report))
+    text = console.export_text()
+
+    assert "Readiness score" in text
+    assert "88%" in text
 
 
 def test_server_check_command_uses_server_view(monkeypatch, workspace_temp_dir) -> None:

@@ -19,7 +19,7 @@ from app.audit import (
     read_audit_events,
     write_audit_events_json,
 )
-from app.doctor import run_doctor_checks, run_server_checks
+from app.diagnostics import run_doctor_checks, run_server_checks
 from app.config import load_app_config
 from app.approvals import (
     ask_to_apply_local_fix,

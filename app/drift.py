@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from app.comparison import compare_scan_results, summarize_comparison
-from app.doctor import DoctorReport
+from app.diagnostics import DoctorReport
 from app.models import ComparisonResult, DriftFinding, DriftReport, IncidentReport, IntegrityReport, ScanResult
 
 

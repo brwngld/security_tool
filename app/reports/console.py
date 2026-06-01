@@ -9,7 +9,7 @@ from rich.text import Text
 
 from app.audit import AuditEvent, describe_audit_event
 from app.context import ApplicationContext
-from app.doctor import DoctorCheck, DoctorReport
+from app.diagnostics import DoctorCheck, DoctorReport
 from app.config import AppConfig
 from app.models import ComparisonResult, DriftReport, FixDecision, IncidentReport, IntegrityReport, LocalFixResult, ReportBundle, ScanResult, SecretExposureReport, TimelineReport
 
@@ -391,6 +391,7 @@ def render_doctor_report(report: DoctorReport) -> Group:
     summary.add_row("Root", report.root)
     summary.add_row("OS", f"{report.os_name} {report.os_release}")
     summary.add_row("Python", report.python_version)
+    summary.add_row("Readiness score", f"{report.readiness_score}%" if report.readiness_score is not None else "not calculated")
 
     context_table = render_application_context(report.context) if report.context is not None else None
 
