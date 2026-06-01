@@ -481,7 +481,7 @@ Doctor:
 .\venv\Scripts\python.exe -m app.main doctor
 ```
 
-`doctor` checks the local machine, config paths, open localhost ports, safe environment status, and any resolved app target without taking a target URL.
+`doctor` checks the local machine, config paths, open localhost ports, safe environment status, and any resolved app target without taking a target URL. The readiness score includes a short breakdown of the checks that most affected it.
 
 `doctor` can also read a specific env file:
 

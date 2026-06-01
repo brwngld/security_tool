@@ -393,6 +393,14 @@ def render_doctor_report(report: DoctorReport) -> Group:
     summary.add_row("Python", report.python_version)
     summary.add_row("Readiness score", f"{report.readiness_score}%" if report.readiness_score is not None else "not calculated")
 
+    readiness = Table(title="Readiness Breakdown")
+    readiness.add_column("Message", style="white")
+    if report.readiness_notes:
+        for note in report.readiness_notes[:6]:
+            readiness.add_row(note)
+    else:
+        readiness.add_row("-")
+
     context_table = render_application_context(report.context) if report.context is not None else None
 
     checks = Table(title="Local Checks")
@@ -408,8 +416,8 @@ def render_doctor_report(report: DoctorReport) -> Group:
         checks.add_row("-", "-", "No checks ran", "-")
 
     if context_table is not None:
-        return Group(summary, context_table, checks)
-    return Group(summary, checks)
+        return Group(summary, readiness, context_table, checks)
+    return Group(summary, readiness, checks)
 
 
 def render_comparison(comparison: ComparisonResult) -> Group:

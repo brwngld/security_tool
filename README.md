@@ -298,7 +298,7 @@ When crawl coverage changes, PsyberShield prints a short terminal note with the 
 .\venv\Scripts\python.exe -m app.main doctor
 ```
 
-`doctor` checks the local machine, config paths, suspicious listeners and outbound connections, open localhost ports, safe environment status, and any resolved app target without taking a target URL.
+`doctor` checks the local machine, config paths, suspicious listeners and outbound connections, open localhost ports, safe environment status, and any resolved app target without taking a target URL. The readiness score now includes a short breakdown of the checks that most influenced it.
 
 ## Server check
 

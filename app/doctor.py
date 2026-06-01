@@ -35,6 +35,7 @@ class DoctorReport(BaseModel):
     context: ApplicationContext | None = None
     checks: list[DoctorCheck] = Field(default_factory=list)
     readiness_score: int | None = None
+    readiness_notes: list[str] = Field(default_factory=list)
 
 
 @dataclass
@@ -442,6 +443,7 @@ def build_doctor_report(root: Path, checks: list[DoctorCheck], context: Applicat
         context=context,
         checks=checks,
         readiness_score=calculate_readiness_score(checks),
+        readiness_notes=build_readiness_notes(checks),
     )
 
 
@@ -457,6 +459,28 @@ def calculate_readiness_score(checks: Sequence[DoctorCheck]) -> int | None:
     }
     total = sum(status_weights.get(check.status, 60) for check in checks)
     return round(total / len(checks))
+
+
+def build_readiness_notes(checks: Sequence[DoctorCheck]) -> list[str]:
+    if not checks:
+        return []
+
+    status_counts: dict[str, int] = {}
+    for check in checks:
+        status_counts[check.status] = status_counts.get(check.status, 0) + 1
+
+    notes = [f"Readiness score is a weighted average across {len(checks)} check(s)."]
+
+    warn_checks = [check.name for check in checks if check.status == "warn"]
+    if warn_checks:
+        notes.append(f"Main drag from warnings: {', '.join(warn_checks[:4])}.")
+
+    info_count = status_counts.get("info", 0)
+    unknown_count = status_counts.get("unknown", 0)
+    if info_count or unknown_count:
+        notes.append(f"Info checks: {info_count}; unknown checks: {unknown_count}.")
+
+    return notes
 
 
 def run_server_checks(

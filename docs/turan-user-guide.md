@@ -427,7 +427,7 @@ Example:
 
 ## `doctor`
 
-`doctor` checks the local machine and app environment, including suspicious listeners and outbound connections.
+`doctor` checks the local machine and app environment, including suspicious listeners and outbound connections. Its readiness score is paired with a short breakdown of the checks that most affected it.
 
 What it checks:
 

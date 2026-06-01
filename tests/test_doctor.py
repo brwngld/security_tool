@@ -78,6 +78,8 @@ def test_doctor_checks_flag_local_settings(workspace_temp_dir) -> None:
     assert checks["SMTP_PASSWORD"].status == "ok"
     assert report.readiness_score is not None
     assert report.readiness_score < 100
+    assert report.readiness_notes
+    assert any("Main drag from warnings" in note for note in report.readiness_notes)
 
 
 def test_server_checks_focus_on_server_signals(workspace_temp_dir) -> None:
@@ -114,6 +116,7 @@ def test_doctor_command_prints_safe_statuses(monkeypatch, workspace_temp_dir) ->
         os_release="11",
         python_version="3.14.0",
         readiness_score=88,
+        readiness_notes=["Readiness score is a weighted average across 2 check(s).", "Main drag from warnings: DEBUG."],
         checks=[
             DoctorCheck(name="SECRET_KEY", status="ok", summary="present", details={"source": ".env"}),
             DoctorCheck(name="DEBUG", status="warn", summary="enabled", details={"source": ".env"}),
@@ -132,6 +135,8 @@ def test_doctor_command_prints_safe_statuses(monkeypatch, workspace_temp_dir) ->
     assert "present" in text
     assert "supersecret" not in text
     assert "Readiness score" in text
+    assert "weighted average" in text
+    assert "Main drag from warnings" in text
 
 
 def test_render_doctor_report_shows_readiness_score() -> None:
@@ -141,6 +146,7 @@ def test_render_doctor_report_shows_readiness_score() -> None:
         os_release="11",
         python_version="3.14.0",
         readiness_score=88,
+        readiness_notes=["Readiness score is a weighted average across 1 check(s)."],
         checks=[DoctorCheck(name="SECRET_KEY", status="ok", summary="present", details={"source": ".env"})],
     )
 
@@ -150,6 +156,7 @@ def test_render_doctor_report_shows_readiness_score() -> None:
 
     assert "Readiness score" in text
     assert "88%" in text
+    assert "weighted average" in text
 
 
 def test_server_check_command_uses_server_view(monkeypatch, workspace_temp_dir) -> None:
