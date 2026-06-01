@@ -165,7 +165,7 @@ def _build_target_unreachable_result(target: Target, canonical_url: str, notes: 
             id="target-unreachable",
             target_url=canonical_url,
             title="Target unreachable",
-            description="Turan could not complete the initial request.",
+            description="PsyberShield could not complete the initial request.",
             severity="low",
             category="connectivity",
             evidence={
@@ -462,3 +462,4 @@ def crawl_target(
         tls_summary=tls_summary,
         scan_confidence=1.0 if scanned_urls else 0.0,
     )
+

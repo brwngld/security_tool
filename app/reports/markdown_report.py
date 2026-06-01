@@ -61,7 +61,7 @@ def _append_findings_block(lines: list[str], result: ScanResult) -> None:
 def write_markdown_report(result: ScanResult, output_path: str | Path, include_fix_plans: bool = False) -> Path:
     path = Path(output_path)
     lines = [
-        "# Turan Report",
+        "# PsyberShield Report",
         "",
         f"Target: {result.target.url}",
         f"Findings: {len(result.findings)}",

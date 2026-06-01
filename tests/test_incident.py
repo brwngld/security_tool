@@ -381,9 +381,9 @@ def test_incident_command_forwards_notification_targets(monkeypatch, workspace_t
         slack_webhook_url=["https://hooks.example/slack"],
         discord_webhook_url=["https://hooks.example/discord"],
         email_to=["ops@example.com"],
-        email_from="turan@example.com",
+        email_from="PsyberShield@example.com",
         smtp_host="smtp.example.com",
-        smtp_username="turan",
+        smtp_username="PsyberShield",
         smtp_password_env="SMTP_PASSWORD",
         yes=True,
     )
@@ -394,4 +394,5 @@ def test_incident_command_forwards_notification_targets(monkeypatch, workspace_t
     assert forwarded["slack_webhook_urls"] == ["https://hooks.example/slack"]
     assert forwarded["discord_webhook_urls"] == ["https://hooks.example/discord"]
     assert forwarded["email_recipients"] == ["ops@example.com"]
-    assert forwarded["email_sender"] == "turan@example.com"
+    assert forwarded["email_sender"] == "PsyberShield@example.com"
+

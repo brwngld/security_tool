@@ -15,7 +15,7 @@ def write_json_drift_report(report: DriftReport, output_path: str | Path) -> Pat
 def write_markdown_drift_report(report: DriftReport, output_path: str | Path) -> Path:
     path = Path(output_path)
     lines = [
-        "# Turan Drift Report",
+        "# PsyberShield Drift Report",
         "",
         f"Report type: {report.report_type}",
         f"Baseline: {report.baseline_report}",
@@ -63,7 +63,7 @@ def write_html_drift_report(report: DriftReport, output_path: str | Path) -> Pat
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Turan Drift Report</title>
+  <title>PsyberShield Drift Report</title>
   <style>
     body {{ margin: 0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif; background: #f8fafc; color: #0f172a; }}
     .page {{ max-width: 1180px; margin: 0 auto; padding: 32px 20px 56px; }}
@@ -78,7 +78,7 @@ def write_html_drift_report(report: DriftReport, output_path: str | Path) -> Pat
 <body>
   <div class="page">
     <div class="hero">
-      <h1>Turan Drift Report</h1>
+      <h1>PsyberShield Drift Report</h1>
       <p>Type: {escape(report.report_type)}</p>
       <p>Baseline: {escape(report.baseline_report)}</p>
       <p>Current: {escape(report.current_report)}</p>
@@ -104,3 +104,4 @@ def write_html_drift_report(report: DriftReport, output_path: str | Path) -> Pat
 </html>"""
     path.write_text(html, encoding="utf-8")
     return path
+

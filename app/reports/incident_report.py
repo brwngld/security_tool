@@ -15,7 +15,7 @@ def write_json_incident_report(report: IncidentReport, output_path: str | Path) 
 def write_markdown_incident_report(report: IncidentReport, output_path: str | Path) -> Path:
     path = Path(output_path)
     lines = [
-        "# Turan Incident Report",
+        "# PsyberShield Incident Report",
         "",
         f"Target: {report.target or 'not resolved'}",
         f"Sources: {len(report.source_files)}",
@@ -102,7 +102,7 @@ def write_html_incident_report(report: IncidentReport, output_path: str | Path) 
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Turan Incident Report</title>
+  <title>PsyberShield Incident Report</title>
   <style>
     body {{
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
@@ -136,7 +136,7 @@ def write_html_incident_report(report: IncidentReport, output_path: str | Path) 
 <body>
   <div class="page">
     <div class="hero">
-      <h1>Turan Incident Report</h1>
+      <h1>PsyberShield Incident Report</h1>
       <p class="muted" style="color: rgba(248, 250, 252, 0.8);">Target: {escape(report.target or 'not resolved')}</p>
       <p class="muted" style="color: rgba(248, 250, 252, 0.8);">Findings: {len(report.findings)} | Blocked IPs: {len(report.blocked_ips)} | Containment applied: {'yes' if report.containment_applied else 'no'}</p>
     </div>

@@ -15,7 +15,7 @@ def write_json_secret_report(report: SecretExposureReport, output_path: str | Pa
 def write_markdown_secret_report(report: SecretExposureReport, output_path: str | Path) -> Path:
     path = Path(output_path)
     lines = [
-        "# Turan Secret Exposure Report",
+        "# PsyberShield Secret Exposure Report",
         "",
         f"Root: {report.root}",
         f"Source files: {len(report.source_files)}",
@@ -65,7 +65,7 @@ def write_html_secret_report(report: SecretExposureReport, output_path: str | Pa
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Turan Secret Exposure Report</title>
+  <title>PsyberShield Secret Exposure Report</title>
   <style>
     body {{ margin: 0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif; background: #f8fafc; color: #0f172a; }}
     .page {{ max-width: 1180px; margin: 0 auto; padding: 32px 20px 56px; }}
@@ -80,7 +80,7 @@ def write_html_secret_report(report: SecretExposureReport, output_path: str | Pa
 <body>
   <div class="page">
     <div class="hero">
-      <h1>Turan Secret Exposure Report</h1>
+      <h1>PsyberShield Secret Exposure Report</h1>
       <p>Root: {escape(report.root)}</p>
       <p>Findings: {len(report.findings)}</p>
     </div>

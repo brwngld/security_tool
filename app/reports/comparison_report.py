@@ -12,7 +12,7 @@ _TEMPLATE = """
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Turan Comparison</title>
+  <title>PsyberShield Comparison</title>
   <style>
     :root {
       --bg: #f8fafc;
@@ -126,7 +126,7 @@ _TEMPLATE = """
 <body>
   <div class="page">
     <div class="hero">
-      <h1 class="title">Turan Comparison</h1>
+      <h1 class="title">PsyberShield Comparison</h1>
       <p class="subtitle">{{ comparison.old_report }} → {{ comparison.new_report }}</p>
       <div class="chips">
         <span class="chip chip-good">Fixed {{ comparison.fixed_findings|length }}</span>
@@ -250,7 +250,7 @@ _TEMPLATE = """
 def write_markdown_comparison_report(comparison: ComparisonResult, output_path: str | Path) -> Path:
     path = Path(output_path)
     lines = [
-        "# Turan Comparison",
+        "# PsyberShield Comparison",
         "",
         f"Old report: {comparison.old_report}",
         f"New report: {comparison.new_report}",

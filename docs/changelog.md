@@ -1,6 +1,6 @@
-# Turan Changelog
+# PsyberShield Changelog
 
-This file tracks user-facing changes to Turan over time.
+This file tracks user-facing changes to PsyberShield over time.
 It is intentionally short and practical so it can stay current as the app grows.
 
 ## Unreleased
@@ -30,9 +30,9 @@ It is intentionally short and practical so it can stay current as the app grows.
 - When you add a new command, flag, or output format, update:
   - `README.md`
   - `docs/architecture.md`
-  - `docs/turan-user-guide.md`
+  - `docs/PsyberShield-user-guide.md`
   - this changelog
-- If the PDF guide changes, regenerate `turan-user-guide.pdf` with `python generate_user_guide_pdf.py`
+- If the PDF guide changes, regenerate `PsyberShield-user-guide.pdf` with `python generate_user_guide_pdf.py`
 
 ## Release Checklist
 
@@ -41,7 +41,8 @@ Before you call a version ready, check:
 1. The CLI help reflects the current commands and flags.
 2. The README and architecture doc mention the new behavior.
 3. The user guide is updated for any new user-facing flow.
-4. The PDF guide is regenerated from `docs/turan-user-guide.md`.
+4. The PDF guide is regenerated from `docs/PsyberShield-user-guide.md`.
 5. The Desktop app copy is synced.
 6. The full test suite passes in the Desktop app copy.
 7. Any new output paths still land under `outputs/` unless the user explicitly provides a full path.
+

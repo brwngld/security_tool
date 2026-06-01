@@ -196,7 +196,7 @@ def _render_findings_table(findings: list, title: str = "Findings") -> Table:
 
 def render_console(result: ScanResult, include_fix_plans: bool = False) -> Group:
     _, _, _ = summarize_counts(result)
-    summary = Table(title="Turan Scan")
+    summary = Table(title="PsyberShield Scan")
     summary.add_column("Field", style="cyan", no_wrap=True)
     summary.add_column("Value", style="white")
     summary.add_row("Target", str(result.target.url))

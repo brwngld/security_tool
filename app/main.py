@@ -88,7 +88,7 @@ app = typer.Typer(
     add_completion=False,
     rich_markup_mode="markdown",
     help=(
-        "Turan web security scanner and local hardening assistant.\n\n"
+        "PsyberShield security visibility and response for small servers and web applications.\n\n"
         "**What it does now**\n"
         "- Normalizes a target URL\n"
         "- Fetches one page safely\n"
@@ -162,10 +162,10 @@ app = typer.Typer(
         "crawl http://127.0.0.1:8000\n"
         "scan --env-file /path/to/autoentrytrack/.env\n"
         "crawl https://example.com --seed-robots --seed-sitemap\n"
-        "crawl https://example.com --login-url /auth/login --auth-method json --username alice --password-env TURAN_PASSWORD --auth-check-url /account\n"
+        "crawl https://example.com --login-url /auth/login --auth-method json --username alice --password-env PsyberShield_PASSWORD --auth-check-url /account\n"
         "crawl https://example.com --session-file sessions\\autoentrytrack.json --save-session --auth-check-url /account\n"
         "crawl https://example.com --storage-state browser\\storage_state.json --save-storage-state --auth-check-url /account\n"
-        "crawl https://example.com --auth-method browser --browser-username-selector input[name='email'] --browser-password-selector input[name='password'] --username alice --password-env TURAN_PASSWORD --auth-check-url /account\n"
+        "crawl https://example.com --auth-method browser --browser-username-selector input[name='email'] --browser-password-selector input[name='password'] --username alice --password-env PsyberShield_PASSWORD --auth-check-url /account\n"
         "scan http://127.0.0.1:8000 --timeout 5\n"
         "scan http://127.0.0.1:8000 --policy policy.json\n"
         "scan http://127.0.0.1:8000 --yes\n"
@@ -566,14 +566,14 @@ def send_notification_outputs(
 
 @app.callback(invoke_without_command=True)
 def main(ctx: typer.Context) -> None:
-    # Show the top-level help when the user runs Turan without a subcommand.
+    # Show the top-level help when the user runs PsyberShield without a subcommand.
     if ctx.invoked_subcommand is None:
         console.print(ctx.get_help())
 
 
 @app.command(help="Scan a target URL, or discover one from the local server layout when no URL is supplied.")
 def scan(
-    url: str | None = typer.Argument(None, metavar="URL", help="Target URL. If omitted, Turan looks for APP_URL, TARGET_URL, or BASE_URL in .env."),
+    url: str | None = typer.Argument(None, metavar="URL", help="Target URL. If omitted, PsyberShield looks for APP_URL, TARGET_URL, or BASE_URL in .env."),
     env_file: Path | None = typer.Option(None, "--env-file", help="Read target defaults from a specific .env file"),
     timeout: float | None = typer.Option(None, "--timeout", min=0.1, help="Request and TLS timeout in seconds"),
     yes: bool = typer.Option(False, "--yes", help="Skip the permission prompt for trusted automation"),
@@ -781,7 +781,7 @@ def scan(
                         target_path=context.discovery.nginx_config or context.discovery.systemd_service or context.root,
                         status="blocked",
                         reason="No supported local fix target was discovered for the first live edit lane.",
-                        notes=["Turan found the server layout, but not a supported file to edit yet."],
+                        notes=["PsyberShield found the server layout, but not a supported file to edit yet."],
                     )
                     console.print(render_local_fix_result(local_fix_result))
                     append_audit_event(
@@ -912,7 +912,7 @@ def scan(
 
 @app.command(help="Crawl in-scope links from a target URL or a discovered app target.")
 def crawl(
-    url: str | None = typer.Argument(None, metavar="URL", help="Start URL. If omitted, Turan looks for APP_URL, TARGET_URL, or BASE_URL in .env."),
+    url: str | None = typer.Argument(None, metavar="URL", help="Start URL. If omitted, PsyberShield looks for APP_URL, TARGET_URL, or BASE_URL in .env."),
     env_file: Path | None = typer.Option(None, "--env-file", help="Read target defaults from a specific .env file"),
     timeout: float | None = typer.Option(None, "--timeout", min=0.1, help="Request and TLS timeout in seconds"),
     yes: bool = typer.Option(False, "--yes", help="Skip the permission prompt for trusted automation"),
@@ -1181,7 +1181,7 @@ def incident(
     url: str | None = typer.Argument(
         None,
         metavar="URL",
-        help="Target URL. If omitted, Turan discovers the local app target before analyzing logs.",
+        help="Target URL. If omitted, PsyberShield discovers the local app target before analyzing logs.",
     ),
     logs: Path | None = typer.Option(None, "--logs", help="Log file or directory to analyze"),
     live: bool = typer.Option(False, "--live", help="Capture a fresh snapshot from live log sources before analysis"),
@@ -1498,7 +1498,7 @@ def bundle(
 @app.command(help="Apply one real local fix to a discovered server file.")
 def fix(
     local_fix: bool = typer.Option(False, "--local", help="Run the first real local fix lane"),
-    url: str | None = typer.Argument(None, metavar="URL", help="Target URL. If omitted, Turan discovers the local app target."),
+    url: str | None = typer.Argument(None, metavar="URL", help="Target URL. If omitted, PsyberShield discovers the local app target."),
     env_file: Path | None = typer.Option(None, "--env-file", help="Read target defaults from a specific .env file"),
     nginx_config: Path | None = typer.Option(None, "--nginx-config", help="Check a specific Nginx config file"),
     timeout: float | None = typer.Option(None, "--timeout", min=0.1, help="Request and TLS timeout in seconds for the discovery scan"),
@@ -1546,7 +1546,7 @@ def fix(
             target_path=context.discovery.nginx_config or context.discovery.systemd_service or context.root,
             status="blocked",
             reason="No supported local fix target was discovered for the first live edit lane.",
-            notes=["Turan found the server layout, but not a supported file to edit yet."],
+            notes=["PsyberShield found the server layout, but not a supported file to edit yet."],
         )
         console.print(render_local_fix_result(local_fix_result))
         append_audit_event(
@@ -1748,3 +1748,4 @@ def compare(
 if __name__ == "__main__":
     sys.argv, CLI_OPTIONAL_OUTPUT_NOTES = expand_optional_output_arguments(sys.argv)
     app()
+

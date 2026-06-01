@@ -1,14 +1,14 @@
-# Turan User Guide
+# PsyberShield User Guide
 
-Turan is a Python-based web security scanner and hardening assistant.
+PsyberShield is a Python-based security visibility and response tool for small servers and web applications.
 This guide is a living document. It describes the current CLI behavior, the command set, the important flags, and what to expect from each workflow.
 
 For version history, see [docs/changelog.md](docs/changelog.md).
-This guide and the changelog should be updated together when Turan's user-facing behavior changes.
+This guide and the changelog should be updated together when PsyberShield's user-facing behavior changes.
 
-## What Turan Does
+## What PsyberShield Does
 
-Turan helps you:
+PsyberShield helps you:
 
 - scan a target URL
 - crawl in-scope pages
@@ -18,7 +18,7 @@ Turan helps you:
 - apply one real local fix lane with backup and validation
 - save reports, baselines, audit history, and comparison summaries
 
-Turan is intentionally defensive:
+PsyberShield is intentionally defensive:
 
 - it warns before risky commands
 - it never prints secret values
@@ -161,7 +161,7 @@ Read-only commands stay quiet:
 
 `scan` and `crawl` accept a target URL directly.
 
-If you omit the URL, Turan resolves a target in this order:
+If you omit the URL, PsyberShield resolves a target in this order:
 
 1. explicit URL on the command line
 2. `--env-file`
@@ -175,11 +175,11 @@ The common environment variables are:
 - `TARGET_URL`
 - `BASE_URL`
 
-When Turan discovers a local app target, it prints a short `Discovery:` line and then a fuller application context block.
+When PsyberShield discovers a local app target, it prints a short `Discovery:` line and then a fuller application context block.
 
 ## Output Files and Paths
 
-Turan writes user-facing artifacts into `outputs/`.
+PsyberShield writes user-facing artifacts into `outputs/`.
 
 Supported output flags:
 
@@ -194,7 +194,7 @@ You can use them in three ways:
 
 - pass a full path
 - pass a relative path
-- pass the flag without a path and let Turan create a timestamped filename under `outputs/`
+- pass the flag without a path and let PsyberShield create a timestamped filename under `outputs/`
 
 Examples:
 
@@ -204,7 +204,7 @@ Examples:
 .\venv\Scripts\python.exe -m app.main baseline https://example.com --output
 ```
 
-If you use a Windows-rooted path like `\outputs\crawl.html`, Turan treats it as project-relative and prints the resolved path.
+If you use a Windows-rooted path like `\outputs\crawl.html`, PsyberShield treats it as project-relative and prints the resolved path.
 
 ## `scan`
 
@@ -280,7 +280,7 @@ Example:
 
 ## Authenticated Scanning and Crawling
 
-Turan supports generic authenticated flows for protected content.
+PsyberShield supports generic authenticated flows for protected content.
 
 Supported auth modes:
 
@@ -314,12 +314,12 @@ Common flags:
 Recommended pattern:
 
 ```powershell
-.\venv\Scripts\python.exe -m app.main crawl https://example.com --login-url /auth/login --auth-method json --username alice --password-env TURAN_PASSWORD --auth-check-url /account
+.\venv\Scripts\python.exe -m app.main crawl https://example.com --login-url /auth/login --auth-method json --username alice --password-env PsyberShield_PASSWORD --auth-check-url /account
 ```
 
 What to expect:
 
-- Turan logs in before crawling or scanning protected pages
+- PsyberShield logs in before crawling or scanning protected pages
 - it confirms that login worked by checking a protected URL when you provide `--auth-check-url`
 - it reuses the same session for the scan or crawl
 
@@ -517,7 +517,7 @@ Example:
 
 ## `.env` Variables
 
-These are the main environment variables Turan reads:
+These are the main environment variables PsyberShield reads:
 
 | Variable | Used by | Purpose |
 | --- | --- | --- |
@@ -680,7 +680,7 @@ Example:
 
 ```powershell
 .\venv\Scripts\python.exe -m app.main incident --logs outputs\access.log --webhook-url https://hooks.example/webhook
-.\venv\Scripts\python.exe -m app.main integrity . --baseline baselines\integrity.json --email-to security@example.com --email-from turan@example.com --smtp-host smtp.example.com --smtp-username turan --smtp-password-env SMTP_PASSWORD
+.\venv\Scripts\python.exe -m app.main integrity . --baseline baselines\integrity.json --email-to security@example.com --email-from PsyberShield@example.com --smtp-host smtp.example.com --smtp-username PsyberShield --smtp-password-env SMTP_PASSWORD
 .\venv\Scripts\python.exe -m app.main timeline outputs\incident.json --audit-log outputs\audit.log --slack-webhook-url https://hooks.slack.com/services/...
 ```
 
@@ -688,9 +688,9 @@ Example:
 
 If a bare output flag creates a file and you cannot find it:
 
-- Turan writes under `outputs/` in the current project directory
-- if you pass `\outputs\file.html`, Turan treats it as project-relative and tells you the resolved path
-- if you pass a full absolute path, Turan respects it
+- PsyberShield writes under `outputs/` in the current project directory
+- if you pass `\outputs\file.html`, PsyberShield treats it as project-relative and tells you the resolved path
+- if you pass a full absolute path, PsyberShield respects it
 
 If `crawl` only reaches login or redirect pages:
 
@@ -705,7 +705,7 @@ If `server-check` finds a local app target but still points to the repo `.env`:
 
 ## Maintaining This Guide
 
-This guide is meant to be updated as Turan grows.
+This guide is meant to be updated as PsyberShield grows.
 
 When you add a new command or flag:
 
@@ -713,3 +713,4 @@ When you add a new command or flag:
 2. update this guide
 3. update the README quick-start sections if needed
 4. regenerate the PDF
+

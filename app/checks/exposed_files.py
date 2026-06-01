@@ -13,7 +13,7 @@ def check_exposed_files(client, base_url: str) -> list[Finding]:
     findings: list[Finding] = []
     for candidate in exposed_file_candidates():
         url = normalize_url(base_url, candidate)
-        response = client.get(url, headers={"User-Agent": "Turan/0.1.0"})
+        response = client.get(url, headers={"User-Agent": "PsyberShield/0.1.0"})
         if response.status_code != 200:
             continue
 
@@ -39,3 +39,4 @@ def check_exposed_files(client, base_url: str) -> list[Finding]:
         )
 
     return findings
+

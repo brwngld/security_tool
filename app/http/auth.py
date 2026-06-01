@@ -256,9 +256,9 @@ def authenticate_client(client: httpx.Client, base_url: str, config: CrawlAuthCo
         login_url = normalize_url(base_url, config.login_url)
         payload = {config.user_field: config.username, config.pass_field: password}
         if method == "json":
-            response = client.post(login_url, json=payload, headers={"User-Agent": "Turan/0.1.0"})
+            response = client.post(login_url, json=payload, headers={"User-Agent": "PsyberShield/0.1.0"})
         elif method == "form":
-            response = client.post(login_url, data=payload, headers={"User-Agent": "Turan/0.1.0"})
+            response = client.post(login_url, data=payload, headers={"User-Agent": "PsyberShield/0.1.0"})
         else:
             raise ValueError("Unsupported auth method. Use json or form.")
 
@@ -268,7 +268,7 @@ def authenticate_client(client: httpx.Client, base_url: str, config: CrawlAuthCo
 
     if config.auth_check_url:
         check_url = normalize_url(base_url, config.auth_check_url)
-        response = client.get(check_url, headers={"User-Agent": "Turan/0.1.0"})
+        response = client.get(check_url, headers={"User-Agent": "PsyberShield/0.1.0"})
         if response.status_code in {401, 403}:
             raise ValueError(f"Authenticated check failed at {check_url} with status {response.status_code}.")
         login_path = urlparse(normalize_url(base_url, config.login_url)).path if config.login_url else ""
@@ -284,3 +284,4 @@ def authenticate_client(client: httpx.Client, base_url: str, config: CrawlAuthCo
         notes.append(f"Saved browser storage state to {config.storage_state}.")
 
     return notes
+

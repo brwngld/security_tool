@@ -125,7 +125,7 @@ def test_write_html_report_creates_file(workspace_temp_dir) -> None:
 
     assert output_path.exists()
     text = output_path.read_text(encoding="utf-8")
-    assert "<title>Turan Report</title>" in text
+    assert "<title>PsyberShield Deployment Readiness Review</title>" in text
     assert "Proposed Fixes" in text
     assert "Missing security header: x-content-type-options" in text
     assert "First Move" in text

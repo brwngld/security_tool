@@ -1,2 +1,3 @@
-"""HTTP helpers for Turan."""
+"""HTTP helpers for PsyberShield."""
+
 

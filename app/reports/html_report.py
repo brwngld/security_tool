@@ -14,7 +14,7 @@ _TEMPLATE = """
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Turan Report</title>
+  <title>PsyberShield Deployment Readiness Review</title>
   <style>
     :root {
       --bg: #eef2ff;
@@ -294,7 +294,7 @@ _TEMPLATE = """
   <div class="page">
     <div class="hero">
       <div>
-        <h1>Turan Report</h1>
+        <h1>PsyberShield Deployment Readiness Review</h1>
         <p class="subtitle">Target: {{ result.target.url }}</p>
         <div class="hero-meta">
           <span class="pill">Findings {{ result.findings|length }}</span>
@@ -343,7 +343,7 @@ _TEMPLATE = """
     <div class="card">
       <div class="section-header">
         <h2>Application Context</h2>
-        <div class="section-hint">This is the discovery trail Turan used when no URL was supplied</div>
+        <div class="section-hint">This is the discovery trail PsyberShield used when no URL was supplied</div>
       </div>
       <div class="context-grid">
         <div class="context-item"><span class="context-label">Root</span><span class="context-value">{{ result.context.root }}</span></div>
@@ -367,7 +367,7 @@ _TEMPLATE = """
     <div class="card">
       <div class="section-header">
         <h2>Scanned URLs</h2>
-        <div class="section-hint">These are the in-scope pages Turan visited in crawl mode</div>
+        <div class="section-hint">These are the in-scope pages PsyberShield visited in crawl mode</div>
       </div>
       <ol class="crawl-list">
         {% for url in result.scanned_urls %}
@@ -490,3 +490,4 @@ def write_html_report(result: ScanResult, output_path: str | Path, include_fix_p
     )
     path.write_text(rendered, encoding="utf-8")
     return path
+

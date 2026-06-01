@@ -1,6 +1,6 @@
-# Turan
+# PsyberShield
 
-Turan is a Python-based web security scanner and hardening assistant.
+PsyberShield is a Python-based security visibility and response tool for small servers and web applications.
 
 ## Status
 
@@ -8,10 +8,10 @@ Active CLI slice with scan, crawl, report, baseline, compare, drift, secrets, bu
 
 ## Documentation
 
-- Living user guide: [docs/turan-user-guide.md](docs/turan-user-guide.md)
-- PDF version: [turan-user-guide.pdf](turan-user-guide.pdf)
+- Living user guide: [docs/PsyberShield-user-guide.md](docs/PsyberShield-user-guide.md)
+- PDF version: [PsyberShield-user-guide.pdf](PsyberShield-user-guide.pdf)
 - Changelog: [docs/changelog.md](docs/changelog.md)
-- Regenerate the PDF guide with `python generate_user_guide_pdf.py` after updating [docs/turan-user-guide.md](docs/turan-user-guide.md)
+- Regenerate the PDF guide with `python generate_user_guide_pdf.py` after updating [docs/PsyberShield-user-guide.md](docs/PsyberShield-user-guide.md)
 
 ## Commands
 
@@ -33,10 +33,10 @@ Active CLI slice with scan, crawl, report, baseline, compare, drift, secrets, bu
 
 ## Browser auth
 
-Turan supports browser-assisted authentication for JS-heavy login flows:
+PsyberShield supports browser-assisted authentication for JS-heavy login flows:
 
 ```powershell
-.\venv\Scripts\python.exe -m app.main crawl https://example.com --auth-method browser --browser-username-selector 'input[name="identifier"]' --browser-password-selector 'input[name="password"]' --username alice --password-env TURAN_PASSWORD --auth-check-url /account
+.\venv\Scripts\python.exe -m app.main crawl https://example.com --auth-method browser --browser-username-selector 'input[name="identifier"]' --browser-password-selector 'input[name="password"]' --username alice --password-env PsyberShield_PASSWORD --auth-check-url /account
 ```
 
 Install the optional browser extra with:
@@ -52,7 +52,7 @@ pip install .[browser]
 .\venv\Scripts\python.exe -m app.main scan https://example.com --yes
 ```
 
-If you want Turan to discover the app target on a VPS, you can leave the URL off:
+If you want PsyberShield to discover the app target on a VPS, you can leave the URL off:
 
 ```powershell
 .\venv\Scripts\python.exe -m app.main scan
@@ -105,7 +105,7 @@ You can send report summaries to webhooks or email after `incident`, `integrity`
 
 ```powershell
 .\venv\Scripts\python.exe -m app.main incident --logs outputs\access.log --webhook-url https://hooks.example/webhook
-.\venv\Scripts\python.exe -m app.main integrity . --baseline baselines\integrity.json --email-to security@example.com --email-from turan@example.com --smtp-host smtp.example.com --smtp-username turan --smtp-password-env SMTP_PASSWORD
+.\venv\Scripts\python.exe -m app.main integrity . --baseline baselines\integrity.json --email-to security@example.com --email-from PsyberShield@example.com --smtp-host smtp.example.com --smtp-username PsyberShield --smtp-password-env SMTP_PASSWORD
 .\venv\Scripts\python.exe -m app.main timeline outputs\incident.json --audit-log outputs\audit.log --slack-webhook-url https://hooks.slack.com/services/...
 ```
 
@@ -115,21 +115,21 @@ Monitor key files against a saved baseline:
 .\venv\Scripts\python.exe -m app.main integrity . --baseline baselines\integrity.json --json-output outputs\integrity.json
 ```
 
-Turan looks for `APP_URL`, then `TARGET_URL`, then `BASE_URL`.
+PsyberShield looks for `APP_URL`, then `TARGET_URL`, then `BASE_URL`.
 
-If those are missing, Turan checks the server layout first and prefers the app's own `.env` when Nginx or systemd point to an app root or an explicit `EnvironmentFile`.
+If those are missing, PsyberShield checks the server layout first and prefers the app's own `.env` when Nginx or systemd point to an app root or an explicit `EnvironmentFile`.
 
-If discovery still can't resolve a target, Turan falls back to the project `.env` only as the last local fallback.
+If discovery still can't resolve a target, PsyberShield falls back to the project `.env` only as the last local fallback.
 
-When that happens, Turan prints a short `Discovery:` line first and then the fuller context block.
+When that happens, PsyberShield prints a short `Discovery:` line first and then the fuller context block.
 
-You can also point Turan at a specific env file:
+You can also point PsyberShield at a specific env file:
 
 ```powershell
 .\venv\Scripts\python.exe -m app.main scan --env-file C:\path\to\autoentrytrack\.env
 ```
 
-If you want Turan to walk multiple in-scope pages instead of just one, use `crawl`:
+If you want PsyberShield to walk multiple in-scope pages instead of just one, use `crawl`:
 
 ```powershell
 .\venv\Scripts\python.exe -m app.main crawl https://example.com --max-pages 20 --max-depth 2
@@ -151,7 +151,7 @@ Phase 1, implemented:
 Example phase-1 commands:
 
 ```powershell
-.\venv\Scripts\python.exe -m app.main crawl https://example.com --login-url /auth/login --auth-method json --username alice --password-env TURAN_PASSWORD --auth-check-url /account
+.\venv\Scripts\python.exe -m app.main crawl https://example.com --login-url /auth/login --auth-method json --username alice --password-env PsyberShield_PASSWORD --auth-check-url /account
 .\venv\Scripts\python.exe -m app.main crawl https://example.com --cookie "session=abc123; csrf_token=..."
 ```
 
@@ -174,7 +174,7 @@ Phase 4, implemented:
 Example phase-4 command:
 
 ```powershell
-.\venv\Scripts\python.exe -m app.main crawl https://example.com --auth-method browser --browser-username-selector 'input[name="identifier"]' --browser-password-selector 'input[name="password"]' --username alice --password-env TURAN_PASSWORD --auth-check-url /account
+.\venv\Scripts\python.exe -m app.main crawl https://example.com --auth-method browser --browser-username-selector 'input[name="identifier"]' --browser-password-selector 'input[name="password"]' --username alice --password-env PsyberShield_PASSWORD --auth-check-url /account
 ```
 
 ## `.env` variables
@@ -200,15 +200,15 @@ Example phase-4 command:
 
 ## Export reports
 
-Turan writes three report formats:
+PsyberShield writes three report formats:
 
 - `--json-output` for machine-readable data
 - `--markdown-output` for a quick human-readable report
 - `--html-output` for the polished browser version
-- If you pass one of those flags without a path, Turan creates a timestamped file under `outputs/`
+- If you pass one of those flags without a path, PsyberShield creates a timestamped file under `outputs/`
 
-When Turan discovers a local app target, the saved JSON, Markdown, and HTML reports include an `Application Context` section with the resolved target, env source, server hints, and discovery notes.
-When you use `crawl`, the saved JSON, Markdown, and HTML reports also include a `Scanned URLs` section with the in-scope pages Turan visited, and repeated findings are grouped with an `Affected URLs` list instead of being printed over and over.
+When PsyberShield discovers a local app target, the saved JSON, Markdown, and HTML reports include an `Application Context` section with the resolved target, env source, server hints, and discovery notes.
+When you use `crawl`, the saved JSON, Markdown, and HTML reports also include a `Scanned URLs` section with the in-scope pages PsyberShield visited, and repeated findings are grouped with an `Affected URLs` list instead of being printed over and over.
 
 Cookie warnings stay a little cautious too: CSRF-style cookies can show a lower confidence hint and a "review issuance location" recommendation instead of pretending they are always session cookies.
 
@@ -224,9 +224,9 @@ Cookie warnings stay a little cautious too: CSRF-style cookies can show a lower 
 .\venv\Scripts\python.exe -m app.main scan https://example.com --html-output
 ```
 
-Turan can write JSON, Markdown, and HTML reports in the same scan run if you pass the output paths you want.
+PsyberShield can write JSON, Markdown, and HTML reports in the same scan run if you pass the output paths you want.
 
-If you pass a Windows-style rooted path like `\outputs\crawl-test.html`, Turan treats it as project-relative, prints the resolved path, and writes the file under the current project folder instead of the drive root.
+If you pass a Windows-style rooted path like `\outputs\crawl-test.html`, PsyberShield treats it as project-relative, prints the resolved path, and writes the file under the current project folder instead of the drive root.
 
 ## Re-render a saved report
 
@@ -253,7 +253,7 @@ You can give the baseline a friendlier name too:
 .\venv\Scripts\python.exe -m app.main baseline https://example.com --label vps-west
 ```
 
-Turan also writes a small companion metadata file next to each baseline snapshot, like `baselines\vps-west.json.meta.json`, so you can see the resolved target and discovery trail later.
+PsyberShield also writes a small companion metadata file next to each baseline snapshot, like `baselines\vps-west.json.meta.json`, so you can see the resolved target and discovery trail later.
 
 You can point the audit log at a different file too:
 
@@ -276,7 +276,7 @@ You can also write a Markdown or HTML diff report:
 ```
 
 When the saved reports come from `crawl`, `compare` also shows how many pages were added or removed between runs.
-When crawl coverage changes, Turan prints a short terminal note with the added and removed page counts.
+When crawl coverage changes, PsyberShield prints a short terminal note with the added and removed page counts.
 
 ## Audit history
 
@@ -330,9 +330,9 @@ Copy [policy.example.json](policy.example.json) to `policy.json` and adjust the 
 .\venv\Scripts\python.exe -m app.main scan http://127.0.0.1:8000 --interactive
 ```
 
-Turan shows a numbered list of suggested fixes, asks whether you want to generate artifacts or apply fixes locally, and then lets you choose all fixes or just the ones you want by number or range.
-If there are more than ten fixes, Turan shows a paged list and lets you move with `n` and `p`.
-For `fix-local`, Turan shows the target file, backup path, validation command, and rollback state before the final apply confirmation.
+PsyberShield shows a numbered list of suggested fixes, asks whether you want to generate artifacts or apply fixes locally, and then lets you choose all fixes or just the ones you want by number or range.
+If there are more than ten fixes, PsyberShield shows a paged list and lets you move with `n` and `p`.
+For `fix-local`, PsyberShield shows the target file, backup path, validation command, and rollback state before the final apply confirmation.
 
 ## Apply fixes
 
@@ -342,10 +342,10 @@ For `fix-local`, Turan shows the target file, backup path, validation command, a
 
 `--generate-fixes` creates a backup first, then writes local remediation notes for allowed safe changes. It does not change system services or config outside the approved gate.
 `--apply-fixes` still works as a legacy alias for `--generate-fixes`, so older commands keep running while the wording stays honest.
-Each remediation note includes the backup path when Turan creates one.
+Each remediation note includes the backup path when PsyberShield creates one.
 The generated fix artifact itself is written as a small artifact under `outputs/generated/`.
 
-Turan also appends scan and fix events to `outputs/audit.log` by default.
+PsyberShield also appends scan and fix events to `outputs/audit.log` by default.
 
 ## Real local fix
 
@@ -368,3 +368,4 @@ Then scan it from another terminal:
 ```powershell
 .\venv\Scripts\python.exe -m app.main scan http://127.0.0.1:8000
 ```
+

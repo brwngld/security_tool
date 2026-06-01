@@ -60,7 +60,8 @@ def write_remediation_note(
         f"- Artifact: `{_display_path(artifact_path)}`" if artifact_path is not None else "- Artifact: not created",
         f"- Saved at: `{saved_at}`",
         "",
-        "This file is local to the Turan workspace and can be removed safely after review.",
+        "This file is local to the PsyberShield workspace and can be removed safely after review.",
     ]
     note_path.write_text("\n".join(lines), encoding="utf-8")
     return note_path
+

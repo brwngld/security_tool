@@ -287,4 +287,5 @@ def analyze_report_drift(baseline_path: Path, current_path: Path) -> DriftReport
     if isinstance(baseline, DoctorReport) and isinstance(current, DoctorReport):
         return _compare_doctor_reports(Path(baseline_path), Path(current_path), baseline, current)
 
-    raise ValueError("Baseline and current reports must be the same Turan report type.")
+    raise ValueError("Baseline and current reports must be the same PsyberShield report type.")
+

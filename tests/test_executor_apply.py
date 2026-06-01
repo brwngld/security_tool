@@ -30,7 +30,7 @@ def test_executor_writes_a_local_remediation_note(workspace_temp_dir, monkeypatc
     artifact_path = workspace_temp_dir / "outputs" / "generated" / "f1.conf"
     assert artifact_path.exists()
     artifact_text = artifact_path.read_text(encoding="utf-8")
-    assert "Turan reversible hardening artifact" in artifact_text
+    assert "PsyberShield reversible hardening artifact" in artifact_text
     assert "server_tokens off" in artifact_text or "Secure and HttpOnly" in artifact_text or "add_header" in artifact_text
     note_path = workspace_temp_dir / "outputs" / "remediation" / "f1.md"
     assert note_path.exists()
@@ -125,3 +125,4 @@ def test_choose_first_move_matches_the_finding_category() -> None:
 
     assert "Nginx" in choose_first_move(header_finding)
     assert "web root" in choose_first_move(file_finding)
+

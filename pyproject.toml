@@ -3,9 +3,9 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "turan"
+name = "psybershield"
 version = "0.1.0"
-description = "Python web security scanner and hardening assistant"
+description = "Security visibility and response for small servers and web applications"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -21,9 +21,11 @@ dependencies = [
 browser = ["playwright"]
 
 [project.scripts]
-turan = "app.main:app"
+pshield = "app.main:app"
+PsyberShield = "app.main:app"
 
 [tool.setuptools]
 
 [tool.setuptools.packages.find]
 include = ["app*"]
+

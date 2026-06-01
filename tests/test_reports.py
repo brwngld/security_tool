@@ -135,7 +135,7 @@ def test_write_markdown_report_creates_file(workspace_temp_dir) -> None:
 
     assert output_path.exists()
     text = output_path.read_text(encoding="utf-8")
-    assert "# Turan Report" in text
+    assert "# PsyberShield Report" in text
     assert "Expires on: 2030-01-30" in text
     assert "## Proposed Fixes" in text
     assert "## Application Context" in text
@@ -176,7 +176,7 @@ def test_render_console_shows_findings_table() -> None:
     console.print(render_console(result, include_fix_plans=True))
     text = console.export_text()
 
-    assert "Turan Scan" in text
+    assert "PsyberShield Scan" in text
     assert "Findings" in text
     assert "Missing security header: x-content-type-options" in text
     assert "Evidence" in text

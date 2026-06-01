@@ -15,7 +15,7 @@ def write_json_integrity_report(report: IntegrityReport, output_path: str | Path
 def write_markdown_integrity_report(report: IntegrityReport, output_path: str | Path) -> Path:
     path = Path(output_path)
     lines = [
-        "# Turan Integrity Report",
+        "# PsyberShield Integrity Report",
         "",
         f"Root: {report.root}",
         f"Baseline: {report.baseline_path or 'not supplied'}",
@@ -104,7 +104,7 @@ def write_html_integrity_report(report: IntegrityReport, output_path: str | Path
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Turan Integrity Report</title>
+  <title>PsyberShield Integrity Report</title>
   <style>
     body {{
       margin: 0;
@@ -135,7 +135,7 @@ def write_html_integrity_report(report: IntegrityReport, output_path: str | Path
 <body>
   <div class="page">
     <div class="hero">
-      <h1>Turan Integrity Report</h1>
+      <h1>PsyberShield Integrity Report</h1>
       <p class="muted" style="color: rgba(248, 250, 252, 0.8);">Root: {escape(report.root)}</p>
       <p class="muted" style="color: rgba(248, 250, 252, 0.8);">Baseline: {escape(report.baseline_path or 'not supplied')}</p>
       <p class="muted" style="color: rgba(248, 250, 252, 0.8);">Files tracked: {len(report.files)} | Findings: {len(report.findings)}</p>
