@@ -11,7 +11,7 @@ from app.checks.cookies import check_cookie_flags
 from app.checks.server_info import extract_server_banner
 from app.checks.waf import detect_waf_signals
 from app.checks.tls import summarize_tls
-from app.hardening.recommendations import recommend_fix
+from app.remediation.recommendations import recommend_fix
 from app.http.auth import CrawlAuthConfig, authenticate_client
 from app.http.client import build_client, fetch_page
 from app.http.crawler import extract_links, extract_robots_sitemaps, extract_sitemap_urls

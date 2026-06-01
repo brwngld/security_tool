@@ -5,7 +5,7 @@ from pathlib import Path
 
 from jinja2 import Environment, select_autoescape
 
-from app.hardening.recommendations import suggest_first_move
+from app.remediation.recommendations import suggest_first_move
 from app.models import ScanResult
 
 _TEMPLATE = """

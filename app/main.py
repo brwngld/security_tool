@@ -40,16 +40,16 @@ from app.notifications import send_report_notifications, summarize_notification_
 from app.secrets import analyze_secret_exposures
 from app.timeline import load_timeline_report_from_path
 from app.http.auth import CrawlAuthConfig
-from app.hardening.backup import create_backup
-from app.hardening.applied_artifacts import applied_artifact_path, create_applied_artifact_backup
-from app.hardening.executor import evaluate_fix_plan, execute_fix
-from app.hardening.incident import (
+from app.remediation.backup import create_backup
+from app.remediation.applied_artifacts import applied_artifact_path, create_applied_artifact_backup
+from app.remediation.executor import evaluate_fix_plan, execute_fix
+from app.remediation.incident import (
     apply_nginx_denylist,
     write_fail2ban_artifact,
     write_maintenance_mode_artifact,
     write_rate_limit_artifact,
 )
-from app.hardening.local_fixes import apply_local_nginx_hardening_fix, choose_local_fix_target
+from app.remediation.local_fixes import apply_local_nginx_hardening_fix, choose_local_fix_target
 from app.output_paths import default_output_path, expand_optional_output_arguments, normalize_output_path
 from app.models import LocalFixResult
 from app.engine import crawl_target, scan_target
