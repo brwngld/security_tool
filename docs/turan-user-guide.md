@@ -429,6 +429,8 @@ Example:
 
 `doctor` checks the local machine and app environment, including suspicious listeners and outbound connections. Its readiness score is paired with a short breakdown of the checks that most affected it.
 
+`doctor` also accepts `--json-output`, `--markdown-output`, and `--html-output` if you want a saved report file.
+
 What it checks:
 
 - OS info

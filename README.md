@@ -300,6 +300,8 @@ When crawl coverage changes, PsyberShield prints a short terminal note with the 
 
 `doctor` checks the local machine, config paths, suspicious listeners and outbound connections, open localhost ports, safe environment status, and any resolved app target without taking a target URL. The readiness score now includes a short breakdown of the checks that most influenced it.
 
+`doctor` also supports `--json-output`, `--markdown-output`, and `--html-output` for saved reports.
+
 ## Server check
 
 ```powershell

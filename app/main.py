@@ -74,6 +74,7 @@ from app.reports.console import (
     render_timeline_report,
 )
 from app.reports.drift_report import write_html_drift_report, write_json_drift_report, write_markdown_drift_report
+from app.reports.doctor_report import write_html_doctor_report, write_json_doctor_report, write_markdown_doctor_report
 from app.reports.integrity_report import write_html_integrity_report, write_json_integrity_report, write_markdown_integrity_report
 from app.reports.incident_report import write_html_incident_report, write_json_incident_report, write_markdown_incident_report
 from app.reports.secret_report import write_html_secret_report, write_json_secret_report, write_markdown_secret_report
@@ -517,6 +518,28 @@ def write_secret_outputs(
     if html_output_path is not None:
         html_output_path.parent.mkdir(parents=True, exist_ok=True)
         write_html_secret_report(report, html_output_path)
+        console.print(f"Wrote HTML report to {html_output_path}")
+
+
+def write_doctor_outputs(
+    report,
+    json_output_path: Path | None,
+    markdown_output_path: Path | None,
+    html_output_path: Path | None,
+) -> None:
+    if json_output_path is not None:
+        json_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_json_doctor_report(report, json_output_path)
+        console.print(f"Wrote JSON report to {json_output_path}")
+
+    if markdown_output_path is not None:
+        markdown_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_markdown_doctor_report(report, markdown_output_path)
+        console.print(f"Wrote Markdown report to {markdown_output_path}")
+
+    if html_output_path is not None:
+        html_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_html_doctor_report(report, html_output_path)
         console.print(f"Wrote HTML report to {html_output_path}")
 
 
@@ -1154,9 +1177,20 @@ def timeline(
 @app.command(help="Check the local machine and app environment.")
 def doctor(
     env_file: Path | None = typer.Option(None, "--env-file", help="Read local status defaults from a specific .env file"),
+    json_output: Path | None = typer.Option(None, "--json-output", help="Write a JSON doctor report here"),
+    markdown_output: Path | None = typer.Option(None, "--markdown-output", help="Write a Markdown doctor report here"),
+    html_output: Path | None = typer.Option(None, "--html-output", help="Write an HTML doctor report here"),
 ) -> None:
     report = run_doctor_checks(env_file=path_option_value(env_file))
     console.print(render_doctor_report(report))
+    json_output_path, json_output_note = normalize_output_option(path_option_value(json_output))
+    markdown_output_path, markdown_output_note = normalize_output_option(path_option_value(markdown_output))
+    html_output_path, html_output_note = normalize_output_option(path_option_value(html_output))
+    for note in (json_output_note, markdown_output_note, html_output_note):
+        if note is not None:
+            console.print(f"[info] {note}")
+    print_optional_output_notes()
+    write_doctor_outputs(report, json_output_path, markdown_output_path, html_output_path)
 
 
 @app.command(name="server-check", help="Check the server-facing config, discover the app target, and scan it locally.")

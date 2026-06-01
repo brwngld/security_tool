@@ -139,6 +139,31 @@ def test_doctor_command_prints_safe_statuses(monkeypatch, workspace_temp_dir) ->
     assert "Main drag from warnings" in text
 
 
+def test_doctor_command_writes_html_output(monkeypatch, workspace_temp_dir) -> None:
+    report = DoctorReport(
+        root=str(workspace_temp_dir),
+        os_name="Windows",
+        os_release="11",
+        python_version="3.14.0",
+        readiness_score=88,
+        readiness_notes=["Readiness score is a weighted average across 1 check(s)."],
+        checks=[DoctorCheck(name="SECRET_KEY", status="ok", summary="present", details={"source": ".env"})],
+    )
+
+    recorded_console = Console(record=True, width=100)
+    monkeypatch.setattr(main, "console", recorded_console)
+    monkeypatch.setattr(main, "run_doctor_checks", lambda env_file=None: report)
+
+    output_path = workspace_temp_dir / "outputs" / "doctor.html"
+    main.doctor(env_file=workspace_temp_dir / "autoentrytrack.env", html_output=output_path)
+
+    assert output_path.exists()
+    text = output_path.read_text(encoding="utf-8")
+    assert "PsyberShield Doctor Report" in text
+    assert "Readiness score" in text
+    assert "weighted average" in text
+
+
 def test_render_doctor_report_shows_readiness_score() -> None:
     report = DoctorReport(
         root="C:/workspace",
