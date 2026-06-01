@@ -1,6 +1,6 @@
 from rich.console import Console
 
-from app.comparison import compare_scan_files, compare_scan_results, summarize_comparison
+from app.comparison import compare_scan_files, compare_scan_results, summarize_comparison, summarize_crawl_coverage_delta
 from app.models import Finding, ScanResult, Target
 from app.reports.console import render_comparison
 from app.reports.json_report import write_json_report
@@ -85,6 +85,7 @@ def test_compare_scan_results_reports_changes() -> None:
         summarize_comparison(comparison)
         == "risk score improved (4 -> 2); 1 fixed, 1 new; crawl pages 2 -> 2 (1 added, 1 removed)."
     )
+    assert summarize_crawl_coverage_delta(comparison) == "Crawl coverage changed: 1 added, 1 removed."
 
 
 def test_compare_scan_files_loads_saved_reports(workspace_temp_dir) -> None:
@@ -103,3 +104,21 @@ def test_compare_scan_files_loads_saved_reports(workspace_temp_dir) -> None:
     assert "New Findings" in text
     assert "improved" in text
     assert "Crawl Coverage" in text
+
+
+def test_compare_command_prints_crawl_delta_note(monkeypatch, workspace_temp_dir) -> None:
+    old_path = workspace_temp_dir / "old.json"
+    new_path = workspace_temp_dir / "new.json"
+    write_json_report(build_old_result(), old_path)
+    write_json_report(build_new_result(), new_path)
+
+    recorded_console = Console(record=True, width=100)
+    monkeypatch.setattr("app.main.console", recorded_console)
+    monkeypatch.setattr("app.main.compare_outputs", lambda *args, **kwargs: None)
+
+    from app.main import compare as compare_command
+
+    compare_command(old_path, new_path)
+
+    text = recorded_console.export_text()
+    assert "Crawl coverage changed: 1 added, 1 removed." in text

@@ -4,7 +4,7 @@ Turan is a Python-based web security scanner and hardening assistant.
 
 ## Status
 
-Active CLI slice with scan, crawl, report, baseline, compare, audit, doctor, server-check, fix, and demo-site commands.
+Active CLI slice with scan, crawl, report, baseline, compare, drift, secrets, bundle, audit, doctor, server-check, incident, fix, and demo-site commands.
 
 ## Documentation
 
@@ -21,8 +21,13 @@ Active CLI slice with scan, crawl, report, baseline, compare, audit, doctor, ser
 - `audit` shows the append-only audit history
 - `baseline` saves a scan snapshot for later comparison
 - `compare` shows what changed between two saved scans, including crawl coverage deltas for crawl runs
+- `drift` compares two saved reports and surfaces baseline drift across scan, integrity, incident, or doctor data
+- `secrets` scans files for obvious secret exposure with redacted evidence
+- `bundle` packages a report and related artifacts into a ZIP archive
 - `doctor` checks the local machine and app environment
 - `server-check` checks the server-facing config, discovers the app target, and scans it locally
+- `incident` detects suspicious activity from logs and can generate or apply a denylist containment artifact
+- `timeline` shows a chronological view of findings and containment activity from a saved incident report
 - `fix` applies the first real local fix lane with `--local`
 - `demo-site` starts the local test site
 
@@ -51,6 +56,63 @@ If you want Turan to discover the app target on a VPS, you can leave the URL off
 
 ```powershell
 .\venv\Scripts\python.exe -m app.main scan
+```
+
+Check logs for active probing and, if needed, apply containment:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main incident --logs outputs\access.log --apply-blocks
+```
+
+Capture fresh snapshots from live sources:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main incident --live --tail-file outputs\access.log
+.\venv\Scripts\python.exe -m app.main incident --live --event-log-name System --fail2ban-output outputs\incident-fail2ban.conf
+```
+
+You can also write a fail2ban-style snippet:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main incident --logs outputs\access.log --fail2ban-output outputs\incident-fail2ban.conf
+```
+
+You can also generate rate-limit and maintenance-mode presets:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main incident --logs outputs\access.log --rate-limit-output outputs\incident-rate-limit.conf --maintenance-output outputs\incident-maintenance.conf
+```
+
+You can compare two saved reports for drift:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main drift baselines\scan.json outputs\scan.json --json-output outputs\drift.json
+```
+
+You can scan for obvious secret exposure:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main secrets . --markdown-output outputs\secrets.md
+```
+
+You can bundle a report and its related artifacts into a ZIP archive:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main bundle outputs\incident.json --artifact outputs\incident-fail2ban.conf --bundle-output outputs\incident-bundle.zip
+```
+
+You can send report summaries to webhooks or email after `incident`, `integrity`, or `timeline` runs:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main incident --logs outputs\access.log --webhook-url https://hooks.example/webhook
+.\venv\Scripts\python.exe -m app.main integrity . --baseline baselines\integrity.json --email-to security@example.com --email-from turan@example.com --smtp-host smtp.example.com --smtp-username turan --smtp-password-env SMTP_PASSWORD
+.\venv\Scripts\python.exe -m app.main timeline outputs\incident.json --audit-log outputs\audit.log --slack-webhook-url https://hooks.slack.com/services/...
+```
+
+Monitor key files against a saved baseline:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main integrity . --baseline baselines\integrity.json --json-output outputs\integrity.json
 ```
 
 Turan looks for `APP_URL`, then `TARGET_URL`, then `BASE_URL`.
@@ -133,6 +195,7 @@ Example phase-4 command:
 ```powershell
 .\venv\Scripts\python.exe -m app.main doctor --env-file C:\path\to\autoentrytrack\.env
 .\venv\Scripts\python.exe -m app.main server-check --env-file C:\path\to\autoentrytrack\.env --nginx-config /etc/nginx/nginx.conf
+.\venv\Scripts\python.exe -m app.main incident --logs C:\path\to\logs --apply-blocks
 ```
 
 ## Export reports
@@ -213,9 +276,7 @@ You can also write a Markdown or HTML diff report:
 ```
 
 When the saved reports come from `crawl`, `compare` also shows how many pages were added or removed between runs.
-
-TODO:
-- Add a short terminal note when `compare` includes crawl coverage deltas.
+When crawl coverage changes, Turan prints a short terminal note with the added and removed page counts.
 
 ## Audit history
 
@@ -233,7 +294,7 @@ TODO:
 .\venv\Scripts\python.exe -m app.main doctor
 ```
 
-`doctor` checks the local machine, config paths, open localhost ports, safe environment status, and any resolved app target without taking a target URL.
+`doctor` checks the local machine, config paths, suspicious listeners and outbound connections, open localhost ports, safe environment status, and any resolved app target without taking a target URL.
 
 ## Server check
 

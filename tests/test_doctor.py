@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import subprocess
+
 from rich.console import Console
 
 from app import main
@@ -7,6 +9,31 @@ from app.context import ApplicationContext
 from app.doctor import DoctorCheck, DoctorReport, run_doctor_checks, run_server_checks
 from app.environment import ResolvedScanTarget
 from app.models import ScanResult, Target
+
+
+def test_process_and_port_activity_flags_public_listener_and_outbound_connection(monkeypatch) -> None:
+    netstat_output = (
+        "  TCP    0.0.0.0:8080     0.0.0.0:0      LISTENING       4242\n"
+        "  TCP    10.0.0.10:49160  93.184.216.34:443  ESTABLISHED     4242\n"
+        "  UDP    127.0.0.1:68     *:*                                    512\n"
+    )
+
+    monkeypatch.setattr("app.doctor.platform.system", lambda: "Windows")
+    monkeypatch.setattr("app.doctor.which", lambda command: "C:\\Windows\\System32\\netstat.exe" if command == "netstat" else None)
+    monkeypatch.setattr(
+        "app.doctor.subprocess.run",
+        lambda command, capture_output, text, check: subprocess.CompletedProcess(command, 0, stdout=netstat_output, stderr=""),
+    )
+
+    from app.doctor import check_process_and_port_activity
+
+    check = check_process_and_port_activity()
+
+    assert check.name == "Process and port activity"
+    assert check.status == "warn"
+    assert "suspicious listener" in check.summary
+    assert "listeners" in check.details
+    assert "outbound" in check.details
 
 
 def test_doctor_checks_flag_local_settings(workspace_temp_dir) -> None:
@@ -41,6 +68,7 @@ def test_doctor_checks_flag_local_settings(workspace_temp_dir) -> None:
     assert checks["App config paths"].status == "ok"
     assert checks["Nginx config paths"].status == "ok"
     assert checks["Nginx hardening"].status == "warn"
+    assert checks["Process and port activity"].status == "warn"
     assert checks["Open local ports"].status == "info"
     assert checks["DEBUG"].status == "warn"
     assert checks["SECRET_KEY"].status == "warn"
@@ -72,6 +100,7 @@ def test_server_checks_focus_on_server_signals(workspace_temp_dir) -> None:
     assert ".env" in names
     assert "Output folder" in names
     assert "App config paths" in names
+    assert "Process and port activity" in names
     assert "Open local ports" in names
 
 

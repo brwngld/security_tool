@@ -6,7 +6,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-from app.models import Finding, FixDecision, FixPlan, ScanResult
+from app.models import Finding, FixDecision, FixPlan, IncidentReport, IntegrityReport, ScanResult
 from app.models import LocalFixResult
 
 
@@ -125,6 +125,44 @@ def build_local_fix_audit_event(target: str, result: LocalFixResult, policy_leve
             "backup_path": result.backup_path,
             "validation_command": result.validation_command,
             "validation_output": result.validation_output,
+        },
+    )
+
+
+def build_incident_audit_event(report: IncidentReport, policy_level: int | None = None) -> AuditEvent:
+    target = report.target or report.containment_target or "incident"
+    return AuditEvent(
+        action="incident",
+        target=target,
+        result="contained" if report.containment_applied else "detected",
+        policy_level=policy_level,
+        severity="high" if report.blocked_ips else "medium",
+        details={
+            "sources": len(report.source_files),
+            "findings": len(report.findings),
+            "suspect_ips": len(report.suspect_ips),
+            "blocked_ips": len(report.blocked_ips),
+            "containment_applied": report.containment_applied,
+            "containment_target": report.containment_target,
+            "containment_artifact": report.containment_artifact,
+        },
+    )
+
+
+def build_integrity_audit_event(report: IntegrityReport, policy_level: int | None = None) -> AuditEvent:
+    target = report.root or "integrity"
+    return AuditEvent(
+        action="integrity",
+        target=target,
+        result="drift" if report.findings else "clean",
+        policy_level=policy_level,
+        severity="high" if report.findings else "info",
+        details={
+            "root": report.root,
+            "baseline_path": report.baseline_path,
+            "monitored_paths": len(report.monitored_paths),
+            "files": len(report.files),
+            "findings": len(report.findings),
         },
     )
 

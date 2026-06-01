@@ -35,8 +35,14 @@ Turan is intentionally defensive:
 | `audit` | Shows the append-only audit trail | Review scans and fix events |
 | `baseline` | Saves a scan snapshot for later comparison | Track a known-good state |
 | `compare` | Compares two saved scans and crawl coverage | See what changed |
+| `drift` | Compares saved reports and highlights baseline drift | Watch for scan, file, log, and config changes |
+| `secrets` | Scans files for obvious secret exposure | Check logs and configs for leaked values |
+| `bundle` | Packages a report and related artifacts into a ZIP archive | Share a handoff bundle |
 | `doctor` | Checks the local machine and app environment | Health check without a URL |
 | `server-check` | Discovers the server layout and scans the local app target | VPS/server discovery mode |
+| `incident` | Detects suspicious activity in logs and can apply a denylist or fail2ban snippet | Defensive incident response |
+| `timeline` | Shows the chronological order of findings and containment actions | Saved incident report replay |
+| `integrity` | Compares monitored files against a saved baseline | File integrity drift monitoring |
 | `fix --local` | Applies the first real local edit lane | Backup, edit, validate, rollback if needed |
 | `demo-site` | Runs the local demo site | Test target for development |
 
@@ -72,6 +78,57 @@ Run the server discovery workflow:
 .\venv\Scripts\python.exe -m app.main server-check --yes
 ```
 
+Check logs for suspicious activity and optionally apply containment:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main incident --logs outputs\access.log --apply-blocks
+.\venv\Scripts\python.exe -m app.main integrity . --baseline baselines\integrity.json
+.\venv\Scripts\python.exe -m app.main timeline outputs\incident.json --audit-log outputs\audit.log
+```
+
+Capture fresh snapshots from live sources:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main incident --live --tail-file outputs\access.log
+.\venv\Scripts\python.exe -m app.main incident --live --event-log-name System --fail2ban-output outputs\incident-fail2ban.conf
+```
+
+Write a fail2ban-style snippet:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main incident --logs outputs\access.log --fail2ban-output outputs\incident-fail2ban.conf
+```
+
+View a saved incident timeline:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main timeline outputs\incident.json --audit-log outputs\audit.log --markdown-output outputs\timeline.md
+```
+
+Generate rate-limit and maintenance-mode presets:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main incident --logs outputs\access.log --rate-limit-output outputs\incident-rate-limit.conf --maintenance-output outputs\incident-maintenance.conf
+```
+
+Compare saved reports for drift:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main drift baselines\scan.json outputs\scan.json --json-output outputs\drift.json
+```
+
+Scan for obvious secret exposure:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main secrets . --markdown-output outputs\secrets.md
+```
+
+Bundle a report and related artifacts:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main bundle outputs\incident.json --artifact outputs\incident-fail2ban.conf --bundle-output outputs\incident-bundle.zip
+```
+
 Apply the first real local fix lane:
 
 ```powershell
@@ -85,6 +142,7 @@ Risky commands ask for confirmation by default:
 - `scan`
 - `crawl`
 - `server-check`
+- `incident`
 - `fix --local`
 
 The prompt is a reminder that you should only test systems you own or have explicit permission to test.
@@ -357,6 +415,7 @@ What to expect:
 - new findings
 - unchanged findings
 - crawl coverage deltas when the inputs come from `crawl`
+- a short terminal note when crawl coverage changes
 
 Example:
 
@@ -366,7 +425,7 @@ Example:
 
 ## `doctor`
 
-`doctor` checks the local machine and app environment.
+`doctor` checks the local machine and app environment, including suspicious listeners and outbound connections.
 
 What it checks:
 
@@ -516,7 +575,114 @@ Typical doctor or server-check output adds:
 - Python version
 - environment file discovery
 - Nginx/systemd hints
+- suspicious listener and outbound connection activity
 - localhost port checks
+
+Typical incident output adds:
+
+- source log paths
+- suspect IPs and blocked IPs
+- log family hints such as `apache-access`, `apache-error`, `auth`, `auth-middleware`, `gunicorn`, `ssh`, `sudo`, `systemd`, and `uwsgi`
+- optional denylist, fail2ban, rate-limit, or maintenance-mode containment artifacts
+
+Typical timeline output adds:
+
+- ordered finding and containment events
+- timestamps when the log lines or audit entries provided them
+- source paths and audit log references for each event
+
+## Integrity
+
+`integrity` compares monitored files in a root directory against an optional saved baseline.
+
+Example:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main integrity . --baseline baselines\integrity.json --json-output outputs\integrity.json
+```
+
+Typical integrity output adds:
+
+- the monitored root
+- the baseline path when one is supplied
+- changed, missing, and new monitored files
+- the file category, kind, hash, size, and timestamp for each tracked file
+
+## Drift
+
+`drift` compares two saved reports of the same type and surfaces changes that matter for defensive operations.
+
+Example:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main drift baselines\scan.json outputs\scan.json --html-output outputs\drift.html
+```
+
+Typical drift output adds:
+
+- the report type being compared
+- baseline and current report paths
+- changed findings or checks
+- file, log, header, or config drift summaries depending on the report type
+
+## Secret Exposure
+
+`secrets` scans likely config and log files for obvious secret exposure and redacts the evidence before it is stored in the report.
+
+Example:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main secrets . --json-output outputs\secrets.json
+```
+
+Typical secret-exposure output adds:
+
+- the monitored root
+- candidate source file count
+- redacted snippets from matching lines
+- a short recommendation for each exposure
+
+## Bundle
+
+`bundle` packages a report together with related artifacts into a ZIP archive.
+
+Example:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main bundle outputs\incident.json --artifact outputs\incident-fail2ban.conf --bundle-output outputs\incident-bundle.zip
+```
+
+Typical bundle output adds:
+
+- the archive path
+- the source report path
+- the files included in the archive
+- a small manifest inside the ZIP
+
+## Notifications
+
+`incident`, `integrity`, and `timeline` can send a short report summary after they finish.
+
+Common flags:
+
+- `--webhook-url`
+- `--slack-webhook-url`
+- `--discord-webhook-url`
+- `--email-to`
+- `--email-from`
+- `--smtp-host`
+- `--smtp-port`
+- `--smtp-username`
+- `--smtp-password-env`
+- `--smtp-starttls` and `--no-smtp-starttls`
+
+Example:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main incident --logs outputs\access.log --webhook-url https://hooks.example/webhook
+.\venv\Scripts\python.exe -m app.main integrity . --baseline baselines\integrity.json --email-to security@example.com --email-from turan@example.com --smtp-host smtp.example.com --smtp-username turan --smtp-password-env SMTP_PASSWORD
+.\venv\Scripts\python.exe -m app.main timeline outputs\incident.json --audit-log outputs\audit.log --slack-webhook-url https://hooks.slack.com/services/...
+```
 
 ## Troubleshooting
 

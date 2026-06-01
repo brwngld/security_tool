@@ -39,6 +39,20 @@ def summarize_comparison(comparison: ComparisonResult) -> str:
     return "; ".join(parts) + "."
 
 
+def summarize_crawl_coverage_delta(comparison: ComparisonResult) -> str | None:
+    if not comparison.old_scanned_urls and not comparison.new_scanned_urls:
+        return None
+    if not comparison.added_scanned_urls and not comparison.removed_scanned_urls:
+        return None
+
+    delta_parts: list[str] = []
+    if comparison.added_scanned_urls:
+        delta_parts.append(f"{len(comparison.added_scanned_urls)} added")
+    if comparison.removed_scanned_urls:
+        delta_parts.append(f"{len(comparison.removed_scanned_urls)} removed")
+    return "Crawl coverage changed: " + ", ".join(delta_parts) + "."
+
+
 def _context_summary(result: ScanResult) -> str:
     if result.context is None:
         return "context not captured"

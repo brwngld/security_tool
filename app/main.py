@@ -11,6 +11,8 @@ from app.artifacts import load_scan_result
 from app.audit import (
     append_audit_event,
     build_fix_audit_event,
+    build_integrity_audit_event,
+    build_incident_audit_event,
     build_local_fix_audit_event,
     build_scan_audit_event,
     filter_audit_events,
@@ -27,15 +29,28 @@ from app.approvals import (
     choose_interactive_fix_selection,
 )
 from app.baseline import build_baseline_metadata, summarize_baseline_metadata, write_baseline_metadata
-from app.comparison import compare_scan_files, summarize_comparison
+from app.comparison import compare_scan_files, summarize_comparison, summarize_crawl_coverage_delta
 from app.context import resolve_application_context, summarize_application_context
+from app.bundles import bundle_report_files
+from app.drift import analyze_report_drift
 from app.demo_site import serve_demo_site
+from app.integrity import analyze_integrity_sources
+from app.incident import analyze_incident_sources, collect_live_incident_sources, default_incident_sources
+from app.notifications import send_report_notifications, summarize_notification_results
+from app.secrets import analyze_secret_exposures
+from app.timeline import load_timeline_report_from_path
 from app.http.auth import CrawlAuthConfig
 from app.hardening.backup import create_backup
 from app.hardening.applied_artifacts import applied_artifact_path, create_applied_artifact_backup
 from app.hardening.executor import evaluate_fix_plan, execute_fix
+from app.hardening.incident import (
+    apply_nginx_denylist,
+    write_fail2ban_artifact,
+    write_maintenance_mode_artifact,
+    write_rate_limit_artifact,
+)
 from app.hardening.local_fixes import apply_local_nginx_hardening_fix, choose_local_fix_target
-from app.output_paths import expand_optional_output_arguments, normalize_output_path
+from app.output_paths import default_output_path, expand_optional_output_arguments, normalize_output_path
 from app.models import LocalFixResult
 from app.scanner import crawl_target, scan_target
 from app.reports.comparison_report import write_html_comparison_report, write_markdown_comparison_report
@@ -47,11 +62,22 @@ from app.reports.console import (
     render_crawl_summary,
     render_doctor_report,
     render_fix_decisions,
+    render_bundle_report,
+    render_drift_report,
+    render_incident_report,
+    render_integrity_report,
     render_interactive_fix_catalog,
     render_local_fix_preview,
     render_local_fix_result,
     render_policy,
+    render_secret_report,
+    render_timeline_report,
 )
+from app.reports.drift_report import write_html_drift_report, write_json_drift_report, write_markdown_drift_report
+from app.reports.integrity_report import write_html_integrity_report, write_json_integrity_report, write_markdown_integrity_report
+from app.reports.incident_report import write_html_incident_report, write_json_incident_report, write_markdown_incident_report
+from app.reports.secret_report import write_html_secret_report, write_json_secret_report, write_markdown_secret_report
+from app.reports.timeline_report import write_html_timeline_report, write_json_timeline_report, write_markdown_timeline_report
 from app.reports.html_report import write_html_report
 from app.reports.json_report import write_json_report
 from app.reports.markdown_report import write_markdown_report
@@ -84,10 +110,18 @@ app = typer.Typer(
         "- Re-renders or previews saved reports from disk\n"
         "- Appends scan and fix events to an audit log\n"
         "- Shows audit history from the log\n"
+        "- Shows a chronological timeline from a saved incident report and optional audit log\n"
         "- Saves baseline snapshots for later comparison\n"
         "- Compares two saved scan reports and crawl coverage deltas\n"
         "- Checks the local machine and app environment without a URL\n"
         "- Checks server-only paths and local config without a URL\n"
+        "- Checks suspicious listeners and outbound connections on the local machine\n"
+        "- Detects suspicious server or app activity from logs and can write denylist, fail2ban, rate-limit, and maintenance-mode containment artifacts\n"
+        "- Monitors key files for integrity drift against a saved baseline\n"
+        "- Detects drift between saved baseline and current reports across scans, files, logs, and config checks\n"
+        "- Scans files for obvious secret exposure with redacted evidence\n"
+        "- Packages related reports and containment artifacts into a ZIP bundle\n"
+        "- Sends incident, integrity, and timeline notifications via webhooks, Slack, Discord, or email\n"
         "- Runs a local demo site for testing\n\n"
         "**Safety**\n"
         "- `--yes` skips the permission prompt for trusted automation\n\n"
@@ -152,6 +186,7 @@ app = typer.Typer(
         "report outputs\\scan.md\n"
         "report outputs\\scan.html\n"
         "audit --audit-log outputs\\audit.log\n"
+        "timeline outputs\\incident.json --audit-log outputs\\audit.log\n"
         "audit --log-file outputs\\audit.log\n"
         "audit --last 25\n"
         "audit --event scan\n"
@@ -160,10 +195,16 @@ app = typer.Typer(
         "doctor --env-file /path/to/autoentrytrack/.env\n"
         "server-check\n"
         "server-check --env-file /path/to/autoentrytrack/.env --nginx-config /etc/nginx/nginx.conf\n"
+        "incident --logs outputs\\access.log --apply-blocks\n"
+        "integrity . --baseline baselines\\integrity.json\n"
+        "incident --logs C:\\logs --html-output\n"
         "baseline http://127.0.0.1:8000 --label vps-west\n"
         "baseline http://127.0.0.1:8000 --output baselines\\vps-west.json\n"
         "compare old.json new.json --markdown-output compare.md\n"
         "compare old.json new.json --html-output compare.html\n"
+        "drift baselines\\scan.json outputs\\scan.json --json-output outputs\\drift.json\n"
+        "secrets . --markdown-output outputs\\secrets.md\n"
+        "bundle outputs\\incident.json --artifact outputs\\incident-fail2ban.conf --bundle-output outputs\\incident-bundle.zip\n"
         "demo-site --port 8000\n"
         "```"
     ),
@@ -186,6 +227,14 @@ def timeout_option_value(value: object) -> float | None:
 
 def text_option_value(value: object) -> str | None:
     return value if isinstance(value, str) else None
+
+
+def list_option_value(value: object) -> list[object]:
+    if isinstance(value, list):
+        return value
+    if isinstance(value, tuple):
+        return list(value)
+    return []
 
 
 def display_path_value(value: str | Path | None) -> str | None:
@@ -340,6 +389,179 @@ def write_scan_outputs(
         html_output_path.parent.mkdir(parents=True, exist_ok=True)
         write_html_report(result, html_output_path, include_fix_plans=include_fix_plans)
         console.print(f"Wrote HTML report to {html_output_path}")
+
+
+def write_incident_outputs(
+    report,
+    json_output_path: Path | None,
+    markdown_output_path: Path | None,
+    html_output_path: Path | None,
+    fail2ban_output_path: Path | None,
+    rate_limit_output_path: Path | None,
+    maintenance_output_path: Path | None,
+) -> None:
+    if json_output_path is not None:
+        json_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_json_incident_report(report, json_output_path)
+        console.print(f"Wrote JSON report to {json_output_path}")
+
+    if markdown_output_path is not None:
+        markdown_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_markdown_incident_report(report, markdown_output_path)
+        console.print(f"Wrote Markdown report to {markdown_output_path}")
+
+    if html_output_path is not None:
+        html_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_html_incident_report(report, html_output_path)
+        console.print(f"Wrote HTML report to {html_output_path}")
+
+    if fail2ban_output_path is not None:
+        fail2ban_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_fail2ban_artifact(report, fail2ban_output_path)
+        console.print(f"Wrote fail2ban-style artifact to {fail2ban_output_path}")
+
+    if rate_limit_output_path is not None:
+        rate_limit_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_rate_limit_artifact(report, rate_limit_output_path)
+        console.print(f"Wrote rate-limit artifact to {rate_limit_output_path}")
+
+    if maintenance_output_path is not None:
+        maintenance_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_maintenance_mode_artifact(report, maintenance_output_path)
+        console.print(f"Wrote maintenance-mode artifact to {maintenance_output_path}")
+
+
+def write_integrity_outputs(
+    report,
+    json_output_path: Path | None,
+    markdown_output_path: Path | None,
+    html_output_path: Path | None,
+) -> None:
+    if json_output_path is not None:
+        json_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_json_integrity_report(report, json_output_path)
+        console.print(f"Wrote JSON report to {json_output_path}")
+
+    if markdown_output_path is not None:
+        markdown_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_markdown_integrity_report(report, markdown_output_path)
+        console.print(f"Wrote Markdown report to {markdown_output_path}")
+
+    if html_output_path is not None:
+        html_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_html_integrity_report(report, html_output_path)
+        console.print(f"Wrote HTML report to {html_output_path}")
+
+
+def write_timeline_outputs(
+    report,
+    json_output_path: Path | None,
+    markdown_output_path: Path | None,
+    html_output_path: Path | None,
+) -> None:
+    if json_output_path is not None:
+        json_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_json_timeline_report(report, json_output_path)
+        console.print(f"Wrote JSON report to {json_output_path}")
+
+    if markdown_output_path is not None:
+        markdown_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_markdown_timeline_report(report, markdown_output_path)
+        console.print(f"Wrote Markdown report to {markdown_output_path}")
+
+    if html_output_path is not None:
+        html_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_html_timeline_report(report, html_output_path)
+        console.print(f"Wrote HTML report to {html_output_path}")
+
+
+def write_drift_outputs(
+    report,
+    json_output_path: Path | None,
+    markdown_output_path: Path | None,
+    html_output_path: Path | None,
+) -> None:
+    if json_output_path is not None:
+        json_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_json_drift_report(report, json_output_path)
+        console.print(f"Wrote JSON report to {json_output_path}")
+
+    if markdown_output_path is not None:
+        markdown_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_markdown_drift_report(report, markdown_output_path)
+        console.print(f"Wrote Markdown report to {markdown_output_path}")
+
+    if html_output_path is not None:
+        html_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_html_drift_report(report, html_output_path)
+        console.print(f"Wrote HTML report to {html_output_path}")
+
+
+def write_secret_outputs(
+    report,
+    json_output_path: Path | None,
+    markdown_output_path: Path | None,
+    html_output_path: Path | None,
+) -> None:
+    if json_output_path is not None:
+        json_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_json_secret_report(report, json_output_path)
+        console.print(f"Wrote JSON report to {json_output_path}")
+
+    if markdown_output_path is not None:
+        markdown_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_markdown_secret_report(report, markdown_output_path)
+        console.print(f"Wrote Markdown report to {markdown_output_path}")
+
+    if html_output_path is not None:
+        html_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_html_secret_report(report, html_output_path)
+        console.print(f"Wrote HTML report to {html_output_path}")
+
+
+def send_notification_outputs(
+    report,
+    *,
+    webhook_urls: list[str] | None = None,
+    slack_webhook_urls: list[str] | None = None,
+    discord_webhook_urls: list[str] | None = None,
+    email_recipients: list[str] | None = None,
+    email_sender: str | None = None,
+    smtp_host: str | None = None,
+    smtp_port: int = 587,
+    smtp_username: str | None = None,
+    smtp_password_env: str | None = None,
+    root: Path | None = None,
+    env_file: Path | None = None,
+    timeout: float = 10.0,
+    use_starttls: bool = True,
+) -> None:
+    results = send_report_notifications(
+        report,
+        webhook_urls=webhook_urls,
+        slack_webhook_urls=slack_webhook_urls,
+        discord_webhook_urls=discord_webhook_urls,
+        email_recipients=email_recipients,
+        email_sender=email_sender,
+        smtp_host=smtp_host,
+        smtp_port=smtp_port,
+        smtp_username=smtp_username,
+        smtp_password_env=smtp_password_env,
+        root=root,
+        env_file=env_file,
+        timeout=timeout,
+        use_starttls=use_starttls,
+    )
+    if not results:
+        return
+    console.print(f"[info] {summarize_notification_results(results)}")
+    for result in results:
+        if result.status == "sent":
+            console.print(f"[green]{result.channel} notification sent to {result.target}[/green]")
+        elif result.status == "skipped":
+            console.print(f"[yellow]{result.channel} notification skipped for {result.target}: {result.detail}[/yellow]")
+        else:
+            console.print(f"[yellow]{result.channel} notification failed for {result.target}: {result.detail}[/yellow]")
 
 
 @app.callback(invoke_without_command=True)
@@ -871,6 +1093,57 @@ def audit(
     console.print(f"Read audit log from {log_path}")
 
 
+@app.command(help="Show a chronological timeline from a saved incident report and optional audit log.")
+def timeline(
+    incident_report: Path = typer.Argument(..., metavar="INCIDENT_REPORT", help="Saved incident report JSON file"),
+    audit_log: Path | None = typer.Option(None, "--audit-log", help="Merge events from a specific audit log"),
+    json_output: Path | None = typer.Option(None, "--json-output", help="Write the timeline report to JSON"),
+    markdown_output: Path | None = typer.Option(None, "--markdown-output", help="Write the timeline report to Markdown"),
+    html_output: Path | None = typer.Option(None, "--html-output", help="Write the timeline report to HTML"),
+    webhook_url: list[str] = typer.Option([], "--webhook-url", help="Send the timeline summary to a generic webhook URL"),
+    slack_webhook_url: list[str] = typer.Option([], "--slack-webhook-url", help="Send the timeline summary to a Slack incoming webhook"),
+    discord_webhook_url: list[str] = typer.Option([], "--discord-webhook-url", help="Send the timeline summary to a Discord webhook"),
+    email_to: list[str] = typer.Option([], "--email-to", help="Send the timeline summary to these email recipients"),
+    email_from: str | None = typer.Option(None, "--email-from", help="Sender address for email notifications"),
+    smtp_host: str | None = typer.Option(None, "--smtp-host", help="SMTP host for email notifications"),
+    smtp_port: int = typer.Option(587, "--smtp-port", min=1, max=65535, help="SMTP port for email notifications"),
+    smtp_username: str | None = typer.Option(None, "--smtp-username", help="SMTP username for email notifications"),
+    smtp_password_env: str | None = typer.Option(None, "--smtp-password-env", help="Environment variable name for the SMTP password"),
+    smtp_starttls: bool = typer.Option(True, "--smtp-starttls/--no-smtp-starttls", help="Use STARTTLS before SMTP auth"),
+) -> None:
+    audit_log_path = path_option_value(audit_log)
+    timeline_report = load_timeline_report_from_path(incident_report, audit_log_path)
+    console.print(render_timeline_report(timeline_report))
+
+    webhook_urls = [str(value).strip() for value in list_option_value(webhook_url) if str(value).strip()]
+    slack_webhook_urls = [str(value).strip() for value in list_option_value(slack_webhook_url) if str(value).strip()]
+    discord_webhook_urls = [str(value).strip() for value in list_option_value(discord_webhook_url) if str(value).strip()]
+    email_recipients = [str(value).strip() for value in list_option_value(email_to) if str(value).strip()]
+    json_output_path, json_output_note = normalize_output_option(path_option_value(json_output))
+    markdown_output_path, markdown_output_note = normalize_output_option(path_option_value(markdown_output))
+    html_output_path, html_output_note = normalize_output_option(path_option_value(html_output))
+
+    for note in (json_output_note, markdown_output_note, html_output_note):
+        if note is not None:
+            console.print(f"[info] {note}")
+    send_notification_outputs(
+        timeline_report,
+        webhook_urls=webhook_urls,
+        slack_webhook_urls=slack_webhook_urls,
+        discord_webhook_urls=discord_webhook_urls,
+        email_recipients=email_recipients,
+        email_sender=email_from,
+        smtp_host=smtp_host,
+        smtp_port=smtp_port,
+        smtp_username=smtp_username,
+        smtp_password_env=smtp_password_env,
+        root=Path.cwd(),
+        use_starttls=smtp_starttls,
+    )
+    print_optional_output_notes()
+    write_timeline_outputs(timeline_report, json_output_path, markdown_output_path, html_output_path)
+
+
 @app.command(help="Check the local machine and app environment.")
 def doctor(
     env_file: Path | None = typer.Option(None, "--env-file", help="Read local status defaults from a specific .env file"),
@@ -901,6 +1174,325 @@ def server_check(
         console.print(f"Scanning discovered target: {context.target.value}")
         result = scan_target(context.target.value, timeout_seconds=timeout_seconds)
         console.print(render_console(result, include_fix_plans=False))
+
+
+@app.command(help="Detect suspicious server or app activity from logs and optionally apply Nginx containment presets.")
+def incident(
+    url: str | None = typer.Argument(
+        None,
+        metavar="URL",
+        help="Target URL. If omitted, Turan discovers the local app target before analyzing logs.",
+    ),
+    logs: Path | None = typer.Option(None, "--logs", help="Log file or directory to analyze"),
+    live: bool = typer.Option(False, "--live", help="Capture a fresh snapshot from live log sources before analysis"),
+    journal_unit: list[str] = typer.Option([], "--journal-unit", help="Collect recent journalctl output for a systemd unit"),
+    event_log_name: list[str] = typer.Option([], "--event-log-name", help="Collect a Windows Event Log channel snapshot"),
+    tail_file: list[Path] = typer.Option([], "--tail-file", help="Include the tail of a specific log file"),
+    tail_lines: int = typer.Option(250, "--tail-lines", min=1, help="Number of recent lines to capture for live sources"),
+    env_file: Path | None = typer.Option(None, "--env-file", help="Read local defaults from a specific .env file"),
+    nginx_config: Path | None = typer.Option(None, "--nginx-config", help="Apply containment to a specific Nginx config file"),
+    block_threshold: int = typer.Option(5, "--block-threshold", min=1, help="Score needed before an IP is auto-blocked"),
+    apply_blocks: bool = typer.Option(False, "--apply-blocks/--no-apply-blocks", help="Write the denylist and include it when suspicious IPs are found"),
+    yes: bool = typer.Option(False, "--yes", help="Skip the permission prompt for trusted automation"),
+    policy_file: Path | None = typer.Option(None, "--policy", help="Load incident settings from a JSON file"),
+    audit_log: Path | None = typer.Option(None, "--audit-log", help="Write audit events to a specific file"),
+    json_output: Path | None = typer.Option(None, "--json-output", help="Write a JSON report"),
+    markdown_output: Path | None = typer.Option(None, "--markdown-output", help="Write a Markdown report"),
+    html_output: Path | None = typer.Option(None, "--html-output", help="Write an HTML report"),
+    fail2ban_output: Path | None = typer.Option(None, "--fail2ban-output", help="Write a fail2ban-style filter and jail snippet"),
+    rate_limit_output: Path | None = typer.Option(None, "--rate-limit-output", help="Write an Nginx rate-limit containment preset"),
+    maintenance_output: Path | None = typer.Option(None, "--maintenance-output", help="Write an Nginx maintenance-mode containment preset"),
+    bundle_output: Path | None = typer.Option(None, "--bundle-output", help="Bundle the report and containment artifacts into a ZIP archive"),
+    webhook_url: list[str] = typer.Option([], "--webhook-url", help="Send the incident summary to a generic webhook URL"),
+    slack_webhook_url: list[str] = typer.Option([], "--slack-webhook-url", help="Send the incident summary to a Slack incoming webhook"),
+    discord_webhook_url: list[str] = typer.Option([], "--discord-webhook-url", help="Send the incident summary to a Discord webhook"),
+    email_to: list[str] = typer.Option([], "--email-to", help="Send the incident summary to these email recipients"),
+    email_from: str | None = typer.Option(None, "--email-from", help="Sender address for email notifications"),
+    smtp_host: str | None = typer.Option(None, "--smtp-host", help="SMTP host for email notifications"),
+    smtp_port: int = typer.Option(587, "--smtp-port", min=1, max=65535, help="SMTP port for email notifications"),
+    smtp_username: str | None = typer.Option(None, "--smtp-username", help="SMTP username for email notifications"),
+    smtp_password_env: str | None = typer.Option(None, "--smtp-password-env", help="Environment variable name for the SMTP password"),
+    smtp_starttls: bool = typer.Option(True, "--smtp-starttls/--no-smtp-starttls", help="Use STARTTLS before SMTP auth"),
+) -> None:
+    if not confirm_risky_command("incident response", assume_yes=yes):
+        raise typer.Abort()
+
+    policy_file_path = path_option_value(policy_file)
+    env_file_path = path_option_value(env_file)
+    nginx_config_path = path_option_value(nginx_config)
+    logs_path = path_option_value(logs)
+    journal_unit_values = [str(value) for value in list_option_value(journal_unit) if str(value).strip()]
+    event_log_name_values = [str(value) for value in list_option_value(event_log_name) if str(value).strip()]
+    tail_file_values = [value for value in list_option_value(tail_file) if isinstance(value, Path)]
+    tail_lines_value = int_option_value(tail_lines) or 250
+    block_threshold_value = int_option_value(block_threshold) or 5
+    audit_log_path, audit_log_note = normalize_output_option(path_option_value(audit_log))
+    json_output_path, json_output_note = normalize_output_option(path_option_value(json_output))
+    markdown_output_path, markdown_output_note = normalize_output_option(path_option_value(markdown_output))
+    html_output_path, html_output_note = normalize_output_option(path_option_value(html_output))
+    fail2ban_output_path, fail2ban_output_note = normalize_output_option(path_option_value(fail2ban_output))
+    rate_limit_output_path, rate_limit_output_note = normalize_output_option(path_option_value(rate_limit_output))
+    maintenance_output_path, maintenance_output_note = normalize_output_option(path_option_value(maintenance_output))
+    bundle_output_path, bundle_output_note = normalize_output_option(path_option_value(bundle_output))
+    webhook_urls = [str(value).strip() for value in list_option_value(webhook_url) if str(value).strip()]
+    slack_webhook_urls = [str(value).strip() for value in list_option_value(slack_webhook_url) if str(value).strip()]
+    discord_webhook_urls = [str(value).strip() for value in list_option_value(discord_webhook_url) if str(value).strip()]
+    email_recipients = [str(value).strip() for value in list_option_value(email_to) if str(value).strip()]
+
+    policy = load_app_config(policy_file_path)
+    context = resolve_application_context(url, Path.cwd(), env_file_path, nginx_config_path, require_target=False)
+    if context.target is None and context.discovery.discovered:
+        console.print("No URL supplied. Discovery:")
+        console.print(f"Discovery: {summarize_application_context(context)}")
+        console.print(render_application_context(context))
+    elif context.target is not None and context.target.source != "command line":
+        console.print(f"Using {context.target.key} from {context.target.source} for the incident target.")
+
+    if logs_path is None:
+        sources = default_incident_sources(Path.cwd(), context.target.value if context.target is not None else url)
+    else:
+        sources = [logs_path]
+
+    live_enabled = flag_is_enabled(live) or bool(journal_unit_values or event_log_name_values or tail_file_values)
+    live_notes: list[str] = []
+    if live_enabled:
+        live_sources, live_notes = collect_live_incident_sources(
+            root=Path.cwd(),
+            line_count=tail_lines_value,
+            journal_units=journal_unit_values,
+            event_log_names=event_log_name_values,
+            tail_files=tail_file_values,
+        )
+        sources.extend(live_sources)
+        if live_notes:
+            console.print(f"Live capture: {len(live_sources)} snapshot(s)")
+
+    report = analyze_incident_sources(
+        sources,
+        root=Path.cwd(),
+        url=str(context.target.value) if context.target is not None else url,
+        block_threshold=block_threshold_value,
+        env_file=env_file_path,
+        nginx_config=nginx_config_path,
+    )
+    report.context = context
+    if report.target is None and context.target is not None:
+        report.target = str(context.target.value)
+    if live_enabled:
+        report.notes.extend(live_notes)
+
+    console.print(render_incident_report(report))
+
+    containment_result = None
+    if apply_blocks and report.blocked_ips:
+        if nginx_config_path is None:
+            nginx_config_path = Path(context.discovery.nginx_config) if context.discovery.nginx_config is not None else None
+        if nginx_config_path is None:
+            console.print("No Nginx config was available for containment.")
+        elif yes or typer.confirm("Apply the Nginx denylist containment now?", default=False):
+            containment_result = apply_nginx_denylist(nginx_config_path, report.blocked_ips)
+            console.print(render_local_fix_result(containment_result))
+            report.containment_applied = containment_result.status == "applied"
+            report.containment_target = str(nginx_config_path)
+            denylist_path = nginx_config_path.with_name("incident-denylist.conf")
+            report.containment_artifact = str(denylist_path)
+            report.notes.append(containment_result.reason)
+            if containment_result.backup_path:
+                report.notes.append(f"Backup: {containment_result.backup_path}")
+        else:
+            report.notes.append("Containment was not applied.")
+
+    if fail2ban_output_path is not None:
+        write_fail2ban_artifact(report, fail2ban_output_path)
+        report.containment_artifact = str(fail2ban_output_path)
+        if report.blocked_ips:
+            report.notes.append(f"Fail2ban-style artifact written to {fail2ban_output_path}")
+
+    write_audit_path = audit_log_path or Path(policy.audit_log_path)
+    append_audit_event(write_audit_path, build_incident_audit_event(report, policy.allowed_fix_level))
+    if audit_log_note is not None:
+        console.print(f"[info] {audit_log_note}")
+    for note in (json_output_note, markdown_output_note, html_output_note, fail2ban_output_note, rate_limit_output_note, maintenance_output_note):
+        if note is not None:
+            console.print(f"[info] {note}")
+    if bundle_output_path is None and report.containment_applied:
+        bundle_output_path = default_output_path("incident", "--bundle-output")
+        bundle_output_note = f"Using default output path for --bundle-output: {bundle_output_path.as_posix()}"
+    if bundle_output_path is not None:
+        primary_report_path = json_output_path
+        if primary_report_path is None:
+            primary_report_path = default_output_path("incident", "--json-output")
+            write_json_incident_report(report, primary_report_path)
+            console.print(f"Wrote JSON report to {primary_report_path}")
+        bundle_items = [
+            path
+            for path in (
+                json_output_path,
+                markdown_output_path,
+                html_output_path,
+                fail2ban_output_path,
+                rate_limit_output_path,
+                maintenance_output_path,
+            )
+            if path is not None
+        ]
+        if report.containment_artifact:
+            bundle_items.append(Path(report.containment_artifact))
+        bundle_report = bundle_report_files(primary_report_path, output_path=bundle_output_path, extra_artifacts=bundle_items)
+        console.print(render_bundle_report(bundle_report))
+        console.print(f"Wrote ZIP bundle to {bundle_output_path}")
+    if bundle_output_note is not None:
+        console.print(f"[info] {bundle_output_note}")
+    send_notification_outputs(
+        report,
+        webhook_urls=webhook_urls,
+        slack_webhook_urls=slack_webhook_urls,
+        discord_webhook_urls=discord_webhook_urls,
+        email_recipients=email_recipients,
+        email_sender=email_from,
+        smtp_host=smtp_host,
+        smtp_port=smtp_port,
+        smtp_username=smtp_username,
+        smtp_password_env=smtp_password_env,
+        root=Path.cwd(),
+        env_file=env_file_path,
+        use_starttls=smtp_starttls,
+    )
+    print_optional_output_notes()
+    write_incident_outputs(
+        report,
+        json_output_path,
+        markdown_output_path,
+        html_output_path,
+        fail2ban_output_path,
+        rate_limit_output_path,
+        maintenance_output_path,
+    )
+
+
+@app.command(help="Monitor key files for integrity drift and compare them against a saved baseline.")
+def integrity(
+    root: Path | None = typer.Argument(
+        None,
+        metavar="ROOT",
+        help="Directory to monitor. Defaults to the current working directory.",
+    ),
+    baseline: Path | None = typer.Option(None, "--baseline", help="Compare against a saved integrity snapshot"),
+    path: list[Path] = typer.Option([], "--path", help="Add a specific file or directory to monitor"),
+    audit_log: Path | None = typer.Option(None, "--audit-log", help="Write the integrity event to a specific audit log"),
+    json_output: Path | None = typer.Option(None, "--json-output", help="Write a JSON report here"),
+    markdown_output: Path | None = typer.Option(None, "--markdown-output", help="Write a Markdown report here"),
+    html_output: Path | None = typer.Option(None, "--html-output", help="Write an HTML report here"),
+    webhook_url: list[str] = typer.Option([], "--webhook-url", help="Send the integrity summary to a generic webhook URL"),
+    slack_webhook_url: list[str] = typer.Option([], "--slack-webhook-url", help="Send the integrity summary to a Slack incoming webhook"),
+    discord_webhook_url: list[str] = typer.Option([], "--discord-webhook-url", help="Send the integrity summary to a Discord webhook"),
+    email_to: list[str] = typer.Option([], "--email-to", help="Send the integrity summary to these email recipients"),
+    email_from: str | None = typer.Option(None, "--email-from", help="Sender address for email notifications"),
+    smtp_host: str | None = typer.Option(None, "--smtp-host", help="SMTP host for email notifications"),
+    smtp_port: int = typer.Option(587, "--smtp-port", min=1, max=65535, help="SMTP port for email notifications"),
+    smtp_username: str | None = typer.Option(None, "--smtp-username", help="SMTP username for email notifications"),
+    smtp_password_env: str | None = typer.Option(None, "--smtp-password-env", help="Environment variable name for the SMTP password"),
+    smtp_starttls: bool = typer.Option(True, "--smtp-starttls/--no-smtp-starttls", help="Use STARTTLS before SMTP auth"),
+) -> None:
+    root_path = Path.cwd() if root is None else Path(root)
+    baseline_path = path_option_value(baseline)
+    extra_paths = [Path(item) for item in list_option_value(path)]
+    audit_log_path, audit_log_note = normalize_output_option(path_option_value(audit_log))
+    json_output_path, json_output_note = normalize_output_option(path_option_value(json_output))
+    markdown_output_path, markdown_output_note = normalize_output_option(path_option_value(markdown_output))
+    html_output_path, html_output_note = normalize_output_option(path_option_value(html_output))
+    webhook_urls = [str(value).strip() for value in list_option_value(webhook_url) if str(value).strip()]
+    slack_webhook_urls = [str(value).strip() for value in list_option_value(slack_webhook_url) if str(value).strip()]
+    discord_webhook_urls = [str(value).strip() for value in list_option_value(discord_webhook_url) if str(value).strip()]
+    email_recipients = [str(value).strip() for value in list_option_value(email_to) if str(value).strip()]
+
+    report = analyze_integrity_sources(root_path, baseline_path=baseline_path, extra_paths=extra_paths)
+    console.print(render_integrity_report(report))
+
+    write_audit_path = audit_log_path or Path("outputs") / "audit.log"
+    append_audit_event(write_audit_path, build_integrity_audit_event(report))
+
+    if audit_log_note is not None:
+        console.print(f"[info] {audit_log_note}")
+    for note in (json_output_note, markdown_output_note, html_output_note):
+        if note is not None:
+            console.print(f"[info] {note}")
+    send_notification_outputs(
+        report,
+        webhook_urls=webhook_urls,
+        slack_webhook_urls=slack_webhook_urls,
+        discord_webhook_urls=discord_webhook_urls,
+        email_recipients=email_recipients,
+        email_sender=email_from,
+        smtp_host=smtp_host,
+        smtp_port=smtp_port,
+        smtp_username=smtp_username,
+        smtp_password_env=smtp_password_env,
+        root=Path.cwd(),
+        use_starttls=smtp_starttls,
+    )
+    print_optional_output_notes()
+    write_integrity_outputs(report, json_output_path, markdown_output_path, html_output_path)
+
+
+@app.command(help="Detect baseline drift across saved reports for scan, integrity, incident, or doctor data.")
+def drift(
+    baseline_report: Path = typer.Argument(..., metavar="BASELINE_REPORT", help="Saved baseline report JSON file"),
+    current_report: Path = typer.Argument(..., metavar="CURRENT_REPORT", help="Saved current report JSON file"),
+    json_output: Path | None = typer.Option(None, "--json-output", help="Write a JSON drift report here"),
+    markdown_output: Path | None = typer.Option(None, "--markdown-output", help="Write a Markdown drift report here"),
+    html_output: Path | None = typer.Option(None, "--html-output", help="Write an HTML drift report here"),
+) -> None:
+    drift_report = analyze_report_drift(Path(baseline_report), Path(current_report))
+    console.print(render_drift_report(drift_report))
+
+    json_output_path, json_output_note = normalize_output_option(path_option_value(json_output))
+    markdown_output_path, markdown_output_note = normalize_output_option(path_option_value(markdown_output))
+    html_output_path, html_output_note = normalize_output_option(path_option_value(html_output))
+
+    for note in (json_output_note, markdown_output_note, html_output_note):
+        if note is not None:
+            console.print(f"[info] {note}")
+    print_optional_output_notes()
+    write_drift_outputs(drift_report, json_output_path, markdown_output_path, html_output_path)
+
+
+@app.command(help="Scan files for obvious secret exposure and redact the findings in the report output.")
+def secrets(
+    root: Path | None = typer.Argument(None, metavar="ROOT", help="Directory to scan. Defaults to the current working directory."),
+    path: list[Path] = typer.Option([], "--path", help="Add a specific file or directory to scan"),
+    json_output: Path | None = typer.Option(None, "--json-output", help="Write a JSON secret exposure report here"),
+    markdown_output: Path | None = typer.Option(None, "--markdown-output", help="Write a Markdown secret exposure report here"),
+    html_output: Path | None = typer.Option(None, "--html-output", help="Write an HTML secret exposure report here"),
+) -> None:
+    root_path = Path.cwd() if root is None else Path(root)
+    extra_paths = [Path(item) for item in list_option_value(path)]
+    report = analyze_secret_exposures(root_path, extra_paths=extra_paths)
+    console.print(render_secret_report(report))
+
+    json_output_path, json_output_note = normalize_output_option(path_option_value(json_output))
+    markdown_output_path, markdown_output_note = normalize_output_option(path_option_value(markdown_output))
+    html_output_path, html_output_note = normalize_output_option(path_option_value(html_output))
+
+    for note in (json_output_note, markdown_output_note, html_output_note):
+        if note is not None:
+            console.print(f"[info] {note}")
+    print_optional_output_notes()
+    write_secret_outputs(report, json_output_path, markdown_output_path, html_output_path)
+
+
+@app.command(help="Bundle a report and related artifacts into a ZIP archive.")
+def bundle(
+    report_file: Path = typer.Argument(..., metavar="REPORT_FILE", help="Primary report file to bundle"),
+    artifact: list[Path] = typer.Option([], "--artifact", help="Extra artifact file or directory to include"),
+    bundle_output: Path | None = typer.Option(None, "--bundle-output", help="Write the ZIP bundle here"),
+) -> None:
+    bundle_path, bundle_note = normalize_output_option(path_option_value(bundle_output))
+    extra_artifacts = [Path(item) for item in list_option_value(artifact)]
+    report_bundle = bundle_report_files(report_file, output_path=bundle_path, extra_artifacts=extra_artifacts)
+    console.print(render_bundle_report(report_bundle))
+    if bundle_note is not None:
+        console.print(f"[info] {bundle_note}")
 
 
 @app.command(help="Apply one real local fix to a discovered server file.")
@@ -1141,6 +1733,9 @@ def compare(
     comparison = compare_scan_files(old_report, new_report)
     console.print(render_comparison(comparison))
     console.print(summarize_comparison(comparison))
+    crawl_note = summarize_crawl_coverage_delta(comparison)
+    if crawl_note is not None:
+        console.print(f"[info] {crawl_note}")
     markdown_output_path, markdown_output_note = normalize_output_option(path_option_value(markdown_output))
     html_output_path, html_output_note = normalize_output_option(path_option_value(html_output))
     for note in (markdown_output_note, html_output_note):
