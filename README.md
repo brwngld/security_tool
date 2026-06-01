@@ -97,6 +97,8 @@ You can scan for obvious secret exposure:
 pshield secrets . --markdown-output outputs\secrets.md
 ```
 
+If you omit all output flags, `secrets` now writes JSON, Markdown, and HTML reports under `outputs/` by default.
+
 You can bundle a report and its related artifacts into a ZIP archive:
 
 ```powershell

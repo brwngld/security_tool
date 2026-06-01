@@ -1480,6 +1480,14 @@ def secrets(
     markdown_output_path, markdown_output_note = normalize_output_option(path_option_value(markdown_output))
     html_output_path, html_output_note = normalize_output_option(path_option_value(html_output))
 
+    if json_output_path is None and markdown_output_path is None and html_output_path is None:
+        json_output_path = default_output_path("secrets", "--json-output")
+        markdown_output_path = default_output_path("secrets", "--markdown-output")
+        html_output_path = default_output_path("secrets", "--html-output")
+        json_output_note = f"Using default output path for --json-output: {json_output_path.as_posix()}"
+        markdown_output_note = f"Using default output path for --markdown-output: {markdown_output_path.as_posix()}"
+        html_output_note = f"Using default output path for --html-output: {html_output_path.as_posix()}"
+
     for note in (json_output_note, markdown_output_note, html_output_note):
         if note is not None:
             console.print(f"[info] {note}")

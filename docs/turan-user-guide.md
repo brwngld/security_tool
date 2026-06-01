@@ -637,6 +637,8 @@ Example:
 .\venv\Scripts\python.exe -m app.main secrets . --json-output outputs\secrets.json
 ```
 
+If you do not pass any output flags, `secrets` writes JSON, Markdown, and HTML reports under `outputs/` automatically.
+
 Typical secret-exposure output adds:
 
 - the monitored root

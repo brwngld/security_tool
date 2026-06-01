@@ -22,7 +22,7 @@ It is intentionally short and practical so it can stay current as the app grows.
 - Added report notification hooks for webhooks, Slack, Discord, and email across `incident`, `integrity`, and `timeline`.
 - Added a short `compare` terminal note when crawl coverage changes between saved crawl reports.
 - Added `drift` for baseline drift detection across saved reports.
-- Added `secrets` for redacted secret exposure checks in logs and config files.
+- Added `secrets` for redacted secret exposure checks in logs and config files, with default saved report outputs when none are supplied.
 - Added `bundle` for packaging reports and related containment artifacts into ZIP archives.
 
 ## Notes

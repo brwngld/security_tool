@@ -53,3 +53,26 @@ def test_secrets_command_renders_and_writes_outputs(monkeypatch, workspace_temp_
     assert "Secret Exposure" in text
     assert "supersecret123" not in text
     assert output_calls
+
+
+def test_secrets_command_uses_default_outputs_when_none_are_provided(monkeypatch, workspace_temp_dir) -> None:
+    env_file = workspace_temp_dir / ".env"
+    env_file.write_text("PASSWORD=supersecret123\n", encoding="utf-8")
+
+    recorded_console = Console(record=True, width=120)
+    output_calls = []
+    monkeypatch.setattr(main, "console", recorded_console)
+    monkeypatch.setattr(main, "default_output_path", lambda command_name, option_name, stamp=None: workspace_temp_dir / "outputs" / f"{command_name}-{option_name.strip('-').replace('-', '_')}.txt")
+    monkeypatch.setattr(main, "write_secret_outputs", lambda report, json_output_path, markdown_output_path, html_output_path: output_calls.append((json_output_path, markdown_output_path, html_output_path)))
+
+    main.secrets(workspace_temp_dir)
+
+    assert output_calls
+    json_path, markdown_path, html_path = output_calls[0]
+    assert json_path == workspace_temp_dir / "outputs" / "secrets-json_output.txt"
+    assert markdown_path == workspace_temp_dir / "outputs" / "secrets-markdown_output.txt"
+    assert html_path == workspace_temp_dir / "outputs" / "secrets-html_output.txt"
+    text = recorded_console.export_text()
+    assert "Using default output path for --json-output" in text
+    assert "Using default output path for --markdown-output" in text
+    assert "Using default output path for --html-output" in text
