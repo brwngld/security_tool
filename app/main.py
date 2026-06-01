@@ -52,7 +52,7 @@ from app.hardening.incident import (
 from app.hardening.local_fixes import apply_local_nginx_hardening_fix, choose_local_fix_target
 from app.output_paths import default_output_path, expand_optional_output_arguments, normalize_output_path
 from app.models import LocalFixResult
-from app.scanner import crawl_target, scan_target
+from app.engine import crawl_target, scan_target
 from app.reports.comparison_report import write_html_comparison_report, write_markdown_comparison_report
 from app.reports.console import (
     render_audit_log,
