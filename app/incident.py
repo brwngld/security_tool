@@ -2,8 +2,11 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 import re
+import subprocess
+from platform import system as platform_system
 from typing import Iterable
 
 from app.context import resolve_application_context
@@ -21,9 +24,66 @@ _AUTH_LOG_MARKERS = {
     "authentication failure": "authentication failure",
     "pam_unix": "pam_unix",
     "sudo:": "sudo",
+    "sudo session": "sudo",
     "session opened for user": "session opened",
     "session closed for user": "session closed",
     "accepted publickey": "accepted publickey",
+}
+
+_SSH_MARKERS = {
+    "sshd[": "sshd",
+    "ssh2": "ssh",
+    "port 22": "ssh",
+    "disconnect from": "ssh",
+    "connection closed by": "ssh",
+    "failed password": "ssh",
+    "invalid user": "ssh",
+    "accepted publickey": "ssh",
+}
+
+_SUDO_MARKERS = {
+    "sudo:": "sudo",
+    "pam_unix(sudo:session)": "sudo",
+    "pam_unix(sudo:auth)": "sudo",
+    "command not allowed": "sudo",
+    "session opened for user root": "sudo",
+}
+
+_GUNICORN_MARKERS = {
+    "gunicorn": "gunicorn",
+    "worker timeout": "worker timeout",
+    "booting worker": "worker start",
+    "worker exiting": "worker exit",
+    "worker failed to boot": "worker boot failure",
+    "reason: worker timeout": "worker timeout",
+}
+
+_UWSGI_MARKERS = {
+    "uwsgi": "uwsgi",
+    "harakiri": "harakiri",
+    "spawned uwsgi worker": "worker start",
+    "respawning": "respawning",
+    "broken pipe": "broken pipe",
+    "signal": "signal",
+}
+
+_AUTH_MIDDLEWARE_MARKERS = {
+    "csrf": "csrf",
+    "invalid csrf": "csrf",
+    "csrf token": "csrf",
+    "authentication required": "authentication required",
+    "login required": "login required",
+    "session expired": "session expired",
+    "token expired": "token expired",
+    "permission denied": "permission denied",
+    "access denied": "access denied",
+    "not authenticated": "not authenticated",
+    "oauth": "oauth",
+    "oidc": "oidc",
+    "saml": "saml",
+    "django.security": "django security",
+    "flask-login": "flask-login",
+    "identity middleware": "identity middleware",
 }
 
 _APACHE_ERROR_MARKERS = {
@@ -39,9 +99,14 @@ _LOG_FAMILY_NAMES = {
     "auth": "auth",
     "apache-access": "apache-access",
     "apache-error": "apache-error",
+    "auth-middleware": "auth-middleware",
+    "gunicorn": "gunicorn",
     "nginx-access": "nginx-access",
+    "ssh": "ssh",
+    "sudo": "sudo",
     "systemd": "systemd",
     "application": "application",
+    "uwsgi": "uwsgi",
     "unknown": "unknown",
 }
 
@@ -113,6 +178,7 @@ class _IpActivity:
     probe_hits: int = 0
     injection_hits: int = 0
     auth_hits: int = 0
+    service_hits: int = 0
     error_hits: int = 0
     status_401_403_hits: int = 0
     log_families: set[str] = field(default_factory=set)
@@ -126,9 +192,20 @@ class _IpActivity:
             + self.probe_hits * 2
             + self.injection_hits * 4
             + self.auth_hits * 3
+            + self.service_hits * 2
             + self.error_hits
             + self.status_401_403_hits
         )
+
+
+@dataclass
+class _FamilyActivity:
+    count: int = 0
+    source_files: set[str] = field(default_factory=set)
+    reasons: set[str] = field(default_factory=set)
+
+
+_FINDING_FAMILIES = {"gunicorn", "uwsgi", "auth-middleware", "ssh", "sudo"}
 
 
 def _collect_log_files(sources: Iterable[Path]) -> list[Path]:
@@ -146,6 +223,101 @@ def _collect_log_files(sources: Iterable[Path]) -> list[Path]:
             seen.add(source_path)
             collected.append(source_path)
     return collected
+
+
+def _safe_label(value: str) -> str:
+    cleaned = re.sub(r"[^a-z0-9._-]+", "-", value.strip().lower())
+    return cleaned.strip("-") or "source"
+
+
+def _timestamp_stamp() -> str:
+    return datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
+
+
+def _tail_text(text: str, line_count: int) -> str:
+    lines = text.splitlines()
+    if line_count <= 0 or len(lines) <= line_count:
+        return text.rstrip("\n")
+    return "\n".join(lines[-line_count:])
+
+
+def _read_tail_file(path: Path, line_count: int) -> str:
+    try:
+        text = path.read_text(encoding="utf-8", errors="ignore")
+    except OSError as exc:
+        return f"# Turan could not read {path}: {exc.__class__.__name__}"
+    return _tail_text(text, line_count)
+
+
+def _run_capture(command: list[str]) -> str:
+    completed = subprocess.run(command, capture_output=True, text=True, check=False)
+    output = (completed.stdout or completed.stderr or "").strip()
+    if completed.returncode != 0 and not output:
+        return ""
+    return output
+
+
+def _write_snapshot(output_dir: Path, stem: str, content: str) -> Path:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    path = output_dir / f"{stem}-{_timestamp_stamp()}.log"
+    path.write_text(content.rstrip("\n") + "\n", encoding="utf-8")
+    return path
+
+
+def collect_live_incident_sources(
+    *,
+    root: Path,
+    line_count: int = 250,
+    journal_units: Iterable[str] | None = None,
+    event_log_names: Iterable[str] | None = None,
+    tail_files: Iterable[Path] | None = None,
+    output_dir: Path | None = None,
+) -> tuple[list[Path], list[str]]:
+    live_output_dir = output_dir or (root / "outputs" / "incident-live")
+    snapshots: list[Path] = []
+    notes: list[str] = []
+
+    units = [unit for unit in (journal_units or []) if unit.strip()]
+    event_logs = [name for name in (event_log_names or []) if name.strip()]
+    tail_paths = [Path(path) for path in (tail_files or []) if Path(path).exists()]
+
+    if not units and not event_logs and not tail_paths:
+        if platform_system().lower() == "windows":
+            event_logs = ["System", "Application", "Security"]
+        else:
+            systemd_dir = root / "systemd"
+            if systemd_dir.exists():
+                units.extend(sorted(path.stem for path in systemd_dir.glob("*.service")))
+            if not units:
+                units = ["nginx", "apache2", "sshd"]
+
+    for unit in units:
+        command = ["journalctl", "--no-pager", "-n", str(line_count), "-u", unit]
+        output = _run_capture(command)
+        if not output:
+            notes.append(f"journalctl returned no output for {unit}")
+            continue
+        snapshots.append(_write_snapshot(live_output_dir, f"journalctl-{_safe_label(unit)}", output))
+        notes.append(f"Captured live journalctl snapshot for {unit}")
+
+    for log_name in event_logs:
+        command = ["wevtutil", "qe", log_name, "/f:text", "/rd:true", f"/c:{line_count}"]
+        output = _run_capture(command)
+        if not output:
+            notes.append(f"Windows Event Log returned no output for {log_name}")
+            continue
+        snapshots.append(_write_snapshot(live_output_dir, f"wevtutil-{_safe_label(log_name)}", output))
+        notes.append(f"Captured live Windows Event Log snapshot for {log_name}")
+
+    for tail_file in tail_paths:
+        output = _read_tail_file(tail_file, line_count)
+        if not output.strip():
+            notes.append(f"No readable tail content for {tail_file}")
+            continue
+        snapshots.append(_write_snapshot(live_output_dir, f"tail-{_safe_label(tail_file.name)}", output))
+        notes.append(f"Captured tail snapshot for {tail_file}")
+
+    return snapshots, notes
 
 
 def default_incident_sources(root: Path, context_target: str | None = None) -> list[Path]:
@@ -210,9 +382,17 @@ def _identify_log_family(source_file: Path, line: str) -> str:
     lower_name = source_file.name.lower()
     full_name = source_file.as_posix().lower()
 
+    if any(marker in lower_line for marker in _AUTH_MIDDLEWARE_MARKERS):
+        return _LOG_FAMILY_NAMES["auth-middleware"]
+    if any(marker in lower_line for marker in _GUNICORN_MARKERS) or "gunicorn" in lower_name:
+        return _LOG_FAMILY_NAMES["gunicorn"]
+    if any(marker in lower_line for marker in _UWSGI_MARKERS) or "uwsgi" in lower_name:
+        return _LOG_FAMILY_NAMES["uwsgi"]
+    if any(marker in lower_line for marker in _SUDO_MARKERS):
+        return _LOG_FAMILY_NAMES["sudo"]
+    if any(marker in lower_line for marker in _SSH_MARKERS):
+        return _LOG_FAMILY_NAMES["ssh"]
     if any(marker in lower_line for marker in _AUTH_LOG_MARKERS):
-        return _LOG_FAMILY_NAMES["auth"]
-    if "sshd[" in lower_line or "sudo:" in lower_line or "pam_unix" in lower_line:
         return _LOG_FAMILY_NAMES["auth"]
     if "apache" in lower_name or "httpd" in lower_name or "apache" in full_name or "httpd" in full_name:
         if "[client" in lower_line or any(marker in lower_line for marker in _APACHE_ERROR_MARKERS):
@@ -222,7 +402,7 @@ def _identify_log_family(source_file: Path, line: str) -> str:
         return _LOG_FAMILY_NAMES["nginx-access"]
     if "systemd" in lower_line or "journal" in lower_name or "systemd" in lower_name:
         return _LOG_FAMILY_NAMES["systemd"]
-    if "gunicorn" in lower_name or "uwsgi" in lower_name or "app.log" in lower_name:
+    if "app.log" in lower_name:
         return _LOG_FAMILY_NAMES["application"]
     if _REQUEST_RE.search(line):
         return _LOG_FAMILY_NAMES["nginx-access"]
@@ -271,6 +451,26 @@ def _classify_line(
         reasons.update({reason for marker, reason in _AUTH_LOG_MARKERS.items() if marker in lower_line})
         if "failed password" in lower_line or "invalid user" in lower_line:
             markers.add("bruteforce")
+
+    if any(marker in lower_line for marker in _SSH_MARKERS):
+        markers.add("ssh")
+        reasons.update({reason for marker, reason in _SSH_MARKERS.items() if marker in lower_line})
+
+    if any(marker in lower_line for marker in _SUDO_MARKERS):
+        markers.add("sudo")
+        reasons.update({reason for marker, reason in _SUDO_MARKERS.items() if marker in lower_line})
+
+    if any(marker in lower_line for marker in _GUNICORN_MARKERS):
+        markers.add("gunicorn")
+        reasons.update({reason for marker, reason in _GUNICORN_MARKERS.items() if marker in lower_line})
+
+    if any(marker in lower_line for marker in _UWSGI_MARKERS):
+        markers.add("uwsgi")
+        reasons.update({reason for marker, reason in _UWSGI_MARKERS.items() if marker in lower_line})
+
+    if any(marker in lower_line for marker in _AUTH_MIDDLEWARE_MARKERS):
+        markers.add("auth_middleware")
+        reasons.update({reason for marker, reason in _AUTH_MIDDLEWARE_MARKERS.items() if marker in lower_line})
 
     if any(marker in lower_line for marker in _APACHE_ERROR_MARKERS):
         markers.add("apache")
@@ -342,6 +542,7 @@ def analyze_incident_sources(
         )
 
     activities: dict[str, _IpActivity] = defaultdict(_IpActivity)
+    family_activities: dict[str, _FamilyActivity] = defaultdict(_FamilyActivity)
     error_hits = 0
     total_lines = 0
     scan_notes: list[str] = []
@@ -364,6 +565,12 @@ def analyze_incident_sources(
             if not markers:
                 continue
 
+            if family in _FINDING_FAMILIES or "auth_middleware" in markers or "gunicorn" in markers or "uwsgi" in markers:
+                family_activity = family_activities[family]
+                family_activity.count += 1
+                family_activity.source_files.add(str(source_file))
+                family_activity.reasons.update(reasons)
+
             if ip is not None:
                 activity = activities[ip]
                 activity.requests += 1
@@ -381,6 +588,10 @@ def analyze_incident_sources(
                     activity.injection_hits += 1
                 if "auth" in markers:
                     activity.auth_hits += 1
+                if "ssh" in markers or "sudo" in markers or "auth_middleware" in markers:
+                    activity.auth_hits += 1
+                if "gunicorn" in markers or "uwsgi" in markers:
+                    activity.service_hits += 1
                 if "error" in markers:
                     activity.error_hits += 1
                     error_hits += 1
@@ -477,6 +688,106 @@ def analyze_incident_sources(
 
         if score >= block_threshold:
             blocked_ips.append(ip)
+
+    for family_name, family_activity in sorted(family_activities.items(), key=lambda item: item[1].count, reverse=True):
+        if family_activity.count == 0:
+            continue
+        sources_list = sorted(family_activity.source_files)
+        evidence = {
+            "count": family_activity.count,
+            "source_files": ", ".join(sources_list) if sources_list else None,
+            "reasons": ", ".join(sorted(family_activity.reasons)[:4]) if family_activity.reasons else None,
+        }
+        if family_name == "gunicorn":
+            findings.append(
+                _build_incident_finding(
+                    finding_id=f"incident-gunicorn-{family_activity.count}",
+                    source_file=sources_list[0] if sources_list else "-",
+                    log_family="gunicorn",
+                    title="Gunicorn worker instability",
+                    category="service",
+                    severity="medium" if family_activity.count < block_threshold else "high",
+                    confidence="medium",
+                    description="The logs show Gunicorn worker timeouts or restarts that may need a closer look.",
+                    evidence=evidence,
+                    affected_ips=[],
+                    recommended_action="Review worker timeouts, restart policy, and application exceptions.",
+                    block_action=None,
+                    count=family_activity.count,
+                )
+            )
+        elif family_name == "uwsgi":
+            findings.append(
+                _build_incident_finding(
+                    finding_id=f"incident-uwsgi-{family_activity.count}",
+                    source_file=sources_list[0] if sources_list else "-",
+                    log_family="uwsgi",
+                    title="uWSGI worker instability",
+                    category="service",
+                    severity="medium" if family_activity.count < block_threshold else "high",
+                    confidence="medium",
+                    description="The logs show uWSGI worker churn, harakiri, or signal-related instability.",
+                    evidence=evidence,
+                    affected_ips=[],
+                    recommended_action="Review harakiri settings, worker restart frequency, and upstream app errors.",
+                    block_action=None,
+                    count=family_activity.count,
+                )
+            )
+        elif family_name == "auth-middleware":
+            findings.append(
+                _build_incident_finding(
+                    finding_id=f"incident-auth-middleware-{family_activity.count}",
+                    source_file=sources_list[0] if sources_list else "-",
+                    log_family="auth-middleware",
+                    title="Auth middleware denials",
+                    category="auth",
+                    severity="low" if family_activity.count < block_threshold else "medium",
+                    confidence="medium",
+                    description="The logs show authentication middleware rejecting requests or expiring sessions.",
+                    evidence=evidence,
+                    affected_ips=[],
+                    recommended_action="Review auth middleware rules, session settings, and token expiry behavior.",
+                    block_action=None,
+                    count=family_activity.count,
+                )
+            )
+        elif family_name == "ssh":
+            findings.append(
+                _build_incident_finding(
+                    finding_id=f"incident-ssh-{family_activity.count}",
+                    source_file=sources_list[0] if sources_list else "-",
+                    log_family="ssh",
+                    title="SSH login activity",
+                    category="auth",
+                    severity="medium" if family_activity.count < block_threshold else "high",
+                    confidence="medium",
+                    description="The logs show SSH login attempts or session activity that deserves review.",
+                    evidence=evidence,
+                    affected_ips=[],
+                    recommended_action="Review SSH hardening, access controls, and repeated login failures.",
+                    block_action=None,
+                    count=family_activity.count,
+                )
+            )
+        elif family_name == "sudo":
+            findings.append(
+                _build_incident_finding(
+                    finding_id=f"incident-sudo-{family_activity.count}",
+                    source_file=sources_list[0] if sources_list else "-",
+                    log_family="sudo",
+                    title="Sudo activity",
+                    category="auth",
+                    severity="medium" if family_activity.count < block_threshold else "high",
+                    confidence="medium",
+                    description="The logs show sudo usage or authorization failures that may need an audit.",
+                    evidence=evidence,
+                    affected_ips=[],
+                    recommended_action="Review sudo policy, privilege grants, and unexpected command usage.",
+                    block_action=None,
+                    count=family_activity.count,
+                )
+            )
 
     if error_hits and not findings:
         findings.append(

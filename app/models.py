@@ -136,3 +136,37 @@ class IncidentReport(BaseModel):
     containment_applied: bool = False
     containment_target: str | None = None
     containment_artifact: str | None = None
+
+
+class IntegrityFile(BaseModel):
+    path: str
+    category: str
+    kind: str
+    exists: bool = True
+    status: str = Field(pattern=r"^(unchanged|new|changed|missing)$")
+    sha256: str | None = None
+    size: int | None = None
+    modified_at: str | None = None
+
+
+class IntegrityFinding(BaseModel):
+    id: str
+    path: str
+    category: str
+    kind: str
+    severity: str = Field(pattern=r"^(info|low|medium|high|critical)$")
+    confidence: str = Field(default="high", pattern=r"^(low|medium|high)$")
+    title: str
+    description: str
+    evidence: dict[str, str | int | bool | None] = Field(default_factory=dict)
+    recommended_action: str = ""
+
+
+class IntegrityReport(BaseModel):
+    context: ApplicationContext | None = None
+    root: str
+    baseline_path: str | None = None
+    monitored_paths: list[str] = Field(default_factory=list)
+    files: list[IntegrityFile] = Field(default_factory=list)
+    findings: list[IntegrityFinding] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)

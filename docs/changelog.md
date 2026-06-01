@@ -13,6 +13,9 @@ It is intentionally short and practical so it can stay current as the app grows.
 - Added `fix --local` as the first real live-edit lane with backup, validation, and rollback.
 - Added `doctor` and `server-check` discovery workflows for local and VPS environments.
 - Added `incident` log analysis with Apache/auth/systemd patterns, optional Nginx denylist containment, and fail2ban-style output for suspicious activity.
+- Added live log snapshot ingestion for `incident` from `journalctl`, Windows Event Log, and file tails.
+- Added richer incident signatures for Apache, Nginx, Gunicorn, uWSGI, SSH, sudo, and auth middleware.
+- Added `integrity` file monitoring with baseline comparison for config files, web roots, and startup scripts.
 
 ## Notes
 

@@ -38,6 +38,7 @@ Turan is intentionally defensive:
 | `doctor` | Checks the local machine and app environment | Health check without a URL |
 | `server-check` | Discovers the server layout and scans the local app target | VPS/server discovery mode |
 | `incident` | Detects suspicious activity in logs and can apply a denylist or fail2ban snippet | Defensive incident response |
+| `integrity` | Compares monitored files against a saved baseline | File integrity drift monitoring |
 | `fix --local` | Applies the first real local edit lane | Backup, edit, validate, rollback if needed |
 | `demo-site` | Runs the local demo site | Test target for development |
 
@@ -77,6 +78,14 @@ Check logs for suspicious activity and optionally apply containment:
 
 ```powershell
 .\venv\Scripts\python.exe -m app.main incident --logs outputs\access.log --apply-blocks
+.\venv\Scripts\python.exe -m app.main integrity . --baseline baselines\integrity.json
+```
+
+Capture fresh snapshots from live sources:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main incident --live --tail-file outputs\access.log
+.\venv\Scripts\python.exe -m app.main incident --live --event-log-name System --fail2ban-output outputs\incident-fail2ban.conf
 ```
 
 Write a fail2ban-style snippet:
@@ -536,8 +545,25 @@ Typical incident output adds:
 
 - source log paths
 - suspect IPs and blocked IPs
-- log family hints such as `apache-access`, `apache-error`, `auth`, and `systemd`
+- log family hints such as `apache-access`, `apache-error`, `auth`, `auth-middleware`, `gunicorn`, `ssh`, `sudo`, `systemd`, and `uwsgi`
 - optional denylist or fail2ban-style containment artifacts
+
+## Integrity
+
+`integrity` compares monitored files in a root directory against an optional saved baseline.
+
+Example:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main integrity . --baseline baselines\integrity.json --json-output outputs\integrity.json
+```
+
+Typical integrity output adds:
+
+- the monitored root
+- the baseline path when one is supplied
+- changed, missing, and new monitored files
+- the file category, kind, hash, size, and timestamp for each tracked file
 
 ## Troubleshooting
 

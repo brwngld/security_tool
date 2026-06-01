@@ -7,7 +7,7 @@ from app import main
 from app.config import AppConfig
 from app.context import ApplicationContext, DiscoveryReport
 from app.hardening.incident import apply_nginx_denylist, write_fail2ban_artifact
-from app.incident import analyze_incident_sources
+from app.incident import analyze_incident_sources, collect_live_incident_sources
 from app.models import IncidentFinding, IncidentReport, LocalFixResult
 
 
@@ -46,9 +46,31 @@ def test_analyze_incident_sources_handles_apache_and_auth_logs(workspace_temp_di
 
     families = {finding.log_family for finding in report.findings}
     assert "apache-error" in families
-    assert "auth" in families
+    assert "ssh" in families
     assert "203.0.113.10" in report.blocked_ips
     assert "198.51.100.22" in report.blocked_ips
+
+
+def test_analyze_incident_sources_detects_service_and_admin_signals(workspace_temp_dir) -> None:
+    service_log = workspace_temp_dir / "app.log"
+    service_log.write_text(
+        "May 27 10:00:00 host gunicorn[100]: Worker timeout (pid: 10)\n"
+        "May 27 10:00:01 host uwsgi[101]: harakiri triggered on worker 4\n"
+        "May 27 10:00:02 host app: django.security.csrf: CSRF token missing or incorrect.\n"
+        "May 27 10:00:03 host sshd[102]: Failed password for invalid user admin from 198.51.100.77 port 22 ssh2\n"
+        "May 27 10:00:04 host sudo: pam_unix(sudo:session): session opened for user root by alice(uid=1000)\n",
+        encoding="utf-8",
+    )
+
+    report = analyze_incident_sources([service_log], root=workspace_temp_dir, block_threshold=4)
+
+    families = {finding.log_family for finding in report.findings}
+    categories = {finding.category for finding in report.findings}
+
+    assert {"gunicorn", "uwsgi", "auth-middleware", "ssh", "sudo"}.issubset(families)
+    assert "auth" in categories
+    assert "service" in categories
+    assert "198.51.100.77" in report.blocked_ips
 
 
 def test_apply_nginx_denylist_backups_and_writes_include(workspace_temp_dir, monkeypatch) -> None:
@@ -102,6 +124,53 @@ def test_write_fail2ban_artifact_includes_detected_patterns(workspace_temp_dir) 
     assert "failregex" in text
     assert "sqlmap" in text
     assert "logpath =" in text
+
+
+def test_collect_live_incident_sources_tails_a_file(workspace_temp_dir) -> None:
+    tail_file = workspace_temp_dir / "live.log"
+    tail_file.write_text(
+        "line-1\nline-2\nline-3\nline-4\nline-5\n",
+        encoding="utf-8",
+    )
+
+    snapshots, notes = collect_live_incident_sources(
+        root=workspace_temp_dir,
+        line_count=2,
+        tail_files=[tail_file],
+        output_dir=workspace_temp_dir / "outputs" / "incident-live",
+    )
+
+    assert len(snapshots) == 1
+    assert snapshots[0].exists()
+    text = snapshots[0].read_text(encoding="utf-8")
+    assert "line-4" in text
+    assert "line-5" in text
+    assert any("Captured tail snapshot" in note for note in notes)
+
+
+def test_collect_live_incident_sources_captures_windows_event_log_snapshot(workspace_temp_dir, monkeypatch) -> None:
+    def fake_run(command, capture_output, text, check):
+        return subprocess.CompletedProcess(
+            command,
+            0,
+            stdout="Event 1\nSuspicious authentication failure\n",
+            stderr="",
+        )
+
+    monkeypatch.setattr("app.incident.subprocess.run", fake_run)
+
+    snapshots, notes = collect_live_incident_sources(
+        root=workspace_temp_dir,
+        line_count=5,
+        event_log_names=["System"],
+        output_dir=workspace_temp_dir / "outputs" / "incident-live",
+    )
+
+    assert len(snapshots) == 1
+    assert snapshots[0].exists()
+    text = snapshots[0].read_text(encoding="utf-8")
+    assert "Suspicious authentication failure" in text
+    assert any("Captured live Windows Event Log snapshot" in note for note in notes)
 
 
 def test_incident_command_applies_containment(monkeypatch, workspace_temp_dir) -> None:
@@ -161,3 +230,24 @@ def test_incident_command_applies_containment(monkeypatch, workspace_temp_dir) -
     assert audit_events[0].action == "incident"
     assert audit_events[0].result == "contained"
     assert "Containment" in text
+
+
+def test_incident_command_uses_live_tail_snapshots(monkeypatch, workspace_temp_dir) -> None:
+    live_log = workspace_temp_dir / "live.log"
+    live_log.write_text(
+        '10.0.0.9 - - [27/May/2026:10:00:00 +0000] "GET /.env HTTP/1.1" 404 0 "-" "sqlmap/1.6"\n',
+        encoding="utf-8",
+    )
+
+    recorded_console = Console(record=True, width=120)
+    monkeypatch.setattr(main, "console", recorded_console)
+    monkeypatch.setattr(main, "confirm_risky_command", lambda action, assume_yes=False: True)
+    monkeypatch.setattr(main, "load_app_config", lambda policy_file: AppConfig(audit_log_path=str(workspace_temp_dir / "audit.log")))
+    monkeypatch.setattr(main, "append_audit_event", lambda path, event: None)
+
+    main.incident(None, live=True, tail_file=[live_log], yes=True)
+
+    text = recorded_console.export_text()
+    assert "Live capture:" in text
+    assert "Incident Response" in text
+    assert "10.0.0.9" in text

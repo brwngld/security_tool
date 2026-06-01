@@ -11,7 +11,7 @@ from app.audit import AuditEvent, describe_audit_event
 from app.context import ApplicationContext
 from app.doctor import DoctorCheck, DoctorReport
 from app.config import AppConfig
-from app.models import ComparisonResult, FixDecision, IncidentReport, LocalFixResult, ScanResult
+from app.models import ComparisonResult, FixDecision, IncidentReport, IntegrityReport, LocalFixResult, ScanResult
 
 
 def summarize_evidence(evidence: dict[str, object]) -> str:
@@ -533,3 +533,71 @@ def render_incident_report(report: IncidentReport) -> Group:
     if report.context is not None:
         return Group(summary, render_application_context(report.context), sources, findings, containment)
     return Group(summary, sources, findings, containment)
+
+
+def render_integrity_report(report: IntegrityReport) -> Group:
+    summary = Table(title="File Integrity")
+    summary.add_column("Field", style="cyan", no_wrap=True)
+    summary.add_column("Value", style="white")
+    summary.add_row("Root", report.root)
+    summary.add_row("Baseline", report.baseline_path or "not supplied")
+    summary.add_row("Monitored paths", str(len(report.monitored_paths)))
+    summary.add_row("Files tracked", str(len(report.files)))
+    summary.add_row("Findings", str(len(report.findings)))
+
+    if report.context is not None:
+        context_table = render_application_context(report.context)
+    else:
+        context_table = None
+
+    findings = Table(title="Integrity Findings")
+    findings.add_column("Severity", style="magenta", no_wrap=True)
+    findings.add_column("Category", style="cyan", no_wrap=True)
+    findings.add_column("Kind", style="white", no_wrap=True)
+    findings.add_column("Path", style="white")
+    findings.add_column("Action", style="white")
+
+    if report.findings:
+        for finding in report.findings:
+            findings.add_row(
+                finding.severity,
+                finding.category,
+                finding.kind,
+                finding.path,
+                finding.recommended_action or "-",
+            )
+    else:
+        findings.add_row("-", "-", "-", "No integrity drift detected", "-")
+
+    files = Table(title="Monitored Files")
+    files.add_column("Status", style="white", no_wrap=True)
+    files.add_column("Category", style="cyan", no_wrap=True)
+    files.add_column("Kind", style="white", no_wrap=True)
+    files.add_column("Path", style="white")
+    files.add_column("SHA256", style="white")
+
+    if report.files:
+        for file_item in report.files[:20]:
+            files.add_row(
+                file_item.status,
+                file_item.category,
+                file_item.kind,
+                file_item.path,
+                file_item.sha256 or "-",
+            )
+        if len(report.files) > 20:
+            files.add_row("...", "-", "-", f"+{len(report.files) - 20} more", "-")
+    else:
+        files.add_row("-", "-", "-", "No files monitored", "-")
+
+    notes = Table(title="Notes")
+    notes.add_column("Message", style="white")
+    if report.notes:
+        for note in report.notes[:6]:
+            notes.add_row(note)
+    else:
+        notes.add_row("-")
+
+    if context_table is not None:
+        return Group(summary, context_table, findings, files, notes)
+    return Group(summary, findings, files, notes)

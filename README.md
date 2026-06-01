@@ -60,10 +60,23 @@ Check logs for active probing and, if needed, apply containment:
 .\venv\Scripts\python.exe -m app.main incident --logs outputs\access.log --apply-blocks
 ```
 
+Capture fresh snapshots from live sources:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main incident --live --tail-file outputs\access.log
+.\venv\Scripts\python.exe -m app.main incident --live --event-log-name System --fail2ban-output outputs\incident-fail2ban.conf
+```
+
 You can also write a fail2ban-style snippet:
 
 ```powershell
 .\venv\Scripts\python.exe -m app.main incident --logs outputs\access.log --fail2ban-output outputs\incident-fail2ban.conf
+```
+
+Monitor key files against a saved baseline:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main integrity . --baseline baselines\integrity.json --json-output outputs\integrity.json
 ```
 
 Turan looks for `APP_URL`, then `TARGET_URL`, then `BASE_URL`.
@@ -230,6 +243,13 @@ When the saved reports come from `crawl`, `compare` also shows how many pages we
 
 TODO:
 - Add a short terminal note when `compare` includes crawl coverage deltas.
+- Add process and port checks for suspicious listeners and outbound connections.
+- Add containment presets for Nginx denylist, fail2ban, rate limits, and maintenance mode.
+- Add a timeline view that shows what happened first across logs, findings, and containment actions.
+- Add notification hooks for email, Slack, Discord, or webhooks.
+- Add baseline drift detection across logs, headers, files, and config state.
+- Add secret exposure checks for logs and config files with safe redaction.
+- Add report bundles that package JSON, Markdown, HTML, and containment artifacts together.
 
 ## Audit history
 

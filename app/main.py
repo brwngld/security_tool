@@ -11,6 +11,7 @@ from app.artifacts import load_scan_result
 from app.audit import (
     append_audit_event,
     build_fix_audit_event,
+    build_integrity_audit_event,
     build_incident_audit_event,
     build_local_fix_audit_event,
     build_scan_audit_event,
@@ -31,7 +32,8 @@ from app.baseline import build_baseline_metadata, summarize_baseline_metadata, w
 from app.comparison import compare_scan_files, summarize_comparison
 from app.context import resolve_application_context, summarize_application_context
 from app.demo_site import serve_demo_site
-from app.incident import analyze_incident_sources, default_incident_sources
+from app.integrity import analyze_integrity_sources
+from app.incident import analyze_incident_sources, collect_live_incident_sources, default_incident_sources
 from app.http.auth import CrawlAuthConfig
 from app.hardening.backup import create_backup
 from app.hardening.applied_artifacts import applied_artifact_path, create_applied_artifact_backup
@@ -51,11 +53,13 @@ from app.reports.console import (
     render_doctor_report,
     render_fix_decisions,
     render_incident_report,
+    render_integrity_report,
     render_interactive_fix_catalog,
     render_local_fix_preview,
     render_local_fix_result,
     render_policy,
 )
+from app.reports.integrity_report import write_html_integrity_report, write_json_integrity_report, write_markdown_integrity_report
 from app.reports.incident_report import write_html_incident_report, write_json_incident_report, write_markdown_incident_report
 from app.reports.html_report import write_html_report
 from app.reports.json_report import write_json_report
@@ -94,6 +98,7 @@ app = typer.Typer(
         "- Checks the local machine and app environment without a URL\n"
         "- Checks server-only paths and local config without a URL\n"
         "- Detects suspicious server or app activity from logs and can write a denylist containment artifact\n"
+        "- Monitors key files for integrity drift against a saved baseline\n"
         "- Runs a local demo site for testing\n\n"
         "**Safety**\n"
         "- `--yes` skips the permission prompt for trusted automation\n\n"
@@ -167,6 +172,7 @@ app = typer.Typer(
         "server-check\n"
         "server-check --env-file /path/to/autoentrytrack/.env --nginx-config /etc/nginx/nginx.conf\n"
         "incident --logs outputs\\access.log --apply-blocks\n"
+        "integrity . --baseline baselines\\integrity.json\n"
         "incident --logs C:\\logs --html-output\n"
         "baseline http://127.0.0.1:8000 --label vps-west\n"
         "baseline http://127.0.0.1:8000 --output baselines\\vps-west.json\n"
@@ -194,6 +200,14 @@ def timeout_option_value(value: object) -> float | None:
 
 def text_option_value(value: object) -> str | None:
     return value if isinstance(value, str) else None
+
+
+def list_option_value(value: object) -> list[object]:
+    if isinstance(value, list):
+        return value
+    if isinstance(value, tuple):
+        return list(value)
+    return []
 
 
 def display_path_value(value: str | Path | None) -> str | None:
@@ -376,6 +390,28 @@ def write_incident_outputs(
         fail2ban_output_path.parent.mkdir(parents=True, exist_ok=True)
         write_fail2ban_artifact(report, fail2ban_output_path)
         console.print(f"Wrote fail2ban-style artifact to {fail2ban_output_path}")
+
+
+def write_integrity_outputs(
+    report,
+    json_output_path: Path | None,
+    markdown_output_path: Path | None,
+    html_output_path: Path | None,
+) -> None:
+    if json_output_path is not None:
+        json_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_json_integrity_report(report, json_output_path)
+        console.print(f"Wrote JSON report to {json_output_path}")
+
+    if markdown_output_path is not None:
+        markdown_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_markdown_integrity_report(report, markdown_output_path)
+        console.print(f"Wrote Markdown report to {markdown_output_path}")
+
+    if html_output_path is not None:
+        html_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_html_integrity_report(report, html_output_path)
+        console.print(f"Wrote HTML report to {html_output_path}")
 
 
 @app.callback(invoke_without_command=True)
@@ -947,6 +983,11 @@ def incident(
         help="Target URL. If omitted, Turan discovers the local app target before analyzing logs.",
     ),
     logs: Path | None = typer.Option(None, "--logs", help="Log file or directory to analyze"),
+    live: bool = typer.Option(False, "--live", help="Capture a fresh snapshot from live log sources before analysis"),
+    journal_unit: list[str] = typer.Option([], "--journal-unit", help="Collect recent journalctl output for a systemd unit"),
+    event_log_name: list[str] = typer.Option([], "--event-log-name", help="Collect a Windows Event Log channel snapshot"),
+    tail_file: list[Path] = typer.Option([], "--tail-file", help="Include the tail of a specific log file"),
+    tail_lines: int = typer.Option(250, "--tail-lines", min=1, help="Number of recent lines to capture for live sources"),
     env_file: Path | None = typer.Option(None, "--env-file", help="Read local defaults from a specific .env file"),
     nginx_config: Path | None = typer.Option(None, "--nginx-config", help="Apply containment to a specific Nginx config file"),
     block_threshold: int = typer.Option(5, "--block-threshold", min=1, help="Score needed before an IP is auto-blocked"),
@@ -966,6 +1007,11 @@ def incident(
     env_file_path = path_option_value(env_file)
     nginx_config_path = path_option_value(nginx_config)
     logs_path = path_option_value(logs)
+    journal_unit_values = [str(value) for value in list_option_value(journal_unit) if str(value).strip()]
+    event_log_name_values = [str(value) for value in list_option_value(event_log_name) if str(value).strip()]
+    tail_file_values = [value for value in list_option_value(tail_file) if isinstance(value, Path)]
+    tail_lines_value = int_option_value(tail_lines) or 250
+    block_threshold_value = int_option_value(block_threshold) or 5
     audit_log_path, audit_log_note = normalize_output_option(path_option_value(audit_log))
     json_output_path, json_output_note = normalize_output_option(path_option_value(json_output))
     markdown_output_path, markdown_output_note = normalize_output_option(path_option_value(markdown_output))
@@ -986,17 +1032,33 @@ def incident(
     else:
         sources = [logs_path]
 
+    live_enabled = flag_is_enabled(live) or bool(journal_unit_values or event_log_name_values or tail_file_values)
+    live_notes: list[str] = []
+    if live_enabled:
+        live_sources, live_notes = collect_live_incident_sources(
+            root=Path.cwd(),
+            line_count=tail_lines_value,
+            journal_units=journal_unit_values,
+            event_log_names=event_log_name_values,
+            tail_files=tail_file_values,
+        )
+        sources.extend(live_sources)
+        if live_notes:
+            console.print(f"Live capture: {len(live_sources)} snapshot(s)")
+
     report = analyze_incident_sources(
         sources,
         root=Path.cwd(),
         url=str(context.target.value) if context.target is not None else url,
-        block_threshold=block_threshold,
+        block_threshold=block_threshold_value,
         env_file=env_file_path,
         nginx_config=nginx_config_path,
     )
     report.context = context
     if report.target is None and context.target is not None:
         report.target = str(context.target.value)
+    if live_enabled:
+        report.notes.extend(live_notes)
 
     console.print(render_incident_report(report))
 
@@ -1034,6 +1096,43 @@ def incident(
             console.print(f"[info] {note}")
     print_optional_output_notes()
     write_incident_outputs(report, json_output_path, markdown_output_path, html_output_path, fail2ban_output_path)
+
+
+@app.command(help="Monitor key files for integrity drift and compare them against a saved baseline.")
+def integrity(
+    root: Path | None = typer.Argument(
+        None,
+        metavar="ROOT",
+        help="Directory to monitor. Defaults to the current working directory.",
+    ),
+    baseline: Path | None = typer.Option(None, "--baseline", help="Compare against a saved integrity snapshot"),
+    path: list[Path] = typer.Option([], "--path", help="Add a specific file or directory to monitor"),
+    audit_log: Path | None = typer.Option(None, "--audit-log", help="Write the integrity event to a specific audit log"),
+    json_output: Path | None = typer.Option(None, "--json-output", help="Write a JSON report here"),
+    markdown_output: Path | None = typer.Option(None, "--markdown-output", help="Write a Markdown report here"),
+    html_output: Path | None = typer.Option(None, "--html-output", help="Write an HTML report here"),
+) -> None:
+    root_path = Path.cwd() if root is None else Path(root)
+    baseline_path = path_option_value(baseline)
+    extra_paths = [Path(item) for item in list_option_value(path)]
+    audit_log_path, audit_log_note = normalize_output_option(path_option_value(audit_log))
+    json_output_path, json_output_note = normalize_output_option(path_option_value(json_output))
+    markdown_output_path, markdown_output_note = normalize_output_option(path_option_value(markdown_output))
+    html_output_path, html_output_note = normalize_output_option(path_option_value(html_output))
+
+    report = analyze_integrity_sources(root_path, baseline_path=baseline_path, extra_paths=extra_paths)
+    console.print(render_integrity_report(report))
+
+    write_audit_path = audit_log_path or Path("outputs") / "audit.log"
+    append_audit_event(write_audit_path, build_integrity_audit_event(report))
+
+    if audit_log_note is not None:
+        console.print(f"[info] {audit_log_note}")
+    for note in (json_output_note, markdown_output_note, html_output_note):
+        if note is not None:
+            console.print(f"[info] {note}")
+    print_optional_output_notes()
+    write_integrity_outputs(report, json_output_path, markdown_output_path, html_output_path)
 
 
 @app.command(help="Apply one real local fix to a discovered server file.")

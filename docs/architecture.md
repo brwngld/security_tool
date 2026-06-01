@@ -3,7 +3,7 @@
 ## Purpose
 
 Turan is a Python-based web security scanner and hardening assistant.
-It supports HTTP/HTTPS scanning, passive crawling, detection of common website/server misconfigurations, WAF/firewall impact notes, incident log analysis for Apache/auth/systemd-style logs, and safe defensive fixes where possible.
+It supports HTTP/HTTPS scanning, passive crawling, detection of common website/server misconfigurations, WAF/firewall impact notes, incident log analysis for Apache/auth/systemd-style logs, file integrity monitoring, and safe defensive fixes where possible.
 
 For a command-by-command usage guide, see [docs/turan-user-guide.md](docs/turan-user-guide.md) and the matching PDF at [turan-user-guide.pdf](turan-user-guide.pdf).
 For a short version history, see [docs/changelog.md](docs/changelog.md).
@@ -569,6 +569,13 @@ When the saved reports came from `crawl`, compare also shows crawl coverage delt
 
 TODO:
 - Add a short terminal note when `compare` includes crawl coverage deltas.
+- Add process and port checks for suspicious listeners and outbound connections.
+- Add containment presets for Nginx denylist, fail2ban, rate limits, and maintenance mode.
+- Add a timeline view that shows what happened first across logs, findings, and containment actions.
+- Add notification hooks for email, Slack, Discord, or webhooks.
+- Add baseline drift detection across logs, headers, files, and config state.
+- Add secret exposure checks for logs and config files with safe redaction.
+- Add report bundles that package JSON, Markdown, HTML, and containment artifacts together.
 
 Comparison reports:
 
