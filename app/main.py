@@ -297,6 +297,7 @@ def build_auth_config(
     username: str | None,
     password: str | None,
     password_env: str | None,
+    env_file: Path | None,
     user_field: str,
     pass_field: str,
     cookie: str | None,
@@ -346,6 +347,7 @@ def build_auth_config(
         username=text_option_value(username),
         password=text_option_value(password),
         password_env=text_option_value(password_env),
+        env_file=display_path_value(env_file),
         user_field=text_option_value(user_field) or "identifier",
         pass_field=text_option_value(pass_field) or "password",
         cookie=text_option_value(cookie),
@@ -640,7 +642,7 @@ def scan(
     auth_method: str = typer.Option("json", "--auth-method", help="Login payload format: json or form"),
     username: str | None = typer.Option(None, "--username", help="Username, email, or identifier for the login payload"),
     password: str | None = typer.Option(None, "--password", help="Password for the login payload"),
-    password_env: str | None = typer.Option(None, "--password-env", help="Read the password from this environment variable"),
+    password_env: str | None = typer.Option(None, "--password-env", help="Read the password from this environment variable or matching .env file"),
     user_field: str = typer.Option("identifier", "--user-field", help="Field name for the username or identifier"),
     pass_field: str = typer.Option("password", "--pass-field", help="Field name for the password"),
     cookie: str | None = typer.Option(None, "--cookie", help="Raw Cookie header to preload into the session"),
@@ -690,6 +692,7 @@ def scan(
         username=text_option_value(username),
         password=text_option_value(password),
         password_env=text_option_value(password_env),
+        env_file=env_file_path,
         user_field=text_option_value(user_field) or "identifier",
         pass_field=text_option_value(pass_field) or "password",
         cookie=text_option_value(cookie),
@@ -718,6 +721,8 @@ def scan(
         raise
     if context.target is None:
         raise typer.BadParameter("No scan target could be resolved.")
+    if auth_config is not None and auth_config.env_file is None and context.discovery.env_file is not None:
+        auth_config.env_file = context.discovery.env_file
     if context.target.source == "discovery":
         console.print("No URL supplied. Discovery:")
         console.print(f"Discovery: {summarize_application_context(context)}")
@@ -981,7 +986,7 @@ def crawl(
     auth_method: str = typer.Option("json", "--auth-method", help="Login payload format: json or form"),
     username: str | None = typer.Option(None, "--username", help="Username, email, or identifier for the login payload"),
     password: str | None = typer.Option(None, "--password", help="Password for the login payload"),
-    password_env: str | None = typer.Option(None, "--password-env", help="Read the password from this environment variable"),
+    password_env: str | None = typer.Option(None, "--password-env", help="Read the password from this environment variable or matching .env file"),
     user_field: str = typer.Option("identifier", "--user-field", help="Field name for the username or identifier"),
     pass_field: str = typer.Option("password", "--pass-field", help="Field name for the password"),
     cookie: str | None = typer.Option(None, "--cookie", help="Raw Cookie header to preload into the session"),
@@ -1025,6 +1030,7 @@ def crawl(
         username=text_option_value(username),
         password=text_option_value(password),
         password_env=text_option_value(password_env),
+        env_file=env_file_path,
         user_field=text_option_value(user_field) or "identifier",
         pass_field=text_option_value(pass_field) or "password",
         cookie=text_option_value(cookie),
@@ -1056,6 +1062,8 @@ def crawl(
         raise
     if context.target is None:
         raise typer.BadParameter("No scan target could be resolved.")
+    if auth_config is not None and auth_config.env_file is None and context.discovery.env_file is not None:
+        auth_config.env_file = context.discovery.env_file
     if context.target.source == "discovery":
         console.print("No URL supplied. Discovery:")
         console.print(f"Discovery: {summarize_application_context(context)}")

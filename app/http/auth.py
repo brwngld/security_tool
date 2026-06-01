@@ -4,12 +4,12 @@ import asyncio
 from dataclasses import dataclass
 from http.cookies import SimpleCookie
 import json
-from os import getenv
 from pathlib import Path
 from urllib.parse import urlparse
 
 import httpx
 
+from app.environment import lookup_env_value
 from app.http.normalizer import normalize_url
 
 
@@ -20,6 +20,7 @@ class CrawlAuthConfig:
     username: str | None = None
     password: str | None = None
     password_env: str | None = None
+    env_file: str | None = None
     user_field: str = "identifier"
     pass_field: str = "password"
     cookie: str | None = None
@@ -138,9 +139,10 @@ def _resolve_password(config: CrawlAuthConfig) -> str | None:
     if config.password:
         return config.password
     if config.password_env:
-        value = getenv(config.password_env)
-        if value:
-            return value
+        env_file = Path(config.env_file) if config.env_file else None
+        found = lookup_env_value(config.password_env, Path.cwd(), env_file)
+        if found is not None:
+            return found.value
     return None
 
 

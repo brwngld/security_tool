@@ -37,6 +37,7 @@ def test_build_auth_config_requires_login_url_or_storage_state_for_browser_auth(
             username="alice",
             password=None,
             password_env=None,
+            env_file=None,
             user_field="identifier",
             pass_field="password",
             cookie=None,

@@ -226,7 +226,7 @@ Example phase-4 command:
 | `SERVER_NAME` | `doctor`, `server-check` | Reported as present or missing |
 | `DATABASE_URL` | `doctor`, `server-check` | Reported as present or missing |
 | `SMTP_PASSWORD` | `doctor`, `server-check` | Reported as present or missing |
-| `PsyberShield_PASSWORD` | `scan`, `crawl` | Secret value read by `--password-env` for browser auth or other password-based login flows |
+| `PsyberShield_PASSWORD` | `scan`, `crawl` | Secret value read by `--password-env` from the shell or the active `.env` / `--env-file` for browser auth or other password-based login flows |
 
 ## Local file overrides
 
