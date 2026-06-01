@@ -22,6 +22,7 @@ browser = ["playwright"]
 
 [project.scripts]
 pshield = "app.main:app"
+psybershield = "app.main:app"
 PsyberShield = "app.main:app"
 
 [tool.setuptools]

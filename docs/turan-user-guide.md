@@ -3,6 +3,8 @@
 PsyberShield is a Python-based security visibility and response tool for small servers and web applications.
 This guide is a living document. It describes the current CLI behavior, the command set, the important flags, and what to expect from each workflow.
 
+The preferred CLI command is `pshield`. `psybershield` and `turan` remain compatibility aliases during the transition.
+
 For version history, see [docs/changelog.md](docs/changelog.md).
 This guide and the changelog should be updated together when PsyberShield's user-facing behavior changes.
 

@@ -47,66 +47,68 @@ pip install .[browser]
 
 ## Run
 
+The preferred command is `pshield`. `psybershield` and `turan` remain compatibility aliases.
+
 ```powershell
-.\venv\Scripts\python.exe -m app.main scan https://example.com
-.\venv\Scripts\python.exe -m app.main scan https://example.com --yes
+pshield scan https://example.com
+pshield scan https://example.com --yes
 ```
 
 If you want PsyberShield to discover the app target on a VPS, you can leave the URL off:
 
 ```powershell
-.\venv\Scripts\python.exe -m app.main scan
+pshield scan
 ```
 
 Check logs for active probing and, if needed, apply containment:
 
 ```powershell
-.\venv\Scripts\python.exe -m app.main incident --logs outputs\access.log --apply-blocks
+pshield incident --logs outputs\access.log --apply-blocks
 ```
 
 Capture fresh snapshots from live sources:
 
 ```powershell
-.\venv\Scripts\python.exe -m app.main incident --live --tail-file outputs\access.log
-.\venv\Scripts\python.exe -m app.main incident --live --event-log-name System --fail2ban-output outputs\incident-fail2ban.conf
+pshield incident --live --tail-file outputs\access.log
+pshield incident --live --event-log-name System --fail2ban-output outputs\incident-fail2ban.conf
 ```
 
 You can also write a fail2ban-style snippet:
 
 ```powershell
-.\venv\Scripts\python.exe -m app.main incident --logs outputs\access.log --fail2ban-output outputs\incident-fail2ban.conf
+pshield incident --logs outputs\access.log --fail2ban-output outputs\incident-fail2ban.conf
 ```
 
 You can also generate rate-limit and maintenance-mode presets:
 
 ```powershell
-.\venv\Scripts\python.exe -m app.main incident --logs outputs\access.log --rate-limit-output outputs\incident-rate-limit.conf --maintenance-output outputs\incident-maintenance.conf
+pshield incident --logs outputs\access.log --rate-limit-output outputs\incident-rate-limit.conf --maintenance-output outputs\incident-maintenance.conf
 ```
 
 You can compare two saved reports for drift:
 
 ```powershell
-.\venv\Scripts\python.exe -m app.main drift baselines\scan.json outputs\scan.json --json-output outputs\drift.json
+pshield drift baselines\scan.json outputs\scan.json --json-output outputs\drift.json
 ```
 
 You can scan for obvious secret exposure:
 
 ```powershell
-.\venv\Scripts\python.exe -m app.main secrets . --markdown-output outputs\secrets.md
+pshield secrets . --markdown-output outputs\secrets.md
 ```
 
 You can bundle a report and its related artifacts into a ZIP archive:
 
 ```powershell
-.\venv\Scripts\python.exe -m app.main bundle outputs\incident.json --artifact outputs\incident-fail2ban.conf --bundle-output outputs\incident-bundle.zip
+pshield bundle outputs\incident.json --artifact outputs\incident-fail2ban.conf --bundle-output outputs\incident-bundle.zip
 ```
 
 You can send report summaries to webhooks or email after `incident`, `integrity`, or `timeline` runs:
 
 ```powershell
-.\venv\Scripts\python.exe -m app.main incident --logs outputs\access.log --webhook-url https://hooks.example/webhook
-.\venv\Scripts\python.exe -m app.main integrity . --baseline baselines\integrity.json --email-to security@example.com --email-from PsyberShield@example.com --smtp-host smtp.example.com --smtp-username PsyberShield --smtp-password-env SMTP_PASSWORD
-.\venv\Scripts\python.exe -m app.main timeline outputs\incident.json --audit-log outputs\audit.log --slack-webhook-url https://hooks.slack.com/services/...
+pshield incident --logs outputs\access.log --webhook-url https://hooks.example/webhook
+pshield integrity . --baseline baselines\integrity.json --email-to security@example.com --email-from PsyberShield@example.com --smtp-host smtp.example.com --smtp-username PsyberShield --smtp-password-env SMTP_PASSWORD
+pshield timeline outputs\incident.json --audit-log outputs\audit.log --slack-webhook-url https://hooks.slack.com/services/...
 ```
 
 Monitor key files against a saved baseline:
