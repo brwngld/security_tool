@@ -15,8 +15,8 @@ Active CLI slice with scan, crawl, report, baseline, compare, drift, secrets, bu
 
 ## Commands
 
-- `scan` scans a live target, or falls back to `APP_URL` / `TARGET_URL` / `BASE_URL` in `.env` or `--env-file`, then discovers a local app target when needed
-- `crawl` starts from a target URL or discovered app target and follows in-scope links across multiple pages
+- `scan` scans a live target, or falls back to `APP_URL` / `TARGET_URL` / `BASE_URL` in `.env` or `--env-file`, then discovers a local app target when needed; supports browser-assisted login with `--auth-method browser`
+- `crawl` starts from a target URL or discovered app target and follows in-scope links across multiple pages; supports browser-assisted login with `--auth-method browser`
 - `report` re-renders or previews a saved scan report
 - `audit` shows the append-only audit history
 - `baseline` saves a scan snapshot for later comparison
@@ -58,6 +58,12 @@ If you want PsyberShield to discover the app target on a VPS, you can leave the 
 
 ```powershell
 pshield scan
+```
+
+Browser-assisted login for JS-heavy auth flows:
+
+```powershell
+pshield scan https://example.com --auth-method browser --browser-username-selector 'input[name="identifier"]' --browser-password-selector 'input[name="password"]' --username alice --password-env PsyberShield_PASSWORD --auth-check-url /account
 ```
 
 Check logs for active probing and, if needed, apply containment:
@@ -104,6 +110,8 @@ You can bundle a report and its related artifacts into a ZIP archive:
 ```powershell
 pshield bundle outputs\incident.json --artifact outputs\incident-fail2ban.conf --bundle-output outputs\incident-bundle.zip
 ```
+
+If you omit `--bundle-output`, PsyberShield names the archive after the source report, like `incident.bundle.zip`, and uses a matching manifest inside the ZIP.
 
 You can send report summaries to webhooks or email after `incident`, `integrity`, or `timeline` runs:
 

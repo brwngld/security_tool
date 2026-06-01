@@ -22,11 +22,20 @@ def test_bundle_report_files_packages_related_artifacts(workspace_temp_dir) -> N
 
     with zipfile.ZipFile(bundle_path) as archive:
         names = set(archive.namelist())
-        assert "bundle-manifest.json" in names
+        assert "incident.bundle-manifest.json" in names
         assert "incident.json" in names
         assert "incident.md" in names
         assert "incident.html" in names
         assert "incident-denylist.conf" in names
+
+
+def test_bundle_report_files_uses_bundle_zip_name_by_default(workspace_temp_dir) -> None:
+    report_path = workspace_temp_dir / "incident.json"
+    report_path.write_text('{"kind":"incident"}', encoding="utf-8")
+
+    bundle = bundle_report_files(report_path)
+
+    assert Path(bundle.output_path).name == "incident.bundle.zip"
 
 
 def test_bundle_report_files_skips_missing_artifacts_and_deduplicates(workspace_temp_dir) -> None:

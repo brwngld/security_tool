@@ -45,8 +45,9 @@ def bundle_report_files(
     extra_artifacts: list[Path] | None = None,
 ) -> ReportBundle:
     report_path = Path(report_file)
-    archive_path = Path(output_path) if output_path is not None else report_path.with_suffix(".zip")
+    archive_path = Path(output_path) if output_path is not None else report_path.with_name(f"{report_path.stem}.bundle.zip")
     artifacts = _candidate_artifacts(report_path, extra_artifacts)
+    manifest_name = f"{report_path.stem}.bundle-manifest.json"
 
     archive_path.parent.mkdir(parents=True, exist_ok=True)
     items: list[ReportBundleItem] = []
@@ -63,14 +64,13 @@ def bundle_report_files(
                 )
             )
 
-        manifest_path = report_path.parent / f"{report_path.stem}.bundle.json"
         manifest = ReportBundle(
             output_path=str(archive_path),
             source_report=str(report_path),
             items=items,
             notes=[f"Bundled {len(items)} file(s) into {archive_path}"],
         )
-        archive.writestr("bundle-manifest.json", manifest.model_dump_json(indent=2))
+        archive.writestr(manifest_name, manifest.model_dump_json(indent=2))
 
     return ReportBundle(
         output_path=str(archive_path),

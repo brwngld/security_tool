@@ -31,8 +31,8 @@ PsyberShield is intentionally defensive:
 
 | Command | What it does | Typical use |
 | --- | --- | --- |
-| `scan` | Scans one target page or a discovered local target | Quick vulnerability check |
-| `crawl` | Crawls in-scope links across multiple pages | Broader site sweep |
+| `scan` | Scans one target page or a discovered local target; supports browser-assisted login | Quick vulnerability check |
+| `crawl` | Crawls in-scope links across multiple pages; supports browser-assisted login | Broader site sweep |
 | `report` | Re-renders or previews a saved report | Review an existing JSON, Markdown, or HTML report |
 | `audit` | Shows the append-only audit trail | Review scans and fix events |
 | `baseline` | Saves a scan snapshot for later comparison | Track a known-good state |
@@ -317,6 +317,12 @@ Recommended pattern:
 
 ```powershell
 .\venv\Scripts\python.exe -m app.main crawl https://example.com --login-url /auth/login --auth-method json --username alice --password-env PsyberShield_PASSWORD --auth-check-url /account
+```
+
+Browser-assisted quick example:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main scan https://example.com --auth-method browser --browser-username-selector 'input[name="identifier"]' --browser-password-selector 'input[name="password"]' --username alice --password-env PsyberShield_PASSWORD --auth-check-url /account
 ```
 
 What to expect:
@@ -657,6 +663,8 @@ Example:
 ```powershell
 .\venv\Scripts\python.exe -m app.main bundle outputs\incident.json --artifact outputs\incident-fail2ban.conf --bundle-output outputs\incident-bundle.zip
 ```
+
+If you omit `--bundle-output`, PsyberShield creates a report-named archive like `incident.bundle.zip` and writes a matching manifest inside the ZIP.
 
 Typical bundle output adds:
 
