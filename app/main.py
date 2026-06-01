@@ -1339,9 +1339,14 @@ def incident(
         ]
         if report.containment_artifact:
             bundle_items.append(Path(report.containment_artifact))
-        bundle_report = bundle_report_files(primary_report_path, output_path=bundle_output_path, extra_artifacts=bundle_items)
-        console.print(render_bundle_report(bundle_report))
-        console.print(f"Wrote ZIP bundle to {bundle_output_path}")
+        try:
+            bundle_report = bundle_report_files(primary_report_path, output_path=bundle_output_path, extra_artifacts=bundle_items)
+        except Exception as exc:  # pragma: no cover - defensive safety net
+            report.notes.append(f"Bundle creation failed: {exc.__class__.__name__}")
+            console.print(f"[warning] Bundle creation failed: {exc.__class__.__name__}: {exc}")
+        else:
+            console.print(render_bundle_report(bundle_report))
+            console.print(f"Wrote ZIP bundle to {bundle_output_path}")
     if bundle_output_note is not None:
         console.print(f"[info] {bundle_output_note}")
     send_notification_outputs(
