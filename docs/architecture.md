@@ -7,7 +7,7 @@ It supports HTTP/HTTPS scanning, passive crawling, detection of common website/s
 
 The preferred CLI command is `pshield`. `psybershield` and `turan` remain compatibility aliases during the transition.
 
-For a command-by-command usage guide, see [docs/turan-user-guide.md](docs/turan-user-guide.md) and the matching PDF at [turan-user-guide.pdf](turan-user-guide.pdf).
+For a command-by-command usage guide, see [docs/turan-user-guide.md](docs/turan-user-guide.md) and the matching PDF at [psybershield-user-guide.pdf](psybershield-user-guide.pdf).
 For a short version history, see [docs/changelog.md](docs/changelog.md).
 
 The core flow is:
@@ -423,6 +423,8 @@ Example phase-3 commands:
 ```powershell
 .\venv\Scripts\python.exe -m app.main crawl https://example.com --storage-state browser\storage_state.json --save-storage-state --auth-check-url /account
 ```
+
+To reuse an existing browser session without refreshing it, point `--storage-state` at the saved file and omit `--save-storage-state`.
 
 Example phase-4 command:
 

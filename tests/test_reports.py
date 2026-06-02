@@ -172,6 +172,10 @@ def test_write_markdown_report_groups_findings_by_page(workspace_temp_dir) -> No
 
 def test_render_console_shows_findings_table() -> None:
     result = build_result()
+    result.notes = [
+        "Browser auth: started.",
+        "Browser auth: password resolved from env-file (C:/workspace/.env).",
+    ]
     console = Console(record=True, width=160)
     console.print(render_console(result, include_fix_plans=True))
     text = console.export_text()
@@ -184,6 +188,8 @@ def test_render_console_shows_findings_table() -> None:
     assert "Severity counts" in text
     assert "Top categories" in text
     assert "Exposed files" in text
+    assert "Browser auth: started." in text
+    assert "Browser auth: password resolved from env-file" in text
 
 
 def test_render_console_groups_crawl_findings_by_page() -> None:

@@ -74,8 +74,8 @@ def test_authenticate_client_accepts_cookie_header() -> None:
     assert requests == [("GET", "/account", "session_id=session-123; csrf_token=abc123")]
 
 
-def test_authenticate_client_loads_and_saves_session_file(tmp_path: Path) -> None:
-    session_file = tmp_path / "session.json"
+def test_authenticate_client_loads_and_saves_session_file(workspace_temp_dir) -> None:
+    session_file = workspace_temp_dir / "session.json"
     session_file.write_text(json.dumps({"cookies": {"session_id": "from-file"}}), encoding="utf-8")
 
     requests: list[tuple[str, str, str]] = []
@@ -102,8 +102,8 @@ def test_authenticate_client_loads_and_saves_session_file(tmp_path: Path) -> Non
     assert requests == [("GET", "/account", "session_id=from-file")]
 
 
-def test_authenticate_client_loads_and_saves_storage_state(tmp_path: Path) -> None:
-    storage_state = tmp_path / "storage_state.json"
+def test_authenticate_client_loads_and_saves_storage_state(workspace_temp_dir) -> None:
+    storage_state = workspace_temp_dir / "storage_state.json"
     storage_state.write_text(
         json.dumps(
             {
@@ -151,8 +151,8 @@ def test_authenticate_client_loads_and_saves_storage_state(tmp_path: Path) -> No
     assert requests == [("GET", "/account", "session_id=from-storage")]
 
 
-def test_authenticate_client_uses_browser_auth_and_saves_storage_state(tmp_path: Path, monkeypatch) -> None:
-    storage_state = tmp_path / "browser_state.json"
+def test_authenticate_client_uses_browser_auth_and_saves_storage_state(workspace_temp_dir, monkeypatch) -> None:
+    storage_state = workspace_temp_dir / "browser_state.json"
     storage_state.write_text(
         json.dumps(
             {
@@ -328,10 +328,12 @@ def test_authenticate_client_uses_browser_auth_and_saves_storage_state(tmp_path:
     payload = json.loads(storage_state.read_text(encoding="utf-8"))
     assert payload["cookies"][0]["name"] == "session_id"
     assert payload["cookies"][0]["value"] == "browser-session"
-    assert any("Authenticated via browser" in note for note in notes)
-    assert any("Loaded browser storage state from" in note for note in notes)
-    assert any("Authenticated check passed" in note for note in notes)
-    assert any("Saved browser storage state to" in note for note in notes)
+    assert any("Browser auth: started" in note for note in notes)
+    assert any("Browser auth: password provided directly" in note for note in notes)
+    assert any("Browser auth: login submitted" in note for note in notes)
+    assert any("Browser auth: storage-state preload" in note for note in notes)
+    assert any("Browser auth: check passed" in note for note in notes)
+    assert any("Browser auth: storage-state saved" in note for note in notes)
     assert client.cookies.get("session_id") == "browser-session"
     assert requests == []
 
@@ -456,8 +458,10 @@ def test_authenticate_client_uses_password_env_from_env_file(workspace_temp_dir,
         ),
     )
 
-    assert any("Authenticated via browser" in note for note in notes)
-    assert any("Authenticated check passed" in note for note in notes)
+    assert any("Browser auth: started" in note for note in notes)
+    assert any("Browser auth: password resolved from env-file" in note for note in notes)
+    assert any("Browser auth: login submitted" in note for note in notes)
+    assert any("Browser auth: check passed" in note for note in notes)
 
 
 def test_authenticate_client_requires_login_url_or_storage_state_for_browser_auth() -> None:

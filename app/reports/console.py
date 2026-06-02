@@ -209,9 +209,16 @@ def render_console(result: ScanResult, include_fix_plans: bool = False) -> Group
     summary.add_row("Exposed files", render_exposed_files_chip(result))
 
     findings = _render_findings_table(result.findings)
+    notes = Table(title="Notes")
+    notes.add_column("Message", style="white")
+    if result.notes:
+        for note in result.notes[:8]:
+            notes.add_row(note)
+    else:
+        notes.add_row("-")
 
     if not include_fix_plans:
-        return Group(summary, findings)
+        return Group(summary, findings, notes)
 
     plans = Table(title="Proposed Fixes")
     plans.add_column("Finding", style="cyan", no_wrap=True)
@@ -225,7 +232,7 @@ def render_console(result: ScanResult, include_fix_plans: bool = False) -> Group
     else:
         plans.add_row("-", "No proposed fixes", "-")
 
-    return Group(summary, findings, plans)
+    return Group(summary, findings, notes, plans)
 
 
 def render_fix_decisions(decisions: list[FixDecision]) -> Table:

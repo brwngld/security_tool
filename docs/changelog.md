@@ -34,7 +34,7 @@ It is intentionally short and practical so it can stay current as the app grows.
   - `docs/architecture.md`
   - `docs/turan-user-guide.md`
   - this changelog
-- If the PDF guide changes, regenerate `turan-user-guide.pdf` with `python generate_user_guide_pdf.py`
+- If the PDF guide changes, regenerate `psybershield-user-guide.pdf` with `python generate_user_guide_pdf.py`
 
 ## Release Checklist
 

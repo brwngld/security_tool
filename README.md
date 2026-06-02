@@ -9,9 +9,10 @@ Active CLI slice with scan, crawl, report, baseline, compare, drift, secrets, bu
 ## Documentation
 
 - Living user guide: [docs/turan-user-guide.md](docs/turan-user-guide.md)
-- PDF version: [turan-user-guide.pdf](turan-user-guide.pdf)
+- PDF version: [psybershield-user-guide.pdf](psybershield-user-guide.pdf)
+- Combined manual: [psybershield-manual.pdf](psybershield-manual.pdf)
 - Changelog: [docs/changelog.md](docs/changelog.md)
-- Regenerate the PDF guide with `python generate_user_guide_pdf.py` after updating [docs/turan-user-guide.md](docs/turan-user-guide.md)
+- Regenerate the PDF guide with `python generate_user_guide_pdf.py` and the combined manual with `python generate_psybershield_manual_pdf.py` after updating [docs/turan-user-guide.md](docs/turan-user-guide.md), [docs/architecture.md](docs/architecture.md), or [docs/changelog.md](docs/changelog.md)
 
 ## Commands
 
@@ -46,6 +47,15 @@ Browser auth requires either `--login-url` or `--storage-state` so PsyberShield 
   --browser-password-selector 'input[name="password"]' `
   --username alice `
   --password-env PsyberShield_PASSWORD `
+  --auth-check-url /account
+```
+
+Storage-state reuse example:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main crawl `
+  https://example.com `
+  --storage-state browser\storage_state.json `
   --auth-check-url /account
 ```
 

@@ -135,15 +135,17 @@ def _build_cookie_map(config: CrawlAuthConfig) -> dict[str, str]:
     return cookie_map
 
 
-def _resolve_password(config: CrawlAuthConfig) -> str | None:
+def _resolve_password(config: CrawlAuthConfig) -> tuple[str | None, str | None]:
     if config.password:
-        return config.password
+        return config.password, "Browser auth: password provided directly."
     if config.password_env:
         env_file = Path(config.env_file) if config.env_file else None
         found = lookup_env_value(config.password_env, Path.cwd(), env_file)
         if found is not None:
-            return found.value
-    return None
+            if found.source == "environment":
+                return found.value, "Browser auth: password resolved from shell environment."
+            return found.value, f"Browser auth: password resolved from env-file ({found.source})."
+    return None, None
 
 
 async def _authenticate_client_with_browser(
@@ -161,9 +163,11 @@ async def _authenticate_client_with_browser(
 
     login_url = normalize_url(base_url, config.login_url) if config.login_url else None
     check_url = normalize_url(base_url, config.auth_check_url) if config.auth_check_url else None
-    password = _resolve_password(config)
+    password, password_note = _resolve_password(config)
     cookie_map = _build_cookie_map(config)
-    notes: list[str] = []
+    notes: list[str] = ["Browser auth: started."]
+    if password_note:
+        notes.append(password_note)
 
     async with async_playwright() as playwright:
         browser = await playwright.chromium.launch(headless=config.browser_headless)
@@ -176,6 +180,8 @@ async def _authenticate_client_with_browser(
                 if cookie_map:
                     await context.add_cookies(_cookie_map_to_playwright_cookies(cookie_map, base_url))
                     notes.append("Loaded cookies into the browser session.")
+                if config.storage_state:
+                    notes.append(f"Browser auth: storage-state preload from {config.storage_state}.")
 
                 page = await context.new_page()
                 if login_url:
@@ -194,24 +200,26 @@ async def _authenticate_client_with_browser(
                         else:
                             await page.keyboard.press("Enter")
                     await page.wait_for_load_state("networkidle")
-                    notes.append(f"Authenticated via browser at {login_url}.")
+                    notes.append(f"Browser auth: login submitted at {login_url}.")
                 elif config.storage_state:
-                    notes.append(f"Loaded browser storage state from {config.storage_state}.")
+                    notes.append(f"Browser auth: storage-state reused from {config.storage_state}.")
 
                 if check_url:
                     response = await page.goto(check_url, wait_until="domcontentloaded")
                     if response is not None and response.status in {401, 403}:
-                        raise ValueError(
-                            f"Authenticated check failed at {check_url} with status {response.status}."
-                        )
+                        failure_note = f"Browser auth: check failed at {check_url} with status {response.status}."
+                        notes.append(failure_note)
+                        raise ValueError(failure_note)
                     login_path = urlparse(login_url).path if login_url else ""
                     if login_path and urlparse(str(page.url)).path == login_path and page.url != check_url:
-                        raise ValueError(f"Authenticated check redirected back to the login page from {check_url}.")
-                    notes.append(f"Authenticated check passed at {check_url}.")
+                        failure_note = f"Browser auth: check failed at {check_url} (redirected back to login)."
+                        notes.append(failure_note)
+                        raise ValueError(failure_note)
+                    notes.append(f"Browser auth: check passed at {check_url}.")
 
                 if config.save_storage_state and config.storage_state:
                     await context.storage_state(path=config.storage_state)
-                    notes.append(f"Saved browser storage state to {config.storage_state}.")
+                    notes.append(f"Browser auth: storage-state saved to {config.storage_state}.")
 
                 cookies = await context.cookies()
                 client.cookies.update({cookie["name"]: cookie["value"] for cookie in cookies})
@@ -251,7 +259,7 @@ def authenticate_client(client: httpx.Client, base_url: str, config: CrawlAuthCo
     if config.login_url:
         if not config.username:
             raise ValueError("Username is required for authenticated crawling.")
-        password = _resolve_password(config)
+        password, _ = _resolve_password(config)
         if not password:
             raise ValueError("Password is required for authenticated crawling.")
 

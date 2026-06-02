@@ -277,6 +277,12 @@ def print_optional_output_notes() -> None:
         console.print(f"[info] {CLI_OPTIONAL_OUTPUT_NOTES.pop(0)}")
 
 
+def print_browser_auth_notes(notes: list[str]) -> None:
+    for note in notes:
+        if note.startswith("Browser auth:"):
+            console.print(f"[info] {note}")
+
+
 def int_option_value(value: object) -> int | None:
     return value if isinstance(value, int) else None
 
@@ -739,6 +745,7 @@ def scan(
     except ValueError as exc:
         raise typer.BadParameter(str(exc)) from exc
     result.context = context
+    print_browser_auth_notes(result.notes)
     console.print(render_policy(policy))
     console.print(render_console(result, include_fix_plans=preview_fixes_enabled or generate_fixes_enabled))
     write_audit_path = audit_log_path or Path(policy.audit_log_path)
@@ -1102,6 +1109,7 @@ def crawl(
     except ValueError as exc:
         raise typer.BadParameter(str(exc)) from exc
     result.context = context
+    print_browser_auth_notes(result.notes)
     console.print(render_policy(policy))
     console.print(render_crawl_summary(result))
     console.print(render_console(result, include_fix_plans=False))

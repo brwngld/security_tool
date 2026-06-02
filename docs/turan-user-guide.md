@@ -341,6 +341,15 @@ Browser auth requires either `--login-url` or `--storage-state` so PsyberShield 
   --auth-check-url /account
 ```
 
+Storage-state reuse example:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main crawl `
+  https://example.com `
+  --storage-state browser\storage_state.json `
+  --auth-check-url /account
+```
+
 What to expect:
 
 - PsyberShield logs in before crawling or scanning protected pages
@@ -617,6 +626,18 @@ Typical timeline output adds:
 - ordered finding and containment events
 - timestamps when the log lines or audit entries provided them
 - source paths and audit log references for each event
+
+## Limitations and Boundaries
+
+PsyberShield is intentionally defensive and best effort:
+
+- it is not a substitute for a full SIEM, IDS, or dedicated EDR platform
+- browser auth depends on the page structure, selectors, and whether the app accepts the login flow you provide
+- some findings are heuristic and may need manual review before you treat them as confirmed issues
+- WAF, TLS, and process/port signals may be unavailable or incomplete depending on the target and local environment
+- saved reports and bundles only include what you asked PsyberShield to capture
+- only the supported local fix lane is applied automatically; other findings stay in report or artifact form unless you act on them yourself
+- you should only scan systems you own or have explicit permission to test
 
 ## Integrity
 
