@@ -7,3 +7,5 @@ pytesttemp/
 outputs/incident-live/
 tmp*/
 *.egg-info/
+dist/
+build/
