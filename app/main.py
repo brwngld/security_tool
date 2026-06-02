@@ -38,6 +38,7 @@ from app.integrity import analyze_integrity_sources
 from app.incident import analyze_incident_sources, collect_live_incident_sources, default_incident_sources
 from app.notifications import send_report_notifications, summarize_notification_results
 from app.secrets import analyze_secret_exposures
+from app.profiles import profile_summary_notes, resolve_profile_preset
 from app.timeline import load_timeline_report_from_path
 from app.http.auth import CrawlAuthConfig
 from app.http.normalizer import normalize_url
@@ -100,6 +101,7 @@ app = typer.Typer(
         "- Can import and export saved session cookies\n"
         "- Can import and export browser storage-state files\n"
         "- Can drive browser logins for JS-heavy auth flows when needed\n"
+        "- Offers preset profiles for quick, full, and safe-vps scan/crawl defaults\n"
         "- Checks security headers\n"
         "- Checks cookie flags\n"
         "- Flags server banners\n"
@@ -125,7 +127,7 @@ app = typer.Typer(
         "- Scans files for obvious secret exposure with redacted evidence\n"
         "- Packages related reports and containment artifacts into a ZIP bundle\n"
         "- Sends incident, integrity, and timeline notifications via webhooks, Slack, Discord, or email\n"
-        "- Runs a local demo site for testing\n\n"
+        "- Runs a local demo site for testing (`demo` alias)\n\n"
         "**Safety**\n"
         "- `--yes` skips the permission prompt for trusted automation\n\n"
         "**Browser auth**\n"
@@ -166,6 +168,8 @@ app = typer.Typer(
         "crawl http://127.0.0.1:8000\n"
         "scan --env-file /path/to/autoentrytrack/.env\n"
         "crawl https://example.com --seed-robots --seed-sitemap\n"
+        "crawl https://example.com --profile quick\n"
+        "scan http://127.0.0.1:8000 --profile safe-vps\n"
         "crawl https://example.com --login-url /auth/login --auth-method json --username alice --password-env PsyberShield_PASSWORD --auth-check-url /account\n"
         "crawl https://example.com --session-file sessions\\autoentrytrack.json --save-session --auth-check-url /account\n"
         "crawl https://example.com --storage-state browser\\storage_state.json --save-storage-state --auth-check-url /account\n"
@@ -640,6 +644,7 @@ def cli_main() -> None:
 def scan(
     url: str | None = typer.Argument(None, metavar="URL", help="Target URL. If omitted, PsyberShield looks for APP_URL, TARGET_URL, or BASE_URL in .env."),
     env_file: Path | None = typer.Option(None, "--env-file", help="Read target defaults from a specific .env file"),
+    profile: str | None = typer.Option(None, "--profile", help="Apply a preset: quick, full, or safe-vps"),
     timeout: float | None = typer.Option(None, "--timeout", min=0.1, help="Request and TLS timeout in seconds"),
     yes: bool = typer.Option(False, "--yes", help="Skip the permission prompt for trusted automation"),
     policy_file: Path | None = typer.Option(None, "--policy", help="Load scan settings from a JSON file"),
@@ -687,6 +692,10 @@ def scan(
 
     policy_file_path = path_option_value(policy_file)
     env_file_path = path_option_value(env_file)
+    profile_value = text_option_value(profile)
+    profile_preset = resolve_profile_preset(profile_value)
+    if profile_value is not None and profile_preset is None:
+        raise typer.BadParameter("Unknown profile. Use quick, full, or safe-vps.")
     audit_log_path, audit_log_note = normalize_output_option(path_option_value(audit_log))
     json_output_path, json_output_note = normalize_output_option(path_option_value(json_output))
     markdown_output_path, markdown_output_note = normalize_output_option(path_option_value(markdown_output))
@@ -719,6 +728,8 @@ def scan(
 
     policy = load_app_config(policy_file_path)
     timeout_seconds = timeout_seconds_option if timeout_seconds_option is not None else policy.timeout_seconds
+    if timeout_seconds_option is None and profile_preset is not None and profile_preset.timeout_seconds is not None:
+        timeout_seconds = profile_preset.timeout_seconds
     try:
         context = resolve_application_context(url, Path.cwd(), env_file_path, require_target=True)
     except ValueError as exc:
@@ -736,6 +747,8 @@ def scan(
     elif context.target.source != "command line":
         console.print(f"Using {context.target.key} from {context.target.source} for the scan target.")
     for note in browser_auth_summary_notes(context.target.value, auth_config):
+        console.print(f"[info] {note}")
+    for note in profile_summary_notes(profile_preset, "scan"):
         console.print(f"[info] {note}")
     try:
         if auth_config is None:
@@ -985,6 +998,7 @@ def scan(
 def crawl(
     url: str | None = typer.Argument(None, metavar="URL", help="Start URL. If omitted, PsyberShield looks for APP_URL, TARGET_URL, or BASE_URL in .env."),
     env_file: Path | None = typer.Option(None, "--env-file", help="Read target defaults from a specific .env file"),
+    profile: str | None = typer.Option(None, "--profile", help="Apply a preset: quick, full, or safe-vps"),
     timeout: float | None = typer.Option(None, "--timeout", min=0.1, help="Request and TLS timeout in seconds"),
     yes: bool = typer.Option(False, "--yes", help="Skip the permission prompt for trusted automation"),
     policy_file: Path | None = typer.Option(None, "--policy", help="Load crawl settings from a JSON file"),
@@ -1010,9 +1024,9 @@ def crawl(
     max_depth: int | None = typer.Option(None, "--max-depth", min=0, help="Maximum crawl depth"),
     include: list[str] | None = typer.Option(None, "--include", help="Only follow URLs matching this regex; repeat the flag to add more"),
     exclude: list[str] | None = typer.Option(None, "--exclude", help="Skip URLs matching this regex; repeat the flag to add more"),
-    same_host_only: bool = typer.Option(True, "--same-host-only/--allow-offsite", help="Limit crawling to the current host"),
-    seed_robots: bool = typer.Option(False, "--seed-robots/--no-seed-robots", help="Seed crawl from robots.txt sitemap hints"),
-    seed_sitemap: bool = typer.Option(False, "--seed-sitemap/--no-seed-sitemap", help="Seed crawl from sitemap.xml"),
+    same_host_only: bool | None = typer.Option(None, "--same-host-only/--allow-offsite", help="Limit crawling to the current host"),
+    seed_robots: bool | None = typer.Option(None, "--seed-robots/--no-seed-robots", help="Seed crawl from robots.txt sitemap hints"),
+    seed_sitemap: bool | None = typer.Option(None, "--seed-sitemap/--no-seed-sitemap", help="Seed crawl from sitemap.xml"),
     json_output: Path | None = typer.Option(None, "--json-output", help="Write a JSON report"),
     markdown_output: Path | None = typer.Option(None, "--markdown-output", help="Write a Markdown report"),
     html_output: Path | None = typer.Option(None, "--html-output", help="Write an HTML report"),
@@ -1022,6 +1036,10 @@ def crawl(
 
     policy_file_path = path_option_value(policy_file)
     env_file_path = path_option_value(env_file)
+    profile_value = text_option_value(profile)
+    profile_preset = resolve_profile_preset(profile_value)
+    if profile_value is not None and profile_preset is None:
+        raise typer.BadParameter("Unknown profile. Use quick, full, or safe-vps.")
     audit_log_path, audit_log_note = normalize_output_option(path_option_value(audit_log))
     json_output_path, json_output_note = normalize_output_option(path_option_value(json_output))
     markdown_output_path, markdown_output_note = normalize_output_option(path_option_value(markdown_output))
@@ -1058,8 +1076,23 @@ def crawl(
 
     policy = load_app_config(policy_file_path)
     timeout_seconds = timeout_seconds_option if timeout_seconds_option is not None else policy.timeout_seconds
-    max_pages_value = int_option_value(max_pages) if max_pages is not None else policy.max_pages
-    max_depth_value = int_option_value(max_depth) if max_depth is not None else policy.max_crawl_depth
+    if timeout_seconds_option is None and profile_preset is not None and profile_preset.timeout_seconds is not None:
+        timeout_seconds = profile_preset.timeout_seconds
+    max_pages_value = int_option_value(max_pages)
+    if max_pages_value is None:
+        max_pages_value = profile_preset.max_pages if profile_preset and profile_preset.max_pages is not None else policy.max_pages
+    max_depth_value = int_option_value(max_depth)
+    if max_depth_value is None:
+        max_depth_value = profile_preset.max_crawl_depth if profile_preset and profile_preset.max_crawl_depth is not None else policy.max_crawl_depth
+    same_host_only_value = same_host_only if isinstance(same_host_only, bool) else None
+    if same_host_only_value is None:
+        same_host_only_value = profile_preset.same_host_only if profile_preset and profile_preset.same_host_only is not None else True
+    seed_robots_value = seed_robots if isinstance(seed_robots, bool) else None
+    if seed_robots_value is None:
+        seed_robots_value = profile_preset.seed_robots if profile_preset and profile_preset.seed_robots is not None else False
+    seed_sitemap_value = seed_sitemap if isinstance(seed_sitemap, bool) else None
+    if seed_sitemap_value is None:
+        seed_sitemap_value = profile_preset.seed_sitemap if profile_preset and profile_preset.seed_sitemap is not None else False
 
     try:
         context = resolve_application_context(url, Path.cwd(), env_file_path, require_target=True)
@@ -1079,6 +1112,8 @@ def crawl(
         console.print(f"Using {context.target.key} from {context.target.source} for the crawl target.")
     for note in browser_auth_summary_notes(context.target.value, auth_config):
         console.print(f"[info] {note}")
+    for note in profile_summary_notes(profile_preset, "crawl"):
+        console.print(f"[info] {note}")
 
     try:
         if auth_config is None:
@@ -1087,11 +1122,11 @@ def crawl(
                 timeout_seconds=timeout_seconds,
                 max_pages=max_pages_value,
                 max_crawl_depth=max_depth_value,
-                same_host_only=same_host_only,
+                same_host_only=same_host_only_value,
                 include_patterns=include_patterns,
                 exclude_patterns=exclude_patterns,
-                seed_robots=seed_robots,
-                seed_sitemap=seed_sitemap,
+                seed_robots=seed_robots_value,
+                seed_sitemap=seed_sitemap_value,
             )
         else:
             result = crawl_target(
@@ -1099,11 +1134,11 @@ def crawl(
                 timeout_seconds=timeout_seconds,
                 max_pages=max_pages_value,
                 max_crawl_depth=max_depth_value,
-                same_host_only=same_host_only,
+                same_host_only=same_host_only_value,
                 include_patterns=include_patterns,
                 exclude_patterns=exclude_patterns,
-                seed_robots=seed_robots,
-                seed_sitemap=seed_sitemap,
+                seed_robots=seed_robots_value,
+                seed_sitemap=seed_sitemap_value,
                 auth_config=auth_config,
             )
     except ValueError as exc:
@@ -1130,9 +1165,18 @@ def crawl(
     )
 
 
-@app.command(help="Run the local demo site for testing the scanner.")
-def demo_site(port: int = typer.Option(8000, "--port", min=1, max=65535, help="Port for the local demo site")) -> None:
+def _run_demo_site(port: int) -> None:
     serve_demo_site(port)
+
+
+@app.command("demo", help="Run the local demo site for testing the scanner.")
+def demo(port: int = typer.Option(8000, "--port", min=1, max=65535, help="Port for the local demo site")) -> None:
+    _run_demo_site(port)
+
+
+@app.command("demo-site", help="Run the local demo site for testing the scanner.")
+def demo_site(port: int = typer.Option(8000, "--port", min=1, max=65535, help="Port for the local demo site")) -> None:
+    _run_demo_site(port)
 
 
 @app.command(help="Show the append-only audit history.")

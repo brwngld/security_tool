@@ -330,6 +330,7 @@ def test_authenticate_client_uses_browser_auth_and_saves_storage_state(workspace
     assert payload["cookies"][0]["value"] == "browser-session"
     assert any("Browser auth: started" in note for note in notes)
     assert any("Browser auth: password provided directly" in note for note in notes)
+    assert any("Browser auth/session inputs were merged" in note for note in notes)
     assert any("Browser auth: login submitted" in note for note in notes)
     assert any("Browser auth: storage-state preload" in note for note in notes)
     assert any("Browser auth: check passed" in note for note in notes)
@@ -462,6 +463,106 @@ def test_authenticate_client_uses_password_env_from_env_file(workspace_temp_dir,
     assert any("Browser auth: password resolved from env-file" in note for note in notes)
     assert any("Browser auth: login submitted" in note for note in notes)
     assert any("Browser auth: check passed" in note for note in notes)
+
+
+def test_authenticate_client_reports_missing_password_env_for_browser_auth(workspace_temp_dir, monkeypatch) -> None:
+    class FakeResponse:
+        def __init__(self, status: int = 200) -> None:
+            self.status = status
+
+    class FakePage:
+        def __init__(self, context: "FakeContext") -> None:
+            self._context = context
+            self.url = ""
+            self.keyboard = self
+
+        async def goto(self, url: str, wait_until: str = "domcontentloaded") -> FakeResponse:  # noqa: ARG002
+            self.url = url
+            return FakeResponse(200)
+
+        async def fill(self, selector: str, value: str) -> None:
+            self._context.filled.append((selector, value))
+
+        async def click(self, selector: str) -> None:
+            self._context.clicked.append(selector)
+
+        async def wait_for_load_state(self, state: str) -> None:  # noqa: ARG002
+            return None
+
+        async def press(self, key: str) -> None:
+            self._context.keys.append(key)
+
+    class FakeContext:
+        def __init__(self) -> None:
+            self.filled: list[tuple[str, str]] = []
+            self.clicked: list[str] = []
+            self.keys: list[str] = []
+
+        async def add_cookies(self, cookies: list[dict[str, object]]) -> None:  # noqa: ARG002
+            return None
+
+        async def new_page(self) -> FakePage:
+            return FakePage(self)
+
+        async def cookies(self) -> list[dict[str, object]]:
+            return []
+
+        async def close(self) -> None:
+            return None
+
+    class FakeBrowser:
+        async def new_context(self, storage_state: str | None = None) -> FakeContext:  # noqa: ARG002
+            return FakeContext()
+
+        async def close(self) -> None:
+            return None
+
+    class FakeChromium:
+        async def launch(self, headless: bool = True) -> FakeBrowser:  # noqa: ARG002
+            return FakeBrowser()
+
+    class FakeAsyncPlaywright:
+        def __init__(self) -> None:
+            self.chromium = FakeChromium()
+
+        async def __aenter__(self) -> "FakeAsyncPlaywright":
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb) -> None:  # noqa: ANN001
+            return None
+
+    def async_playwright() -> FakeAsyncPlaywright:
+        return FakeAsyncPlaywright()
+
+    fake_async_api = types.ModuleType("playwright.async_api")
+    fake_async_api.async_playwright = async_playwright
+    fake_playwright = types.ModuleType("playwright")
+    monkeypatch.setitem(sys.modules, "playwright", fake_playwright)
+    monkeypatch.setitem(sys.modules, "playwright.async_api", fake_async_api)
+    monkeypatch.delenv("PsyberShield_PASSWORD", raising=False)
+    env_file = workspace_temp_dir / ".env"
+    env_file.write_text("", encoding="utf-8")
+    monkeypatch.chdir(workspace_temp_dir)
+
+    client = httpx.Client(transport=httpx.MockTransport(lambda request: httpx.Response(200, text="ok")), follow_redirects=True)
+    notes = authenticate_client(
+        client,
+        "https://example.com",
+        CrawlAuthConfig(
+            login_url="/auth/login",
+            auth_method="browser",
+            username="alice",
+            password_env="PsyberShield_PASSWORD",
+            env_file=str(env_file),
+            browser_username_selector="#identifier",
+            browser_password_selector="#password",
+            browser_submit_selector='button[type="submit"]',
+        ),
+    )
+
+    assert any("Browser auth: password env PsyberShield_PASSWORD was not found" in note for note in notes)
+    assert any("Browser auth: password was not resolved" in note for note in notes)
+    assert any("Browser auth: login submitted" in note for note in notes)
 
 
 def test_authenticate_client_requires_login_url_or_storage_state_for_browser_auth() -> None:

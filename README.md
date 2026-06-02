@@ -4,7 +4,7 @@ PsyberShield is a Python-based security visibility and response tool for small s
 
 ## Status
 
-Active CLI slice with scan, crawl, report, baseline, compare, drift, secrets, bundle, audit, doctor, server-check, incident, fix, and demo-site commands.
+Active CLI slice with scan, crawl, report, baseline, compare, drift, secrets, bundle, audit, doctor, server-check, incident, fix, demo, and demo-site compatibility commands.
 
 ## Documentation
 
@@ -13,6 +13,16 @@ Active CLI slice with scan, crawl, report, baseline, compare, drift, secrets, bu
 - Combined manual: [psybershield-manual.pdf](psybershield-manual.pdf)
 - Changelog: [docs/changelog.md](docs/changelog.md)
 - Regenerate the PDF guide with `python generate_user_guide_pdf.py` and the combined manual with `python generate_psybershield_manual_pdf.py` after updating [docs/turan-user-guide.md](docs/turan-user-guide.md), [docs/architecture.md](docs/architecture.md), or [docs/changelog.md](docs/changelog.md)
+
+## Desktop Build
+
+Safest PyInstaller path:
+
+1. Build the onedir launcher first with `pyinstaller pshield.spec`.
+2. Test `dist\pshield\pshield.exe --help` and a simple `doctor` run.
+3. Only switch to `--onefile` after the onedir build works reliably.
+
+The launcher entry point is [build_pshield.py](build_pshield.py), which calls `app.main.cli_main()`.
 
 ## Commands
 
@@ -30,7 +40,8 @@ Active CLI slice with scan, crawl, report, baseline, compare, drift, secrets, bu
 - `incident` detects suspicious activity from logs and can generate or apply a denylist containment artifact
 - `timeline` shows a chronological view of findings and containment activity from a saved incident report
 - `fix` applies the first real local fix lane with `--local`
-- `demo-site` starts the local test site
+- `demo` starts the local test site
+- `demo-site` remains as a compatibility alias
 
 ## Browser auth
 
@@ -224,6 +235,56 @@ Example phase-4 command:
   --auth-check-url /account
 ```
 
+## Improvement Roadmap
+
+Current focus is phase 6. We are keeping the tool stable while improving the most visible and user-facing parts first.
+
+Phase 1: onboarding and packaging
+
+- `pshield --help` clarity and examples
+- `pshield demo` and `pshield doctor` first-run guidance
+- packaged `.exe` build path and release notes
+
+Phase 2: crawl and auth UX
+
+- better page discovery explanations
+- smarter auth/session handling
+- clearer `why only these pages?` messaging
+- polished sitemap and robots support
+
+Phase 3: reports
+
+- cleaner HTML report
+- executive summary
+- severity explanation
+- `what to fix first`
+
+Phase 4: doctor and server-check
+
+- better VPS detection
+- Nginx, systemd, and env checks
+- clear `ready`, `warning`, and `danger` status
+
+Phase 5: profiles
+
+- `--profile quick` for a fast, shallow pass
+- `--profile full` for a broader crawl with robots and sitemap hints
+- `--profile safe-vps` for a balanced VPS-friendly pass
+
+Example:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main crawl https://example.com --profile safe-vps
+.\venv\Scripts\python.exe -m app.main scan https://example.com --profile quick
+```
+
+Phase 6: fix confidence
+
+- `report only`
+- `generate artifact`
+- `safe local fix`
+- `needs manual approval`
+
 ## `.env` variables
 
 | Variable | Used by | Meaning |
@@ -342,7 +403,7 @@ When crawl coverage changes, PsyberShield prints a short terminal note with the 
 .\venv\Scripts\python.exe -m app.main doctor
 ```
 
-`doctor` checks the local machine, config paths, suspicious listeners and outbound connections, open localhost ports, safe environment status, and any resolved app target without taking a target URL. The readiness score now includes a short breakdown of the checks that most influenced it.
+`doctor` checks the local machine, config paths, suspicious listeners and outbound connections, open localhost ports, safe environment status, a deployment profile hint, and any resolved app target without taking a target URL. The readiness score now includes a short breakdown of the checks that most influenced it, and the report also labels the overall state as `ready`, `warning`, or `danger`.
 
 `doctor` also supports `--json-output`, `--markdown-output`, and `--html-output` for saved reports.
 
@@ -352,7 +413,7 @@ When crawl coverage changes, PsyberShield prints a short terminal note with the 
 .\venv\Scripts\python.exe -m app.main server-check
 ```
 
-`server-check` stays focused on server-facing paths, local service signals, and config checks, then scans the resolved local target when one is found.
+`server-check` stays focused on server-facing paths, local service signals, and config checks, then scans the resolved local target when one is found. It also prints the deployment profile hint and the overall readiness state so you can tell at a glance whether the host looks ready, warning-level, or danger-level.
 
 ## Timeout
 
@@ -410,7 +471,7 @@ PsyberShield also appends scan and fix events to `outputs/audit.log` by default.
 Start the demo site in one terminal:
 
 ```powershell
-.\venv\Scripts\python.exe -m app.main demo-site --port 8000
+.\venv\Scripts\python.exe -m app.main demo --port 8000
 ```
 
 Then scan it from another terminal:

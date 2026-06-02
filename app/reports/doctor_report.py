@@ -20,6 +20,7 @@ def write_markdown_doctor_report(report: DoctorReport, output_path: str | Path) 
         f"Root: {report.root}",
         f"OS: {report.os_name} {report.os_release}",
         f"Python: {report.python_version}",
+        f"Readiness state: {report.readiness_state or 'not calculated'}",
         f"Readiness score: {report.readiness_score}%" if report.readiness_score is not None else "Readiness score: not calculated",
     ]
     if report.readiness_notes:
@@ -112,6 +113,7 @@ def write_html_doctor_report(report: DoctorReport, output_path: str | Path) -> P
       <p><strong>Root:</strong> {escape(report.root)}</p>
       <p><strong>OS:</strong> {escape(f'{report.os_name} {report.os_release}')}</p>
       <p><strong>Python:</strong> {escape(report.python_version)}</p>
+      <p><strong>Readiness state:</strong> {escape(report.readiness_state or 'not calculated')}</p>
       <p><strong>Readiness score:</strong> {escape(f'{report.readiness_score}%') if report.readiness_score is not None else 'not calculated'}</p>
     </div>
     <div class="card">

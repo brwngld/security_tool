@@ -8,6 +8,15 @@ from jinja2 import Environment, select_autoescape
 from app.remediation.recommendations import suggest_first_move
 from app.models import ScanResult
 
+
+_SEVERITY_ORDER = {
+    "critical": 0,
+    "high": 1,
+    "medium": 2,
+    "low": 3,
+    "info": 4,
+}
+
 _TEMPLATE = """
 <!doctype html>
 <html lang="en">
@@ -290,6 +299,13 @@ _TEMPLATE = """
       background: rgba(2, 6, 23, 0.65);
       margin-top: 10px;
     }
+    .summary-list {
+      margin: 12px 0 0;
+      padding-left: 20px;
+    }
+    .summary-list li {
+      margin: 8px 0;
+    }
   </style>
 </head>
 <body>
@@ -364,6 +380,81 @@ _TEMPLATE = """
         <span class="chip"><span class="chip-dot"></span>Exposed files: {{ result.findings | selectattr("category", "equalto", "exposed_files") | list | length }}</span>
       </div>
     </div>
+
+    <div class="card">
+      <div class="section-header">
+        <h2>Executive Summary</h2>
+        <div class="section-hint">A short readout for handoff and triage</div>
+      </div>
+      <ul class="summary-list">
+        <li><strong>Detections:</strong> {{ result.findings|length }}</li>
+        <li><strong>Notes:</strong> {{ result.notes|length }}</li>
+        <li><strong>High / Critical:</strong> {{ high_critical_count }}</li>
+        <li><strong>Medium:</strong> {{ medium_count }}</li>
+        <li><strong>Low:</strong> {{ low_count }}</li>
+        <li><strong>Info:</strong> {{ info_count }}</li>
+        <li><strong>TLS posture:</strong> {{ result.tls_summary.get("status", "unknown") }}</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="section-header">
+        <h2>Severity Guide</h2>
+        <div class="section-hint">How to read the severity labels in this report</div>
+      </div>
+      <ul class="summary-list">
+        <li><strong>Critical:</strong> urgent, likely immediate risk</li>
+        <li><strong>High:</strong> important, should be handled first</li>
+        <li><strong>Medium:</strong> needs review and scheduling</li>
+        <li><strong>Low:</strong> useful hardening or hygiene item</li>
+        <li><strong>Info:</strong> context or supporting detail</li>
+      </ul>
+    </div>
+
+    {% if priority_findings %}
+    <div class="card">
+      <div class="section-header">
+        <h2>What to Fix First</h2>
+        <div class="section-hint">The first few items PsyberShield would hand to an operator</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Priority</th>
+            <th>Severity</th>
+            <th>Title</th>
+            <th>First Move</th>
+            <th>Impact</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in priority_findings %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td><span class="pill sev-{{ item.severity }}">{{ item.severity }}</span></td>
+            <td>{{ item.title }}</td>
+            <td>{{ suggest_first_move(item) }}</td>
+            <td>{{ item.expected_impact or "-" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    {% if result.notes %}
+    <div class="card">
+      <div class="section-header">
+        <h2>Notes</h2>
+        <div class="section-hint">Reasoning, discovery, and session clues PsyberShield captured during the run</div>
+      </div>
+      <ol class="crawl-list">
+        {% for note in result.notes %}
+        <li>{{ note }}</li>
+        {% endfor %}
+      </ol>
+    </div>
+    {% endif %}
 
     {% if result.scanned_urls|length > 1 %}
     <div class="card">
@@ -485,10 +576,24 @@ def write_html_report(result: ScanResult, output_path: str | Path, include_fix_p
             key=lambda item: (category_priority.get(item[0], 99), -item[1], item[0]),
         )
     ]
+    severity_counts = Counter(finding.severity for finding in result.findings)
+    priority_findings = sorted(
+        result.findings,
+        key=lambda finding: (
+            _SEVERITY_ORDER.get(finding.severity, 99),
+            0 if finding.expected_impact and finding.expected_impact != "Report only; no system change required." else 1,
+            finding.title.lower(),
+        ),
+    )[:3]
     rendered = template.render(
         result=result,
         include_fix_plans=include_fix_plans,
         category_chips=category_chips,
+        high_critical_count=severity_counts.get("high", 0) + severity_counts.get("critical", 0),
+        medium_count=severity_counts.get("medium", 0),
+        low_count=severity_counts.get("low", 0),
+        info_count=severity_counts.get("info", 0),
+        priority_findings=priority_findings,
     )
     path.write_text(rendered, encoding="utf-8")
     return path

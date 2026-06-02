@@ -11,7 +11,8 @@ It is intentionally short and practical so it can stay current as the app grows.
 - Added `crawl` scope controls, seed sources, and grouped repeated findings.
 - Added generic authenticated scan and crawl support, including browser-assisted login flows.
 - Added `fix --local` as the first real live-edit lane with backup, validation, and rollback.
-- Added `doctor` and `server-check` discovery workflows for local and VPS environments.
+- Added `doctor` and `server-check` discovery workflows for local and VPS environments, including a deployment profile hint and explicit `ready`, `warning`, and `danger` state labels.
+- Added `--profile quick`, `--profile full`, and `--profile safe-vps` presets for scan and crawl defaults.
 - Added `incident` log analysis with Apache/auth/systemd patterns, optional Nginx denylist containment, and fail2ban-style output for suspicious activity.
 - Added live log snapshot ingestion for `incident` from `journalctl`, Windows Event Log, and file tails.
 - Added richer incident signatures for Apache, Nginx, Gunicorn, uWSGI, SSH, sudo, and auth middleware.

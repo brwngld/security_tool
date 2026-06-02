@@ -6,6 +6,7 @@ import re
 import subprocess
 import socket
 import sys
+from urllib.parse import urlsplit
 from dataclasses import dataclass
 from shutil import which
 from pathlib import Path
@@ -18,6 +19,7 @@ from app.environment import lookup_env_value
 
 
 DoctorStatus = Literal["ok", "warn", "info", "unknown"]
+DoctorReadinessState = Literal["ready", "warning", "danger"]
 
 
 class DoctorCheck(BaseModel):
@@ -35,6 +37,7 @@ class DoctorReport(BaseModel):
     context: ApplicationContext | None = None
     checks: list[DoctorCheck] = Field(default_factory=list)
     readiness_score: int | None = None
+    readiness_state: DoctorReadinessState | None = None
     readiness_notes: list[str] = Field(default_factory=list)
 
 
@@ -434,7 +437,63 @@ def check_default_scan_target(context: ApplicationContext | None = None) -> Doct
     )
 
 
+def check_deployment_profile(context: ApplicationContext | None = None) -> DoctorCheck:
+    if context is None or context.discovery is None:
+        return DoctorCheck(
+            name="Deployment profile",
+            status="info",
+            summary="not enough context to classify",
+            details={"profile": "unknown"},
+        )
+
+    discovery = context.discovery
+    profile = "unknown"
+    target_host = ""
+    if context.target is not None:
+        parsed = urlsplit(context.target.value)
+        target_host = (parsed.hostname or "").lower()
+    reasons: list[str] = []
+    if discovery.systemd_service is not None:
+        reasons.append("systemd service discovered")
+    if discovery.nginx_config is not None:
+        reasons.append("nginx config discovered")
+    if discovery.public_url is not None:
+        reasons.append("public URL discovered")
+    if discovery.local_url is not None:
+        reasons.append("local URL discovered")
+
+    localish_target = target_host in {"localhost", "127.0.0.1", "::1"} or target_host.startswith("127.") or target_host.endswith(".local")
+
+    if discovery.systemd_service is not None and discovery.nginx_config is not None:
+        profile = "likely VPS / hosted server"
+    elif discovery.systemd_service is not None and discovery.public_url is not None:
+        profile = "likely VPS / reverse-proxy-backed server"
+    elif discovery.nginx_config is not None and discovery.public_url is not None:
+        profile = "likely hosted web server"
+    elif discovery.nginx_config is not None and localish_target:
+        profile = "likely local app behind nginx"
+    elif discovery.local_url is not None and discovery.systemd_service is not None:
+        profile = "likely local service-backed server"
+    elif discovery.local_url is not None:
+        profile = "likely local development server"
+    elif discovery.systemd_service is not None:
+        profile = "likely VPS / service-backed server"
+    elif discovery.public_url is not None:
+        profile = "likely hosted web server"
+
+    return DoctorCheck(
+        name="Deployment profile",
+        status="info",
+        summary=profile,
+        details={
+            "profile": profile,
+            "signals": ", ".join(reasons) if reasons else "none",
+        },
+    )
+
+
 def build_doctor_report(root: Path, checks: list[DoctorCheck], context: ApplicationContext | None = None) -> DoctorReport:
+    readiness_score = calculate_readiness_score(checks)
     return DoctorReport(
         root=str(root),
         os_name=platform.system(),
@@ -442,7 +501,8 @@ def build_doctor_report(root: Path, checks: list[DoctorCheck], context: Applicat
         python_version=sys.version.split()[0],
         context=context,
         checks=checks,
-        readiness_score=calculate_readiness_score(checks),
+        readiness_score=readiness_score,
+        readiness_state=calculate_readiness_state(checks, readiness_score),
         readiness_notes=build_readiness_notes(checks),
     )
 
@@ -459,6 +519,31 @@ def calculate_readiness_score(checks: Sequence[DoctorCheck]) -> int | None:
     }
     total = sum(status_weights.get(check.status, 60) for check in checks)
     return round(total / len(checks))
+
+
+def calculate_readiness_state(checks: Sequence[DoctorCheck], readiness_score: int | None = None) -> DoctorReadinessState | None:
+    if not checks:
+        return None
+
+    warn_checks = [check for check in checks if check.status == "warn"]
+    if warn_checks:
+        critical_checks = {
+            "Scan target",
+            "Output folder",
+            "App config paths",
+            "Nginx hardening",
+            "Process and port activity",
+        }
+        if readiness_score is not None and readiness_score < 70:
+            return "danger"
+        if any(check.name in critical_checks for check in warn_checks):
+            return "danger"
+        return "warning"
+
+    if any(check.status == "unknown" for check in checks):
+        return "warning"
+
+    return "ready"
 
 
 def build_readiness_notes(checks: Sequence[DoctorCheck]) -> list[str]:
@@ -495,6 +580,7 @@ def run_server_checks(
     checks = [
         check_env_file(root_path, discovered_env_file),
         check_default_scan_target(context),
+        check_deployment_profile(context),
         check_report_directory(root_path),
         check_app_config_paths(root_path, discovered_env_file),
         check_nginx_paths(root_path, nginx_config),
@@ -516,6 +602,7 @@ def run_doctor_checks(
     checks = [
         check_env_file(root_path, discovered_env_file),
         check_default_scan_target(context),
+        check_deployment_profile(context),
         check_report_directory(root_path),
         check_app_config_paths(root_path, discovered_env_file),
         check_nginx_paths(root_path),

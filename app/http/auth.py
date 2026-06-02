@@ -145,6 +145,7 @@ def _resolve_password(config: CrawlAuthConfig) -> tuple[str | None, str | None]:
             if found.source == "environment":
                 return found.value, "Browser auth: password resolved from shell environment."
             return found.value, f"Browser auth: password resolved from env-file ({found.source})."
+        return None, f"Browser auth: password env {config.password_env} was not found in shell environment or env-file."
     return None, None
 
 
@@ -168,6 +169,12 @@ async def _authenticate_client_with_browser(
     notes: list[str] = ["Browser auth: started."]
     if password_note:
         notes.append(password_note)
+    if config.session_file:
+        notes.append(f"Browser auth: session file source {config.session_file}.")
+    if config.storage_state:
+        notes.append(f"Browser auth: storage-state source {config.storage_state}.")
+    if config.cookie:
+        notes.append("Browser auth: cookie header source provided.")
 
     async with async_playwright() as playwright:
         browser = await playwright.chromium.launch(headless=config.browser_headless)
@@ -179,7 +186,7 @@ async def _authenticate_client_with_browser(
             try:
                 if cookie_map:
                     await context.add_cookies(_cookie_map_to_playwright_cookies(cookie_map, base_url))
-                    notes.append("Loaded cookies into the browser session.")
+                    notes.append("Browser auth: merged cookies into the browser session.")
                 if config.storage_state:
                     notes.append(f"Browser auth: storage-state preload from {config.storage_state}.")
 
@@ -194,6 +201,8 @@ async def _authenticate_client_with_browser(
                         await page.fill(config.browser_password_selector, password)
                     elif password:
                         await page.fill(f'input[name="{config.pass_field}"]', password)
+                    elif config.password_env:
+                        notes.append("Browser auth: password was not resolved, so the login form password field was left empty.")
                     if config.username or password:
                         if config.browser_submit_selector:
                             await page.click(config.browser_submit_selector)
@@ -245,6 +254,8 @@ def authenticate_client(client: httpx.Client, base_url: str, config: CrawlAuthCo
         cookie_values = _parse_cookie_header(config.cookie)
         if cookie_values:
             notes.append("Loaded auth cookie(s) into the crawl session.")
+    if config.session_file or config.storage_state or config.cookie:
+        notes.append("Browser auth/session inputs were merged before the request flow started." if config.auth_method.strip().lower() == "browser" else "Auth/session inputs were merged before the request flow started.")
     if cookie_map:
         client.cookies.update(cookie_map)
 

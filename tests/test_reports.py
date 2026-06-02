@@ -136,6 +136,9 @@ def test_write_markdown_report_creates_file(workspace_temp_dir) -> None:
     assert output_path.exists()
     text = output_path.read_text(encoding="utf-8")
     assert "# PsyberShield Report" in text
+    assert "## Executive Summary" in text
+    assert "## Severity Guide" in text
+    assert "## What to Fix First" in text
     assert "Expires on: 2030-01-30" in text
     assert "## Proposed Fixes" in text
     assert "## Application Context" in text
@@ -149,6 +152,10 @@ def test_write_markdown_report_includes_scanned_urls(workspace_temp_dir) -> None
         "https://example.com/about",
     ]
     result.crawl_seed_sources = ["page links"]
+    result.notes = [
+        "Why these pages? PsyberShield starts at https://example.com/ and follows in-scope links until it reaches the crawl limits.",
+        "Scope: same-host only, max depth 2, max pages 20.",
+    ]
     output_path = write_markdown_report(result, workspace_temp_dir / "crawl.md")
 
     assert output_path.exists()
@@ -156,6 +163,8 @@ def test_write_markdown_report_includes_scanned_urls(workspace_temp_dir) -> None
     assert "## Scanned URLs" in text
     assert "https://example.com/about" in text
     assert "Seed sources: page links" in text
+    assert "## Notes" in text
+    assert "Why these pages?" in text
 
 
 def test_write_markdown_report_groups_findings_by_page(workspace_temp_dir) -> None:
@@ -168,6 +177,7 @@ def test_write_markdown_report_groups_findings_by_page(workspace_temp_dir) -> No
     assert "Affected URLs:" in text
     assert "1. https://example.com/" in text
     assert "2. https://example.com/about" in text
+    assert "## Executive Summary" in text
 
 
 def test_render_console_shows_findings_table() -> None:
@@ -194,6 +204,11 @@ def test_render_console_shows_findings_table() -> None:
 
 def test_render_console_groups_crawl_findings_by_page() -> None:
     result = build_crawl_result()
+    result.notes = [
+        "Scope: same-host only, max depth 2, max pages 20.",
+        "Discovery seeds: robots.txt, sitemap.xml, page links.",
+        "Why these pages? PsyberShield starts at https://example.com/ and follows in-scope links until it reaches the crawl limits.",
+    ]
     console = Console(record=True, width=180)
     console.print(render_crawl_summary(result))
     text = console.export_text()
@@ -202,6 +217,9 @@ def test_render_console_groups_crawl_findings_by_page() -> None:
     assert "robots.txt" in text
     assert "sitemap.xml" in text
     assert "page links" in text
+    assert "Scope" in text
+    assert "Discovery" in text
+    assert "Why these pages?" in text
 
 
 def test_render_console_orders_top_categories() -> None:

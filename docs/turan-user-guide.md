@@ -31,8 +31,8 @@ PsyberShield is intentionally defensive:
 
 | Command | What it does | Typical use |
 | --- | --- | --- |
-| `scan` | Scans one target page or a discovered local target; supports browser-assisted login | Quick vulnerability check |
-| `crawl` | Crawls in-scope links across multiple pages; supports browser-assisted login | Broader site sweep |
+| `scan` | Scans one target page or a discovered local target; supports browser-assisted login and `--profile` presets | Quick vulnerability check |
+| `crawl` | Crawls in-scope links across multiple pages; supports browser-assisted login and `--profile` presets | Broader site sweep |
 | `report` | Re-renders or previews a saved report | Review an existing JSON, Markdown, or HTML report |
 | `audit` | Shows the append-only audit trail | Review scans and fix events |
 | `baseline` | Saves a scan snapshot for later comparison | Track a known-good state |
@@ -46,7 +46,8 @@ PsyberShield is intentionally defensive:
 | `timeline` | Shows the chronological order of findings and containment actions | Saved incident report replay |
 | `integrity` | Compares monitored files against a saved baseline | File integrity drift monitoring |
 | `fix --local` | Applies the first real local edit lane | Backup, edit, validate, rollback if needed |
-| `demo-site` | Runs the local demo site | Test target for development |
+| `demo` | Runs the local demo site | Test target for development |
+| `demo-site` | Compatibility alias for the local demo site | Legacy command support |
 
 ## Quick Start
 
@@ -66,6 +67,7 @@ Crawl more than one page:
 
 ```powershell
 .\venv\Scripts\python.exe -m app.main crawl https://example.com --max-pages 20 --max-depth 2
+.\venv\Scripts\python.exe -m app.main crawl https://example.com --profile safe-vps
 ```
 
 Generate an HTML report with a default filename under `outputs/`:
@@ -222,6 +224,7 @@ Important flags:
 
 - `--env-file PATH` reads a specific `.env`
 - `--timeout SECONDS` changes the request timeout
+- `--profile quick`, `--profile full`, and `--profile safe-vps` tune the scan defaults
 - `--policy PATH` loads a policy file
 - `--yes` skips the permission prompt
 - `--preview-fixes` shows proposed fixes only
@@ -242,6 +245,7 @@ Example:
 
 ```powershell
 .\venv\Scripts\python.exe -m app.main scan https://example.com --json-output --markdown-output
+.\venv\Scripts\python.exe -m app.main scan https://example.com --profile quick
 ```
 
 ## `crawl`
@@ -458,7 +462,7 @@ Example:
 
 ## `doctor`
 
-`doctor` checks the local machine and app environment, including suspicious listeners and outbound connections. Its readiness score is paired with a short breakdown of the checks that most affected it.
+`doctor` checks the local machine and app environment, including suspicious listeners and outbound connections. It also adds a deployment profile hint so you can tell whether the host looks like a local development box, a service-backed server, or a likely VPS-style deployment. Its readiness score is paired with a short breakdown of the checks that most affected it, and the report labels the overall state as `ready`, `warning`, or `danger`.
 
 `doctor` also accepts `--json-output`, `--markdown-output`, and `--html-output` if you want a saved report file.
 
@@ -489,6 +493,7 @@ What it does:
 - discovers the app target
 - resolves the app’s own `.env` when possible
 - scans the discovered local target
+- surfaces the deployment profile hint and the overall `ready` / `warning` / `danger` state
 
 Important flags:
 
@@ -540,15 +545,17 @@ What to expect:
 - a file under `outputs/generated/`
 - a matching note and audit entry
 
-## `demo-site`
+## `demo`
 
-`demo-site` runs a local test target for development.
+`demo` runs a local test target for development.
 
 Example:
 
 ```powershell
-.\venv\Scripts\python.exe -m app.main demo-site --port 8000
+.\venv\Scripts\python.exe -m app.main demo --port 8000
 ```
+
+`demo-site` remains available as a compatibility alias.
 
 ## `.env` Variables
 

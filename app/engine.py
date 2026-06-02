@@ -159,6 +159,44 @@ def _discover_crawl_seeds(
     return discovered, sources
 
 
+def _build_crawl_explanation_notes(
+    canonical_url: str,
+    *,
+    max_pages: int,
+    max_crawl_depth: int,
+    same_host_only: bool,
+    include_patterns: list[re.Pattern[str]] | None,
+    exclude_patterns: list[re.Pattern[str]] | None,
+    crawl_seed_urls: list[str],
+    crawl_seed_sources: list[str],
+) -> list[str]:
+    notes = [
+        f"Why these pages? PsyberShield starts at {canonical_url} and follows in-scope links until it reaches the crawl limits.",
+    ]
+    scope_parts = [
+        "same-host only" if same_host_only else "off-site allowed",
+        f"max depth {max_crawl_depth}",
+        f"max pages {max_pages}",
+    ]
+    if include_patterns:
+        scope_parts.append(f"include filters: {len(include_patterns)}")
+    if exclude_patterns:
+        scope_parts.append(f"exclude filters: {len(exclude_patterns)}")
+    notes.append(f"Scope: {', '.join(scope_parts)}.")
+
+    if crawl_seed_sources:
+        notes.append(f"Discovery seeds: {', '.join(crawl_seed_sources)}.")
+    else:
+        notes.append("Discovery seeds: page links only.")
+
+    if crawl_seed_urls:
+        notes.append(f"Seed URLs queued: {len(crawl_seed_urls)}.")
+    else:
+        notes.append("Seed URLs queued: none beyond the starting page.")
+
+    return notes
+
+
 def _build_target_unreachable_result(target: Target, canonical_url: str, notes: list[str]) -> ScanResult:
     findings = [
         Finding(
@@ -402,6 +440,19 @@ def crawl_target(
         for seed in crawl_seed_urls:
             if seed not in visited and seed != canonical_url:
                 page_queue.appendleft((seed, 0))
+
+        notes.extend(
+            _build_crawl_explanation_notes(
+                canonical_url,
+                max_pages=max_pages,
+                max_crawl_depth=max_crawl_depth,
+                same_host_only=same_host_only,
+                include_patterns=include_patterns,
+                exclude_patterns=exclude_patterns,
+                crawl_seed_urls=crawl_seed_urls,
+                crawl_seed_sources=crawl_seed_sources,
+            )
+        )
 
         while page_queue and len(scanned_urls) < max_pages:
             page_url, depth = page_queue.popleft()

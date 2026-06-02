@@ -432,6 +432,56 @@ Example phase-4 command:
 .\venv\Scripts\python.exe -m app.main crawl https://example.com --auth-method browser --login-url /auth/login --browser-username-selector 'input[name="identifier"]' --browser-password-selector 'input[name="password"]' --username alice --password-env PsyberShield_PASSWORD --auth-check-url /account
 ```
 
+## Improvement Roadmap
+
+Current focus is phase 6. We are keeping the app stable while improving the most visible and user-facing parts first.
+
+Phase 1: onboarding and packaging
+
+- clearer `pshield --help` output
+- `pshield demo` and `pshield doctor` first-run guidance
+- packaged `.exe` build path and release notes
+
+Phase 2: crawl and auth UX
+
+- better page discovery explanations
+- smarter auth/session handling
+- clearer `why only these pages?` messaging
+- polished sitemap and robots support
+
+Phase 3: reports
+
+- cleaner HTML report
+- executive summary
+- severity explanation
+- `what to fix first`
+
+Phase 4: doctor and server-check
+
+- better VPS detection
+- Nginx, systemd, and env checks
+- clear `ready`, `warning`, and `danger` status
+
+Phase 5: profiles
+
+- `--profile quick` for a fast, shallow pass
+- `--profile full` for a broader crawl with robots and sitemap hints
+- `--profile safe-vps` for a balanced VPS-friendly pass
+
+Example:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main crawl https://example.com --profile safe-vps
+.\venv\Scripts\python.exe -m app.main scan https://example.com --profile quick
+```
+
+Phase 6: fix confidence
+
+- `report only`
+- `generate artifact`
+- `safe local fix`
+- `needs manual approval`
+
 Optional report exports:
 
 ```powershell
@@ -483,7 +533,7 @@ Doctor:
 .\venv\Scripts\python.exe -m app.main doctor
 ```
 
-`doctor` checks the local machine, config paths, open localhost ports, safe environment status, and any resolved app target without taking a target URL. The readiness score includes a short breakdown of the checks that most affected it.
+`doctor` checks the local machine, config paths, open localhost ports, safe environment status, a deployment profile hint, and any resolved app target without taking a target URL. The readiness score includes a short breakdown of the checks that most affected it, and the report also labels the overall state as `ready`, `warning`, or `danger`.
 
 `doctor` also supports `--json-output`, `--markdown-output`, and `--html-output` for saved reports.
 
@@ -499,7 +549,7 @@ Server check:
 .\venv\Scripts\python.exe -m app.main server-check
 ```
 
-`server-check` stays focused on server-facing paths, local service signals, and config checks, then scans the resolved local target when one is found.
+`server-check` stays focused on server-facing paths, local service signals, and config checks, then scans the resolved local target when one is found. It also prints the deployment profile hint and the overall readiness state so the host state is easier to read at a glance.
 
 `server-check` can also read a specific env file and a specific Nginx config:
 
@@ -586,7 +636,7 @@ Comparison reports:
 Local demo site:
 
 ```powershell
-.\venv\Scripts\python.exe -m app.main demo-site --port 8000
+.\venv\Scripts\python.exe -m app.main demo --port 8000
 .\venv\Scripts\python.exe -m app.main scan http://127.0.0.1:8000
 ```
 

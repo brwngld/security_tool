@@ -154,8 +154,17 @@ def render_crawl_summary(result: ScanResult) -> Table:
     crawl.add_row("Unique URLs", str(len(set(result.scanned_urls))))
     crawl.add_row("First page", result.scanned_urls[0] if result.scanned_urls else "-")
     crawl.add_row("Last page", result.scanned_urls[-1] if result.scanned_urls else "-")
+    scope_note = next((note.removeprefix("Scope: ").rstrip(".") for note in result.notes if note.startswith("Scope: ")), "")
+    if scope_note:
+        crawl.add_row("Scope", scope_note)
     if len(result.scanned_urls) > 1:
         crawl.add_row("Seed sources", ", ".join(result.crawl_seed_sources) if result.crawl_seed_sources else "-")
+    discovery_note = next((note.removeprefix("Discovery seeds: ").rstrip(".") for note in result.notes if note.startswith("Discovery seeds: ")), "")
+    if discovery_note:
+        crawl.add_row("Discovery", discovery_note)
+    why_pages = next((note.removeprefix("Why these pages? ").strip() for note in result.notes if note.startswith("Why these pages? ")), "")
+    if why_pages:
+        crawl.add_row("Why these pages?", why_pages)
     return crawl
 
 
@@ -363,6 +372,12 @@ def render_doctor_status(status: str) -> Text:
         return Text(label, style="bold black on bright_yellow")
     if status == "info":
         return Text(label, style="bold black on bright_cyan")
+    if status == "ready":
+        return Text(label, style="bold white on dark_green")
+    if status == "warning":
+        return Text(label, style="bold black on bright_yellow")
+    if status == "danger":
+        return Text(label, style="bold white on dark_red")
     return Text(label, style="dim")
 
 
@@ -392,12 +407,14 @@ def render_application_context(context: ApplicationContext) -> Table:
 
 
 def render_doctor_report(report: DoctorReport) -> Group:
+    readiness_state = report.readiness_state or ("warning" if report.readiness_score is not None else "info")
     summary = Table(title="Doctor")
     summary.add_column("Field", style="cyan", no_wrap=True)
     summary.add_column("Value", style="white")
     summary.add_row("Root", report.root)
     summary.add_row("OS", f"{report.os_name} {report.os_release}")
     summary.add_row("Python", report.python_version)
+    summary.add_row("Readiness state", render_doctor_status(readiness_state))
     summary.add_row("Readiness score", f"{report.readiness_score}%" if report.readiness_score is not None else "not calculated")
 
     readiness = Table(title="Readiness Breakdown")

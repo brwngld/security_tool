@@ -16,6 +16,9 @@ def test_top_level_help_mentions_preferred_command() -> None:
     assert result.exit_code == 0
     assert "preferred CLI command is pshield" in result.stdout
     assert "compatibility aliases" in result.stdout
+    assert "demo" in result.stdout
+    assert "preset profiles" in result.stdout
+    assert "safe-vps" in result.stdout
 
 
 def test_cli_main_expands_optional_output_arguments(monkeypatch) -> None:
@@ -27,6 +30,17 @@ def test_cli_main_expands_optional_output_arguments(monkeypatch) -> None:
     main.cli_main()
 
     assert captured == [["pshield", "scan", "--html-output", "outputs/scan.html"]]
+
+
+def test_demo_alias_runs_demo_site(monkeypatch) -> None:
+    runner = CliRunner()
+    captured = {}
+    monkeypatch.setattr(main, "serve_demo_site", lambda port: captured.setdefault("port", port))
+
+    result = runner.invoke(app, ["demo", "--port", "8123"])
+
+    assert result.exit_code == 0
+    assert captured["port"] == 8123
 
 
 def test_build_auth_config_requires_login_url_or_storage_state_for_browser_auth() -> None:
