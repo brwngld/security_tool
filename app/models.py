@@ -51,6 +51,7 @@ class FixDecision(BaseModel):
     finding_id: str
     finding_title: str
     status: str = Field(pattern=r"^(ready|approval_required|blocked|skipped|generated)$")
+    confidence_label: str = ""
     reason: str
     next_step: str
     rollback_command: str | None = None

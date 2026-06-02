@@ -13,6 +13,7 @@ It is intentionally short and practical so it can stay current as the app grows.
 - Added `fix --local` as the first real live-edit lane with backup, validation, and rollback.
 - Added `doctor` and `server-check` discovery workflows for local and VPS environments, including a deployment profile hint and explicit `ready`, `warning`, and `danger` state labels.
 - Added `--profile quick`, `--profile full`, and `--profile safe-vps` presets for scan and crawl defaults.
+- Added fix confidence labels for suggested actions: report only, generate artifact, safe local fix, and needs manual approval.
 - Added `incident` log analysis with Apache/auth/systemd patterns, optional Nginx denylist containment, and fail2ban-style output for suspicious activity.
 - Added live log snapshot ingestion for `incident` from `journalctl`, Windows Event Log, and file tails.
 - Added richer incident signatures for Apache, Nginx, Gunicorn, uWSGI, SSH, sudo, and auth middleware.

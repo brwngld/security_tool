@@ -262,6 +262,7 @@ def test_render_fix_decisions_shows_apply_plan() -> None:
         (),
             {
                 "finding_title": result.findings[0].title,
+                "confidence_label": "Report only",
                 "status": "ready",
                 "next_step": "Add header",
                 "reason": "Policy allows this plan.",
@@ -274,6 +275,7 @@ def test_render_fix_decisions_shows_apply_plan() -> None:
     text = console.export_text()
 
     assert "Apply Plan" in text
+    assert "Report only" in text
     assert "ready" in text
     assert "Add header" in text
     assert "outputs/backups/f1.conf.bak" in text

@@ -247,6 +247,7 @@ def render_console(result: ScanResult, include_fix_plans: bool = False) -> Group
 def render_fix_decisions(decisions: list[FixDecision]) -> Table:
     apply_table = Table(title="Apply Plan")
     apply_table.add_column("Finding", style="cyan", no_wrap=True)
+    apply_table.add_column("Confidence", style="white", no_wrap=True)
     apply_table.add_column("Status", style="white", no_wrap=True)
     apply_table.add_column("Next step", style="white")
     apply_table.add_column("Reason", style="white")
@@ -257,6 +258,7 @@ def render_fix_decisions(decisions: list[FixDecision]) -> Table:
         for decision in decisions:
             apply_table.add_row(
                 decision.finding_title,
+                decision.confidence_label or "-",
                 decision.status,
                 decision.next_step,
                 decision.reason,
@@ -264,7 +266,7 @@ def render_fix_decisions(decisions: list[FixDecision]) -> Table:
                 decision.artifact_path or "-",
             )
     else:
-        apply_table.add_row("-", "ready", "No fixes to apply", "-", "-", "-")
+        apply_table.add_row("-", "-", "ready", "No fixes to apply", "-", "-", "-")
 
     return apply_table
 

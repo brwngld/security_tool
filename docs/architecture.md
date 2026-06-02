@@ -666,7 +666,7 @@ Interactive fixes:
 .\venv\Scripts\python.exe -m app.main scan http://127.0.0.1:8000 --interactive
 ```
 
-Interactive mode shows a numbered fix list, asks whether you want to generate artifacts or apply fixes locally, and then lets you choose all fixes or a numbered subset.
+Interactive mode shows a numbered fix list, labels each one as report only, generate artifact, safe local fix, or needs manual approval, asks whether you want to generate artifacts or apply fixes locally, and then lets you choose all fixes or a numbered subset.
 If there are more than ten fixes, PsyberShield shows a paged list and lets you move with `n` and `p`.
 For `fix-local`, PsyberShield shows the target file, backup path, validation command, and rollback state before the final apply confirmation.
 

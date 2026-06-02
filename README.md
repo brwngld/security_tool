@@ -441,7 +441,7 @@ Copy [policy.example.json](policy.example.json) to `policy.json` and adjust the 
 .\venv\Scripts\python.exe -m app.main scan http://127.0.0.1:8000 --interactive
 ```
 
-PsyberShield shows a numbered list of suggested fixes, asks whether you want to generate artifacts or apply fixes locally, and then lets you choose all fixes or just the ones you want by number or range.
+PsyberShield shows a numbered list of suggested fixes, labels each one as report only, generate artifact, safe local fix, or needs manual approval, asks whether you want to generate artifacts or apply fixes locally, and then lets you choose all fixes or just the ones you want by number or range.
 If there are more than ten fixes, PsyberShield shows a paged list and lets you move with `n` and `p`.
 For `fix-local`, PsyberShield shows the target file, backup path, validation command, and rollback state before the final apply confirmation.
 

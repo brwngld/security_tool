@@ -158,6 +158,7 @@ app = typer.Typer(
         "- `--interactive` lets you choose generate artifacts or fix locally, then pick fixes from a paged list\n"
         "- `--generate-fixes` creates a backup, then generates allowed safe fix artifacts as local remediation notes\n"
         "- `--apply-fixes` still works as a backwards-compatible alias for `--generate-fixes` and is kept for older muscle memory\n\n"
+        "- fix plans now show a confidence label: report only, generate artifact, safe local fix, or needs manual approval\n"
         "- `fix --local` discovers a supported server file, backs it up, and applies one real local edit\n\n"
         "**Examples**\n"
         "```powershell\n"

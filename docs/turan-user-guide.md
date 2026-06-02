@@ -239,6 +239,7 @@ What to expect:
 - one target page
 - headers, cookies, TLS summary, exposed files, WAF signals
 - suggested fix plans when report-only findings exist
+- each fix plan gets a confidence label: report only, generate artifact, safe local fix, or needs manual approval
 - optional saved reports in JSON, Markdown, and HTML
 
 Example:
