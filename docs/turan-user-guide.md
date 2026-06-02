@@ -43,6 +43,7 @@ PsyberShield is intentionally defensive:
 | `doctor` | Checks the local machine and app environment | Health check without a URL |
 | `server-check` | Discovers the server layout and scans the local app target | VPS/server discovery mode |
 | `incident` | Detects suspicious activity in logs and can apply a denylist or fail2ban snippet | Defensive incident response |
+| `watch` | Monitors logs, file drift, and process activity in a snapshot or follow loop; writes reports under `outputs/` by default and can compare file drift against `--baseline` | Continuous defensive monitoring |
 | `timeline` | Shows the chronological order of findings and containment actions | Saved incident report replay |
 | `integrity` | Compares monitored files against a saved baseline | File integrity drift monitoring |
 | `fix --local` | Applies the first real local edit lane | Backup, edit, validate, rollback if needed |
@@ -88,6 +89,8 @@ Check logs for suspicious activity and optionally apply containment:
 .\venv\Scripts\python.exe -m app.main incident --logs outputs\access.log --apply-blocks
 .\venv\Scripts\python.exe -m app.main integrity . --baseline baselines\integrity.json
 .\venv\Scripts\python.exe -m app.main timeline outputs\incident.json --audit-log outputs\audit.log
+.\venv\Scripts\python.exe -m app.main watch --logs outputs\access.log --json-output
+.\venv\Scripts\python.exe -m app.main watch --follow --interval 30 --tail-file outputs\access.log --html-output
 ```
 
 Capture fresh snapshots from live sources:

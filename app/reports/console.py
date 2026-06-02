@@ -11,7 +11,7 @@ from app.audit import AuditEvent, describe_audit_event
 from app.context import ApplicationContext
 from app.diagnostics import DoctorCheck, DoctorReport
 from app.config import AppConfig
-from app.models import ComparisonResult, DriftReport, FixDecision, IncidentReport, IntegrityReport, LocalFixResult, ReportBundle, ScanResult, SecretExposureReport, TimelineReport
+from app.models import ComparisonResult, DriftReport, FixDecision, IncidentReport, IntegrityReport, LocalFixResult, ReportBundle, ScanResult, SecretExposureReport, TimelineReport, WatchReport
 
 
 def summarize_evidence(evidence: dict[str, object]) -> str:
@@ -444,6 +444,106 @@ def render_doctor_report(report: DoctorReport) -> Group:
     if context_table is not None:
         return Group(summary, readiness, context_table, checks)
     return Group(summary, readiness, checks)
+
+
+def render_watch_risk(level: str) -> Text:
+    label = level.upper()
+    if level == "critical":
+        return Text(label, style="bold white on dark_red")
+    if level == "high":
+        return Text(label, style="bold black on bright_red")
+    if level == "medium":
+        return Text(label, style="bold black on bright_yellow")
+    if level == "low":
+        return Text(label, style="bold white on dark_blue")
+    return Text(label, style="dim")
+
+
+def render_watch_response(label: str) -> Text:
+    if label == "safe contain":
+        return Text(label, style="bold white on dark_red")
+    if label == "recommend contain":
+        return Text(label, style="bold black on bright_yellow")
+    if label == "report":
+        return Text(label, style="bold black on bright_cyan")
+    return Text(label, style="bold white on dark_green")
+
+
+def render_watch_report(report: WatchReport) -> Group:
+    summary = Table(title="PsyberShield Watch")
+    summary.add_column("Field", style="cyan", no_wrap=True)
+    summary.add_column("Value", style="white")
+    summary.add_row("Root", report.root)
+    summary.add_row("Mode", report.mode)
+    summary.add_row("Cycles", str(report.cycles))
+    summary.add_row("Risk level", render_watch_risk(report.risk_level))
+    summary.add_row("Risk score", f"{report.risk_score}/100")
+    summary.add_row("Response", render_watch_response(report.response_label))
+    summary.add_row("Sources", str(len(report.sources)))
+    summary.add_row("Observations", str(len(report.observations)))
+    summary.add_row("Findings", str(len(report.findings)))
+    summary.add_row("Notes", str(len(report.notes)))
+    if report.policy_path:
+        summary.add_row("Policy", report.policy_path)
+
+    sources = Table(title="Watched Sources")
+    sources.add_column("Source", style="cyan", no_wrap=True)
+    if report.sources:
+        for source in report.sources[:10]:
+            sources.add_row(source)
+        if len(report.sources) > 10:
+            sources.add_row(f"+{len(report.sources) - 10} more")
+    else:
+        sources.add_row("-")
+
+    observations = Table(title="Observations")
+    observations.add_column("Source", style="cyan", no_wrap=True)
+    observations.add_column("Kind", style="white", no_wrap=True)
+    observations.add_column("Status", style="white", no_wrap=True)
+    observations.add_column("Summary", style="white")
+    observations.add_column("Details", style="white")
+    if report.observations:
+        for observation in report.observations:
+            details = ", ".join(f"{key}={value}" for key, value in observation.details.items() if value not in (None, ""))
+            observations.add_row(
+                observation.source,
+                observation.kind,
+                render_doctor_status(observation.status if observation.status in {"ok", "warn", "info", "unknown"} else "info"),
+                observation.summary,
+                details or "-",
+            )
+    else:
+        observations.add_row("-", "-", "-", "No observations", "-")
+
+    findings = Table(title="Watch Findings")
+    findings.add_column("Severity", style="magenta", no_wrap=True)
+    findings.add_column("Source", style="cyan", no_wrap=True)
+    findings.add_column("Category", style="white", no_wrap=True)
+    findings.add_column("Title", style="white")
+    findings.add_column("Response", style="white", no_wrap=True)
+    findings.add_column("First move", style="white")
+    if report.findings:
+        for finding in report.findings:
+            findings.add_row(
+                finding.severity,
+                finding.source,
+                finding.category,
+                finding.title,
+                render_watch_response(finding.response_label),
+                finding.recommended_action or "-",
+            )
+    else:
+        findings.add_row("-", "-", "-", "No findings", "-", "-")
+
+    notes = Table(title="Notes")
+    notes.add_column("Message", style="white")
+    if report.notes:
+        for note in report.notes[:10]:
+            notes.add_row(note)
+    else:
+        notes.add_row("-")
+
+    return Group(summary, sources, observations, findings, notes)
 
 
 def render_comparison(comparison: ComparisonResult) -> Group:

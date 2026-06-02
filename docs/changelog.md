@@ -19,6 +19,7 @@ It is intentionally short and practical so it can stay current as the app grows.
 - Added richer incident signatures for Apache, Nginx, Gunicorn, uWSGI, SSH, sudo, and auth middleware.
 - Added `integrity` file monitoring with baseline comparison for config files, web roots, and startup scripts.
 - Added process and port checks that flag suspicious listeners and outbound connections in `doctor` and `server-check`.
+- Added `watch` as a hybrid monitoring command for log, file drift, and process activity with snapshot and follow modes.
 - Added a readiness breakdown under the `doctor` readiness score so the score explains the main warnings.
 - Added optional JSON, Markdown, and HTML saved reports for `doctor`.
 - Added rate-limit and maintenance-mode containment presets alongside the Nginx denylist and fail2ban artifacts.

@@ -4,7 +4,7 @@ PsyberShield is a Python-based security visibility and response tool for small s
 
 ## Status
 
-Active CLI slice with scan, crawl, report, baseline, compare, drift, secrets, bundle, audit, doctor, server-check, incident, fix, demo, and demo-site compatibility commands.
+Active CLI slice with scan, crawl, report, baseline, compare, drift, secrets, bundle, audit, doctor, server-check, incident, watch, fix, demo, and demo-site compatibility commands.
 
 ## Documentation
 
@@ -38,6 +38,7 @@ The launcher entry point is [build_pshield.py](build_pshield.py), which calls `a
 - `doctor` checks the local machine and app environment
 - `server-check` checks the server-facing config, discovers the app target, and scans it locally
 - `incident` detects suspicious activity from logs and can generate or apply a denylist containment artifact
+- `watch` monitors logs, file drift, and process activity in a snapshot or follow loop, writes JSON/Markdown/HTML reports under `outputs/` by default, and can compare file drift against a saved integrity baseline with `--baseline`
 - `timeline` shows a chronological view of findings and containment activity from a saved incident report
 - `fix` applies the first real local fix lane with `--local`
 - `demo` starts the local test site
@@ -83,6 +84,8 @@ The preferred command is `pshield`. `psybershield` and `turan` remain compatibil
 ```powershell
 pshield scan https://example.com
 pshield scan https://example.com --yes
+pshield watch --logs outputs\access.log --json-output
+pshield watch --follow --interval 30 --tail-file outputs\access.log --html-output
 ```
 
 If you want PsyberShield to discover the app target on a VPS, you can leave the URL off:
@@ -237,7 +240,7 @@ Example phase-4 command:
 
 ## Improvement Roadmap
 
-Current focus is phase 6. We are keeping the tool stable while improving the most visible and user-facing parts first.
+The planned phases are complete. We are keeping the tool stable while doing final release prep and cleanup.
 
 Phase 1: onboarding and packaging
 
@@ -284,6 +287,12 @@ Phase 6: fix confidence
 - `generate artifact`
 - `safe local fix`
 - `needs manual approval`
+
+Release prep:
+
+- verify the packaged `.exe`
+- refresh the user guide PDF if the docs change again
+- run a final focused test pass before cutting a release
 
 ## `.env` variables
 

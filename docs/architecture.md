@@ -3,7 +3,7 @@
 ## Purpose
 
 PsyberShield is a Python-based security visibility and response tool for small servers and web applications.
-It supports HTTP/HTTPS scanning, passive crawling, detection of common website/server misconfigurations, WAF/firewall impact notes, incident log analysis for Apache/auth/systemd-style logs, file integrity monitoring, baseline drift detection, secret exposure checks, report bundling, report notifications, and safe defensive fixes where possible.
+It supports HTTP/HTTPS scanning, passive crawling, detection of common website/server misconfigurations, WAF/firewall impact notes, incident log analysis for Apache/auth/systemd-style logs, continuous watch monitoring for logs/files/process activity, file integrity monitoring, baseline drift detection, secret exposure checks, report bundling, report notifications, and safe defensive fixes where possible.
 
 The preferred CLI command is `pshield`. `psybershield` and `turan` remain compatibility aliases during the transition.
 
@@ -37,6 +37,7 @@ That gate lives in one place only: the remediation executor.
 - All other modules produce findings, plans, or recommendations only.
 - The first live-edit lane is `fix --local`, and it only touches a discovered server file after backup and validation.
 - The incident-response lane is `incident`, and it only writes a denylist include after analysis and confirmation.
+- The watch lane is `watch`, and it stays log-only in v1: it observes, scores, and recommends containment without auto-blocking.
 
 ## Working Agreement
 
@@ -74,6 +75,7 @@ PsyberShield/
 |   |-- comparison.py           # compare two saved scan reports
 |   |-- doctor.py               # local machine and environment checks
 |   |-- incident.py             # suspicious activity analysis and containment planning
+|   |-- watch.py                # continuous monitoring and risk scoring
 |   |-- scanner.py              # coordinates scan flow
 |   |-- models.py               # Target, Finding, FixPlan, ScanResult, ComparisonResult
 |   |-- policy.py               # fix levels, approval rules, redaction rules
@@ -109,6 +111,7 @@ PsyberShield/
 |       |-- __init__.py
 |       |-- console.py          # terminal output
 |       |-- incident_report.py  # incident report export
+|       |-- watch_report.py     # watch report export
 |       |-- json_report.py      # JSON export
 |       |-- markdown_report.py  # Markdown export
 |       `-- html_report.py      # optional later
@@ -434,7 +437,7 @@ Example phase-4 command:
 
 ## Improvement Roadmap
 
-Current focus is phase 6. We are keeping the app stable while improving the most visible and user-facing parts first.
+The planned phases are complete. We are keeping the app stable while doing final release prep and cleanup.
 
 Phase 1: onboarding and packaging
 
@@ -481,6 +484,12 @@ Phase 6: fix confidence
 - `generate artifact`
 - `safe local fix`
 - `needs manual approval`
+
+Release prep:
+
+- verify the packaged `.exe`
+- refresh the user guide PDF if the docs change again
+- run a final focused test pass before cutting a release
 
 Optional report exports:
 

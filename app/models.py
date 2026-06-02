@@ -69,6 +69,43 @@ class LocalFixResult(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
+class WatchObservation(BaseModel):
+    source: str
+    kind: str
+    status: str = Field(pattern=r"^(ok|warn|info|unknown)$")
+    summary: str
+    details: dict[str, str | int | bool | None] = Field(default_factory=dict)
+
+
+class WatchFinding(BaseModel):
+    id: str
+    source: str
+    category: str
+    severity: str = Field(pattern=r"^(info|low|medium|high|critical)$")
+    title: str
+    description: str
+    evidence: dict[str, str | int | bool | None] = Field(default_factory=dict)
+    recommended_action: str = ""
+    response_label: str = Field(default="log only", pattern=r"^(log only|report|recommend contain|safe contain)$")
+
+
+class WatchReport(BaseModel):
+    context: ApplicationContext | None = None
+    root: str
+    mode: str = Field(default="snapshot", pattern=r"^(snapshot|follow)$")
+    interval_seconds: float = Field(default=0.0, ge=0.0)
+    policy_path: str | None = None
+    sources: list[str] = Field(default_factory=list)
+    observations: list[WatchObservation] = Field(default_factory=list)
+    findings: list[WatchFinding] = Field(default_factory=list)
+    risk_score: int = Field(default=0, ge=0, le=100)
+    risk_level: str = Field(default="low", pattern=r"^(info|low|medium|high|critical)$")
+    response_label: str = Field(default="log only", pattern=r"^(log only|report|recommend contain|safe contain)$")
+    notes: list[str] = Field(default_factory=list)
+    cycles: int = Field(default=1, ge=1)
+    last_run_at: str | None = None
+
+
 class ScanResult(BaseModel):
     target: Target
     context: ApplicationContext | None = None
