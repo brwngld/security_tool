@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h1>Audit history</h1>
+  {% for event in events %}
+    <div class="row"><span>{{ event.action }} - {{ event.target }}</span><strong><span class="status-badge status-{{ event.result }}">{{ event.result }}</span></strong></div>
+  {% else %}
+    <p>No audit events yet.</p>
+  {% endfor %}
+</section>
+{% endblock %}

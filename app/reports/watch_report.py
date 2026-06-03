@@ -4,6 +4,7 @@ from html import escape
 from pathlib import Path
 
 from app.models import WatchReport
+from app.reports.branding import report_css, write_branded_json
 
 
 def _severity_rank(level: str) -> int:
@@ -36,9 +37,7 @@ def _top_categories(report: WatchReport, limit: int = 4):
 
 
 def write_json_watch_report(report: WatchReport, output_path: str | Path) -> Path:
-    path = Path(output_path)
-    path.write_text(report.model_dump_json(indent=2), encoding="utf-8")
-    return path
+    return write_branded_json(report, output_path, "watch")
 
 
 def write_markdown_watch_report(report: WatchReport, output_path: str | Path) -> Path:
@@ -217,6 +216,7 @@ def write_html_watch_report(report: WatchReport, output_path: str | Path) -> Pat
     .severity-low {{ background: #1d4ed8; color: #fff; font-weight: 700; }}
     .severity-info {{ background: #0f766e; color: #fff; font-weight: 700; }}
   </style>
+  <style>{report_css()}</style>
 </head>
 <body>
   <div class="page">

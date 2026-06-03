@@ -742,7 +742,7 @@ Typical secret-exposure output adds:
 
 ## Vulnerability Inventory
 
-`vuln scan` inventories local software versions, parses pinned Python dependencies, and compares discovered versions with advisory sources.
+`vuln scan` inventories local software versions, parses Python dependency manifests, and compares discovered exact versions with advisory sources.
 
 Example:
 
@@ -753,9 +753,9 @@ Example:
 .\venv\Scripts\python.exe -m app.main vuln scan --osv --osv-cache outputs\advisory-cache\osv
 ```
 
-This version checks common local commands such as Nginx, Apache, OpenSSL, Python, Node, npm, and PHP, then records the versions it can prove. It also parses simple pinned Python dependencies from `requirements.txt` and `pyproject.toml`.
+This version checks common local commands such as Nginx, Apache, OpenSSL, Python, Node, npm, and PHP, then records the versions it can prove. It also parses Python dependencies from `requirements.txt` and `pyproject.toml`, including exact pins, version ranges, extras, environment markers, and direct references.
 
-Default behavior stays offline and uses bundled rules for a few well-known advisories, including Apache HTTP Server 2.4.49/2.4.50 and OpenSSL 3.0.0 through 3.0.6. Use `--osv` to explicitly query OSV for parsed Python dependency manifests. OSV responses are cached under `outputs\advisory-cache\osv` by default, or under the path supplied with `--osv-cache`.
+Default behavior stays offline and uses bundled rules for a few well-known advisories, including Apache HTTP Server 2.4.49/2.4.50 and OpenSSL 3.0.0 through 3.0.6. Use `--osv` to explicitly query OSV for parsed Python dependency manifests with exact versions, such as `flask==3.0.0`. Non-exact constraints such as `django>=5.0` stay in the inventory but are not treated as confirmed installed versions. OSV responses are cached under `outputs\advisory-cache\osv` by default, or under the path supplied with `--osv-cache`.
 
 Important limitation: this is still not a full NVD, distro-advisory, or vendor-backport scanner. Treat dependency matches as strong signals, and confirm system package findings against the operating-system vendor before making production decisions.
 
@@ -764,11 +764,218 @@ Typical vulnerability-inventory output adds:
 - the monitored root
 - the software components checked
 - versions discovered from local command output
-- pinned Python dependency versions discovered from dependency manifests
+- Python dependencies discovered from dependency manifests
 - local advisory matches when the bundled ruleset applies
 - OSV dependency matches when `--osv` is enabled
 - source and confidence labels for each advisory finding
 - a note that distro backports and vendor advisories should be confirmed
+
+## Automatic App Security Checks
+
+PsyberShield can run automatically when you schedule its commands with the operating system. For the next product phase, keep the schedule focused on the hosted web app first: scan the app, crawl the app, compare saved reports, and collect dependency advisory reports. Server/VPS hardening checks can run on a slower schedule until the server-side detection work is expanded further.
+
+Recommended app-first command set:
+
+```powershell
+pshield scan https://example.com --profile quick --json-output outputs\auto-scan.json --markdown-output outputs\auto-scan.md --html-output outputs\auto-scan.html --yes
+pshield crawl https://example.com --profile full --seed-robots --seed-sitemap --json-output outputs\auto-crawl.json --markdown-output outputs\auto-crawl.md --html-output outputs\auto-crawl.html --yes
+pshield vuln scan --osv --json-output outputs\vuln-app.json --markdown-output outputs\vuln-app.md --html-output outputs\vuln-app.html
+pshield secrets . --json-output outputs\secrets.json --markdown-output outputs\secrets.md --html-output outputs\secrets.html
+```
+
+For authenticated apps, reuse the same browser/session flags that work manually:
+
+```powershell
+pshield crawl https://example.com --auth-method browser --login-url /auth/login --browser-username-selector "#identifier" --browser-password-selector "#password" --browser-submit-selector "button[type='submit']" --username alice --password-env PsyberShield_PASSWORD --auth-check-url /user/dashboard --save-storage-state --storage-state browser\storage-state.json --html-output outputs\auth-crawl.html --yes
+pshield crawl https://example.com --storage-state browser\storage-state.json --auth-check-url /user/dashboard --html-output outputs\auth-crawl-reuse.html --yes
+```
+
+What to expect:
+
+- `scan` gives a quick page-level app security snapshot
+- `crawl` discovers and checks multiple in-scope pages
+- `vuln scan --osv` reports exact Python dependency advisories when manifests are available
+- `secrets` flags obvious secret exposure in local project files and reports redacted evidence
+- saved reports land wherever the output flags point, usually under `outputs/`
+- scheduled runs should write timestamped filenames if you want historical reports instead of overwriting the same file
+
+Linux cron example:
+
+```cron
+0 2 * * * cd /opt/psybershield && /opt/psybershield/venv/bin/pshield crawl https://example.com --profile full --seed-robots --seed-sitemap --html-output outputs/crawl-nightly.html --json-output outputs/crawl-nightly.json --yes
+15 2 * * * cd /opt/psybershield && /opt/psybershield/venv/bin/pshield vuln scan --osv --html-output outputs/vuln-nightly.html --json-output outputs/vuln-nightly.json
+```
+
+Linux systemd timer pattern:
+
+```ini
+# /etc/systemd/system/psybershield-app-scan.service
+[Unit]
+Description=PsyberShield scheduled app scan
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/psybershield
+ExecStart=/opt/psybershield/venv/bin/pshield crawl https://example.com --profile full --seed-robots --seed-sitemap --html-output outputs/crawl-nightly.html --json-output outputs/crawl-nightly.json --yes
+```
+
+```ini
+# /etc/systemd/system/psybershield-app-scan.timer
+[Unit]
+Description=Run PsyberShield app scan nightly
+
+[Timer]
+OnCalendar=*-*-* 02:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+```
+
+Windows Task Scheduler example:
+
+```powershell
+$action = New-ScheduledTaskAction -Execute "C:\Users\Bernard\Desktop\learning\Turan\venv\Scripts\pshield.exe" -Argument "crawl https://example.com --profile full --seed-robots --seed-sitemap --html-output outputs\crawl-nightly.html --json-output outputs\crawl-nightly.json --yes" -WorkingDirectory "C:\Users\Bernard\Desktop\learning\Turan"
+$trigger = New-ScheduledTaskTrigger -Daily -At 2am
+Register-ScheduledTask -TaskName "PsyberShield App Crawl" -Action $action -Trigger $trigger -Description "Run PsyberShield app crawl nightly"
+```
+
+Useful follow-up workflow:
+
+```powershell
+pshield compare baselines\crawl.json outputs\auto-crawl.json --html-output outputs\crawl-compare.html
+pshield bundle outputs\auto-crawl.json --artifact outputs\crawl-compare.html --bundle-output outputs\app-security-bundle.zip
+```
+
+Safety and limitations:
+
+- schedule scans only for apps you own or have explicit permission to test
+- keep crawls passive and scoped unless you intentionally widen scope
+- authenticated schedules should use environment variables or `.env` values, not passwords in task definitions
+- app detection focuses on web security posture, crawl coverage, headers, cookies, exposed files, and dependency advisories
+- deeper server/VPS detection, patch validation, and automatic containment should be phased in later with explicit policy and audit controls
+
+## Private Web Dashboard
+
+PsyberShield can run as a private FastAPI dashboard on your VPS. This is the preferred source-protection model for a small team: the Python source stays on your server, and users access HTML pages through a private URL, VPN, or localhost tunnel.
+
+Install the web dependencies:
+
+```powershell
+.\venv\Scripts\python.exe -m pip install -e .
+```
+
+Set the dashboard environment variables:
+
+```powershell
+$env:PSHIELD_DATABASE_URL="postgresql+psycopg://psybershield:change-me@127.0.0.1:5432/psybershield"
+$env:PSHIELD_SECRET_KEY="replace-with-a-long-random-dashboard-secret"
+$env:PSHIELD_OUTPUT_DIR="outputs/web"
+$env:PSHIELD_WEB_HOST="127.0.0.1"
+$env:PSHIELD_WEB_PORT="8787"
+$env:PSHIELD_ADMIN_EMAIL="admin@example.com"
+$env:PSHIELD_ADMIN_PASSWORD="replace-with-a-temporary-admin-password"
+```
+
+Start the web dashboard:
+
+```powershell
+pshield web --host 127.0.0.1 --port 8787
+```
+
+Start the background worker in a second terminal or service:
+
+```powershell
+pshield worker
+```
+
+For Postgres deployments, run the schema migration before production use:
+
+```powershell
+alembic upgrade head
+```
+
+V1 dashboard capabilities:
+
+- local email/password login
+- roles: `admin`, `operator`, and `viewer`
+- admin-created users
+- target management
+- queued jobs for `scan`, `crawl`, `vuln scan`, `secrets`, `baseline`, `compare`, and `bundle`
+- job ownership so the UI can show My Scans, Team Scans, and Recent Scans over time
+- report metadata stored in Postgres
+- JSON, Markdown, and HTML report downloads from `PSHIELD_OUTPUT_DIR`
+- JSON, Markdown, and HTML report previews inside the dashboard
+- auto-refreshing queued/running job detail pages
+- CSRF protection for authenticated form submissions
+- audit events linked to jobs and users
+
+V1 intentionally does not expose:
+
+- `fix --local`
+- live containment
+- process killing
+- account disabling
+- file quarantine
+- firewall or Nginx changes
+
+Linux systemd service example for the dashboard:
+
+```ini
+[Unit]
+Description=PsyberShield Web Dashboard
+After=network.target postgresql.service
+
+[Service]
+WorkingDirectory=/opt/psybershield
+EnvironmentFile=/opt/psybershield/.env
+ExecStart=/opt/psybershield/venv/bin/pshield web --host 127.0.0.1 --port 8787
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+The repository also includes ready-to-adapt examples:
+
+- `deploy/systemd/psybershield-web.service`
+- `deploy/systemd/psybershield-worker.service`
+- `deploy/nginx/psybershield.conf`
+
+Linux systemd service example for the worker:
+
+```ini
+[Unit]
+Description=PsyberShield Web Worker
+After=network.target postgresql.service
+
+[Service]
+WorkingDirectory=/opt/psybershield
+EnvironmentFile=/opt/psybershield/.env
+ExecStart=/opt/psybershield/venv/bin/pshield worker
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Recommended exposure:
+
+- bind the app to `127.0.0.1`
+- access it through SSH tunnel, Tailscale, WireGuard, or a private reverse proxy
+- avoid public internet exposure until rate limits, CSRF hardening, and production auth review are complete
+- back up Postgres and `PSHIELD_OUTPUT_DIR`
+
+## Containment Planning
+
+PsyberShield separates containment planning from live containment actions. The current foundation defines recommendation, action, and result models so future defensive features can be explicit, reversible where possible, and audited.
+
+Current status:
+
+- high-risk watch findings can be mapped into containment recommendations
+- recommendation types include IP blocking, rate limiting, maintenance mode, file quarantine, process termination, account disablement, and manual review
+- generated actions default to dry-run planning and require approval
+- no automatic process killing, account disabling, file quarantine, or firewall changes are executed by these models
 
 ## Bundle
 

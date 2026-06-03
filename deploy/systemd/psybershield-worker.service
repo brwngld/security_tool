@@ -1,0 +1,13 @@
+[Unit]
+Description=PsyberShield Background Worker
+After=network.target postgresql.service
+
+[Service]
+WorkingDirectory=/opt/psybershield
+EnvironmentFile=/opt/psybershield/.env
+ExecStart=/opt/psybershield/venv/bin/pshield worker
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

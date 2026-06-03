@@ -54,7 +54,7 @@ BT /F2 10 Tf 50 144 Td (| `baseline` | Saves a scan snapshot for later compariso
 endstream
 endobj
 4 0 obj
-<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 3 0 R >>
+<< /Type /Page /Parent 51 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 3 0 R >>
 endobj
 5 0 obj
 << /Length 3783 >>
@@ -104,7 +104,7 @@ BT /F2 10 Tf 50 164 Td (.\\venv\\Scripts\\python.exe -m app.main integrity . --b
 endstream
 endobj
 6 0 obj
-<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 5 0 R >>
+<< /Type /Page /Parent 51 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 5 0 R >>
 endobj
 7 0 obj
 << /Length 3346 >>
@@ -154,7 +154,7 @@ BT /F2 10 Tf 50 170 Td () Tj ET
 endstream
 endobj
 8 0 obj
-<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 7 0 R >>
+<< /Type /Page /Parent 51 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 7 0 R >>
 endobj
 9 0 obj
 << /Length 2105 >>
@@ -204,7 +204,7 @@ BT /F2 10 Tf 50 158 Td (- `BASE_URL`) Tj ET
 endstream
 endobj
 10 0 obj
-<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 9 0 R >>
+<< /Type /Page /Parent 51 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 9 0 R >>
 endobj
 11 0 obj
 << /Length 2360 >>
@@ -254,7 +254,7 @@ BT /F2 10 Tf 50 158 Td (Important flags:) Tj ET
 endstream
 endobj
 12 0 obj
-<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 11 0 R >>
+<< /Type /Page /Parent 51 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 11 0 R >>
 endobj
 13 0 obj
 << /Length 2788 >>
@@ -304,7 +304,7 @@ BT /F2 10 Tf 50 164 Td (- `--include REGEX`) Tj ET
 endstream
 endobj
 14 0 obj
-<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 13 0 R >>
+<< /Type /Page /Parent 51 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 13 0 R >>
 endobj
 15 0 obj
 << /Length 2363 >>
@@ -354,7 +354,7 @@ BT /F2 10 Tf 50 164 Td (- `--cookie`) Tj ET
 endstream
 endobj
 16 0 obj
-<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 15 0 R >>
+<< /Type /Page /Parent 51 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 15 0 R >>
 endobj
 17 0 obj
 << /Length 2453 >>
@@ -404,7 +404,7 @@ BT /F2 10 Tf 50 170 Td () Tj ET
 endstream
 endobj
 18 0 obj
-<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 17 0 R >>
+<< /Type /Page /Parent 51 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 17 0 R >>
 endobj
 19 0 obj
 << /Length 2150 >>
@@ -454,7 +454,7 @@ BT /F2 10 Tf 50 158 Td (- `--last N`) Tj ET
 endstream
 endobj
 20 0 obj
-<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 19 0 R >>
+<< /Type /Page /Parent 51 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 19 0 R >>
 endobj
 21 0 obj
 << /Length 2072 >>
@@ -504,7 +504,7 @@ BT /F2 10 Tf 50 158 Td () Tj ET
 endstream
 endobj
 22 0 obj
-<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 21 0 R >>
+<< /Type /Page /Parent 51 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 21 0 R >>
 endobj
 23 0 obj
 << /Length 2506 >>
@@ -554,7 +554,7 @@ BT /F2 10 Tf 50 164 Td () Tj ET
 endstream
 endobj
 24 0 obj
-<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 23 0 R >>
+<< /Type /Page /Parent 51 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 23 0 R >>
 endobj
 25 0 obj
 << /Length 2202 >>
@@ -604,7 +604,7 @@ BT /F2 10 Tf 50 158 Td (- unsupported findings stay in generate-artifact mode) T
 endstream
 endobj
 26 0 obj
-<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 25 0 R >>
+<< /Type /Page /Parent 51 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 25 0 R >>
 endobj
 27 0 obj
 << /Length 2594 >>
@@ -654,7 +654,7 @@ BT /F2 10 Tf 50 152 Td (| `SMTP_PASSWORD` | `doctor`, `server-check` | Reported 
 endstream
 endobj
 28 0 obj
-<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 27 0 R >>
+<< /Type /Page /Parent 51 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 27 0 R >>
 endobj
 29 0 obj
 << /Length 2419 >>
@@ -704,7 +704,7 @@ BT /F2 10 Tf 50 158 Td (- OS) Tj ET
 endstream
 endobj
 30 0 obj
-<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 29 0 R >>
+<< /Type /Page /Parent 51 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 29 0 R >>
 endobj
 31 0 obj
 << /Length 2850 >>
@@ -754,7 +754,7 @@ BT /F2 10 Tf 50 158 Td (Example:) Tj ET
 endstream
 endobj
 32 0 obj
-<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 31 0 R >>
+<< /Type /Page /Parent 51 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 31 0 R >>
 endobj
 33 0 obj
 << /Length 2676 >>
@@ -804,10 +804,10 @@ BT /F2 10 Tf 50 162 Td () Tj ET
 endstream
 endobj
 34 0 obj
-<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 33 0 R >>
+<< /Type /Page /Parent 51 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 33 0 R >>
 endobj
 35 0 obj
-<< /Length 2933 >>
+<< /Length 2936 >>
 stream
 BT /F2 10 Tf 50 744 Td (- the report type being compared) Tj ET
 BT /F2 10 Tf 50 730 Td (- baseline and current report paths) Tj ET
@@ -835,8 +835,8 @@ BT /F2 10 Tf 50 430 Td (- a short recommendation for each exposure) Tj ET
 BT /F2 10 Tf 50 416 Td () Tj ET
 BT /F1 13 Tf 50 402 Td (Vulnerability Inventory) Tj ET
 BT /F2 10 Tf 50 382 Td () Tj ET
-BT /F2 10 Tf 50 368 Td (`vuln scan` inventories local software versions, parses pinned Python dependencies,) Tj ET
-BT /F2 10 Tf 50 354 Td (and compares discovered versions with advisory sources.) Tj ET
+BT /F2 10 Tf 50 368 Td (`vuln scan` inventories local software versions, parses Python dependency manifests,) Tj ET
+BT /F2 10 Tf 50 354 Td (and compares discovered exact versions with advisory sources.) Tj ET
 BT /F2 10 Tf 50 340 Td () Tj ET
 BT /F2 10 Tf 50 326 Td (Example:) Tj ET
 BT /F2 10 Tf 50 312 Td () Tj ET
@@ -846,144 +846,376 @@ BT /F2 10 Tf 50 270 Td (.\\venv\\Scripts\\python.exe -m app.main vuln scan --inv
 BT /F2 10 Tf 50 256 Td (.\\venv\\Scripts\\python.exe -m app.main vuln scan --osv --osv-cache outputs\\advisory-cache\\osv) Tj ET
 BT /F2 10 Tf 50 242 Td () Tj ET
 BT /F2 10 Tf 50 228 Td (This version checks common local commands such as Nginx, Apache, OpenSSL, Python,) Tj ET
-BT /F2 10 Tf 50 214 Td (Node, npm, and PHP, then records the versions it can prove. It also parses simple) Tj ET
-BT /F2 10 Tf 50 200 Td (pinned Python dependencies from `requirements.txt` and `pyproject.toml`.) Tj ET
-BT /F2 10 Tf 50 186 Td () Tj ET
-BT /F2 10 Tf 50 172 Td (Default behavior stays offline and uses bundled rules for a few well-known advisories,) Tj ET
-BT /F2 10 Tf 50 158 Td (including Apache HTTP Server 2.4.49/2.4.50 and OpenSSL 3.0.0 through 3.0.6. Use) Tj ET
+BT /F2 10 Tf 50 214 Td (Node, npm, and PHP, then records the versions it can prove. It also parses Python) Tj ET
+BT /F2 10 Tf 50 200 Td (dependencies from `requirements.txt` and `pyproject.toml`, including exact pins,) Tj ET
+BT /F2 10 Tf 50 186 Td (version ranges, extras, environment markers, and direct references.) Tj ET
+BT /F2 10 Tf 50 172 Td () Tj ET
+BT /F2 10 Tf 50 158 Td (Default behavior stays offline and uses bundled rules for a few well-known advisories,) Tj ET
 endstream
 endobj
 36 0 obj
-<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 35 0 R >>
+<< /Type /Page /Parent 51 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 35 0 R >>
 endobj
 37 0 obj
-<< /Length 2863 >>
+<< /Length 4179 >>
 stream
-BT /F2 10 Tf 50 744 Td (`--osv` to explicitly query OSV for parsed Python dependency manifests. OSV responses) Tj ET
-BT /F2 10 Tf 50 730 Td (are cached under `outputs\\advisory-cache\\osv` by default, or under the path supplied) Tj ET
-BT /F2 10 Tf 50 716 Td (with `--osv-cache`.) Tj ET
-BT /F2 10 Tf 50 702 Td () Tj ET
-BT /F2 10 Tf 50 688 Td (Important limitation: this is still not a full NVD, distro-advisory, or) Tj ET
-BT /F2 10 Tf 50 674 Td (vendor-backport scanner. Treat dependency matches as strong signals, and confirm) Tj ET
-BT /F2 10 Tf 50 660 Td (system package findings against the operating-system vendor before making production) Tj ET
-BT /F2 10 Tf 50 646 Td (decisions.) Tj ET
-BT /F2 10 Tf 50 632 Td () Tj ET
-BT /F2 10 Tf 50 618 Td (Typical vulnerability-inventory output adds:) Tj ET
-BT /F2 10 Tf 50 604 Td () Tj ET
-BT /F2 10 Tf 50 590 Td (- the monitored root) Tj ET
-BT /F2 10 Tf 50 576 Td (- the software components checked) Tj ET
-BT /F2 10 Tf 50 562 Td (- versions discovered from local command output) Tj ET
-BT /F2 10 Tf 50 548 Td (- pinned Python dependency versions discovered from dependency manifests) Tj ET
-BT /F2 10 Tf 50 534 Td (- local advisory matches when the bundled ruleset applies) Tj ET
-BT /F2 10 Tf 50 520 Td (- OSV dependency matches when `--osv` is enabled) Tj ET
-BT /F2 10 Tf 50 506 Td (- source and confidence labels for each advisory finding) Tj ET
-BT /F2 10 Tf 50 492 Td (- a note that distro backports and vendor advisories should be confirmed) Tj ET
-BT /F2 10 Tf 50 478 Td () Tj ET
-BT /F1 13 Tf 50 464 Td (Bundle) Tj ET
-BT /F2 10 Tf 50 444 Td () Tj ET
-BT /F2 10 Tf 50 430 Td (`bundle` packages a report together with related artifacts into a ZIP archive.) Tj ET
-BT /F2 10 Tf 50 416 Td () Tj ET
-BT /F2 10 Tf 50 402 Td (Example:) Tj ET
-BT /F2 10 Tf 50 388 Td () Tj ET
-BT /F2 10 Tf 50 374 Td (.\\venv\\Scripts\\python.exe -m app.main bundle outputs\\incident.json --artifact outputs\\incident-fail2ban.conf --bundle-output outputs\\incident-bundle.zip) Tj ET
-BT /F2 10 Tf 50 360 Td () Tj ET
-BT /F2 10 Tf 50 346 Td (If you omit `--bundle-output`, PsyberShield creates a report-named archive like) Tj ET
-BT /F2 10 Tf 50 332 Td (`incident.bundle.zip` and writes a matching manifest inside the ZIP.) Tj ET
+BT /F2 10 Tf 50 744 Td (including Apache HTTP Server 2.4.49/2.4.50 and OpenSSL 3.0.0 through 3.0.6. Use) Tj ET
+BT /F2 10 Tf 50 730 Td (`--osv` to explicitly query OSV for parsed Python dependency manifests with exact) Tj ET
+BT /F2 10 Tf 50 716 Td (versions, such as `flask==3.0.0`. Non-exact constraints such as `django>=5.0` stay in) Tj ET
+BT /F2 10 Tf 50 702 Td (the inventory but are not treated as confirmed installed versions. OSV responses are) Tj ET
+BT /F2 10 Tf 50 688 Td (cached under `outputs\\advisory-cache\\osv` by default, or under the path supplied with) Tj ET
+BT /F2 10 Tf 50 674 Td (`--osv-cache`.) Tj ET
+BT /F2 10 Tf 50 660 Td () Tj ET
+BT /F2 10 Tf 50 646 Td (Important limitation: this is still not a full NVD, distro-advisory, or) Tj ET
+BT /F2 10 Tf 50 632 Td (vendor-backport scanner. Treat dependency matches as strong signals, and confirm) Tj ET
+BT /F2 10 Tf 50 618 Td (system package findings against the operating-system vendor before making production) Tj ET
+BT /F2 10 Tf 50 604 Td (decisions.) Tj ET
+BT /F2 10 Tf 50 590 Td () Tj ET
+BT /F2 10 Tf 50 576 Td (Typical vulnerability-inventory output adds:) Tj ET
+BT /F2 10 Tf 50 562 Td () Tj ET
+BT /F2 10 Tf 50 548 Td (- the monitored root) Tj ET
+BT /F2 10 Tf 50 534 Td (- the software components checked) Tj ET
+BT /F2 10 Tf 50 520 Td (- versions discovered from local command output) Tj ET
+BT /F2 10 Tf 50 506 Td (- Python dependencies discovered from dependency manifests) Tj ET
+BT /F2 10 Tf 50 492 Td (- local advisory matches when the bundled ruleset applies) Tj ET
+BT /F2 10 Tf 50 478 Td (- OSV dependency matches when `--osv` is enabled) Tj ET
+BT /F2 10 Tf 50 464 Td (- source and confidence labels for each advisory finding) Tj ET
+BT /F2 10 Tf 50 450 Td (- a note that distro backports and vendor advisories should be confirmed) Tj ET
+BT /F2 10 Tf 50 436 Td () Tj ET
+BT /F1 13 Tf 50 422 Td (Automatic App Security Checks) Tj ET
+BT /F2 10 Tf 50 402 Td () Tj ET
+BT /F2 10 Tf 50 388 Td (PsyberShield can run automatically when you schedule its commands with the operating) Tj ET
+BT /F2 10 Tf 50 374 Td (system. For the next product phase, keep the schedule focused on the hosted web app) Tj ET
+BT /F2 10 Tf 50 360 Td (first: scan the app, crawl the app, compare saved reports, and collect dependency) Tj ET
+BT /F2 10 Tf 50 346 Td (advisory reports. Server/VPS hardening checks can run on a slower schedule until the) Tj ET
+BT /F2 10 Tf 50 332 Td (server-side detection work is expanded further.) Tj ET
 BT /F2 10 Tf 50 318 Td () Tj ET
-BT /F2 10 Tf 50 304 Td (Typical bundle output adds:) Tj ET
+BT /F2 10 Tf 50 304 Td (Recommended app-first command set:) Tj ET
 BT /F2 10 Tf 50 290 Td () Tj ET
-BT /F2 10 Tf 50 276 Td (- the archive path) Tj ET
-BT /F2 10 Tf 50 262 Td (- the source report path) Tj ET
-BT /F2 10 Tf 50 248 Td (- the files included in the archive) Tj ET
-BT /F2 10 Tf 50 234 Td (- a small manifest inside the ZIP) Tj ET
+BT /F2 10 Tf 50 276 Td (pshield scan https://example.com --profile quick --json-output outputs\\auto-scan.json --markdown-output outputs\\auto-scan.md --html-output outputs\\auto-scan.html --yes) Tj ET
+BT /F2 10 Tf 50 262 Td (pshield crawl https://example.com --profile full --seed-robots --seed-sitemap --json-output outputs\\auto-crawl.json --markdown-output outputs\\auto-crawl.md --html-output outputs\\auto-crawl.html --yes) Tj ET
+BT /F2 10 Tf 50 248 Td (pshield vuln scan --osv --json-output outputs\\vuln-app.json --markdown-output outputs\\vuln-app.md --html-output outputs\\vuln-app.html) Tj ET
+BT /F2 10 Tf 50 234 Td (pshield secrets . --json-output outputs\\secrets.json --markdown-output outputs\\secrets.md --html-output outputs\\secrets.html) Tj ET
 BT /F2 10 Tf 50 220 Td () Tj ET
-BT /F1 13 Tf 50 206 Td (Notifications) Tj ET
-BT /F2 10 Tf 50 186 Td () Tj ET
-BT /F2 10 Tf 50 172 Td (`incident`, `integrity`, and `timeline` can send a short report summary after they) Tj ET
-BT /F2 10 Tf 50 158 Td (finish.) Tj ET
+BT /F2 10 Tf 50 206 Td (For authenticated apps, reuse the same browser/session flags that work manually:) Tj ET
+BT /F2 10 Tf 50 192 Td () Tj ET
+BT /F2 10 Tf 50 178 Td (pshield crawl https://example.com --auth-method browser --login-url /auth/login --browser-username-selector "#identifier" --browser-password-selector "#password" --browser-submit-selector "button[type='submit']" --username alice --password-env PsyberShield_PASSWORD --auth-check-url /user/dashboard --save-storage-state --storage-state browser\\storage-state.json --html-output outputs\\auth-crawl.html --yes) Tj ET
+BT /F2 10 Tf 50 164 Td (pshield crawl https://example.com --storage-state browser\\storage-state.json --auth-check-url /user/dashboard --html-output outputs\\auth-crawl-reuse.html --yes) Tj ET
 endstream
 endobj
 38 0 obj
-<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 37 0 R >>
+<< /Type /Page /Parent 51 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 37 0 R >>
 endobj
 39 0 obj
-<< /Length 2809 >>
+<< /Length 2856 >>
 stream
 BT /F2 10 Tf 50 744 Td () Tj ET
-BT /F2 10 Tf 50 730 Td (Common flags:) Tj ET
+BT /F2 10 Tf 50 730 Td (What to expect:) Tj ET
 BT /F2 10 Tf 50 716 Td () Tj ET
-BT /F2 10 Tf 50 702 Td (- `--webhook-url`) Tj ET
-BT /F2 10 Tf 50 688 Td (- `--slack-webhook-url`) Tj ET
-BT /F2 10 Tf 50 674 Td (- `--discord-webhook-url`) Tj ET
-BT /F2 10 Tf 50 660 Td (- `--email-to`) Tj ET
-BT /F2 10 Tf 50 646 Td (- `--email-from`) Tj ET
-BT /F2 10 Tf 50 632 Td (- `--smtp-host`) Tj ET
-BT /F2 10 Tf 50 618 Td (- `--smtp-port`) Tj ET
-BT /F2 10 Tf 50 604 Td (- `--smtp-username`) Tj ET
-BT /F2 10 Tf 50 590 Td (- `--smtp-password-env`) Tj ET
-BT /F2 10 Tf 50 576 Td (- `--smtp-starttls` and `--no-smtp-starttls`) Tj ET
-BT /F2 10 Tf 50 562 Td () Tj ET
-BT /F2 10 Tf 50 548 Td (Example:) Tj ET
-BT /F2 10 Tf 50 534 Td () Tj ET
-BT /F2 10 Tf 50 520 Td (.\\venv\\Scripts\\python.exe -m app.main incident --logs outputs\\access.log --webhook-url https://hooks.example/webhook) Tj ET
-BT /F2 10 Tf 50 506 Td (.\\venv\\Scripts\\python.exe -m app.main integrity . --baseline baselines\\integrity.json --email-to security@example.com --email-from PsyberShield@example.com --smtp-host smtp.example.com --smtp-username PsyberShield --smtp-password-env SMTP_PASSWORD) Tj ET
-BT /F2 10 Tf 50 492 Td (.\\venv\\Scripts\\python.exe -m app.main timeline outputs\\incident.json --audit-log outputs\\audit.log --slack-webhook-url https://hooks.slack.com/services/...) Tj ET
+BT /F2 10 Tf 50 702 Td (- `scan` gives a quick page-level app security snapshot) Tj ET
+BT /F2 10 Tf 50 688 Td (- `crawl` discovers and checks multiple in-scope pages) Tj ET
+BT /F2 10 Tf 50 674 Td (- `vuln scan --osv` reports exact Python dependency advisories when manifests are) Tj ET
+BT /F2 10 Tf 50 660 Td (  available) Tj ET
+BT /F2 10 Tf 50 646 Td (- `secrets` flags obvious secret exposure in local project files and reports redacted) Tj ET
+BT /F2 10 Tf 50 632 Td (  evidence) Tj ET
+BT /F2 10 Tf 50 618 Td (- saved reports land wherever the output flags point, usually under `outputs/`) Tj ET
+BT /F2 10 Tf 50 604 Td (- scheduled runs should write timestamped filenames if you want historical reports) Tj ET
+BT /F2 10 Tf 50 590 Td (  instead of overwriting the same file) Tj ET
+BT /F2 10 Tf 50 576 Td () Tj ET
+BT /F2 10 Tf 50 562 Td (Linux cron example:) Tj ET
+BT /F2 10 Tf 50 548 Td () Tj ET
+BT /F2 10 Tf 50 534 Td (0 2 * * * cd /opt/psybershield && /opt/psybershield/venv/bin/pshield crawl https://example.com --profile full --seed-robots --seed-sitemap --html-output outputs/crawl-nightly.html --json-output outputs/crawl-nightly.json --yes) Tj ET
+BT /F2 10 Tf 50 520 Td (15 2 * * * cd /opt/psybershield && /opt/psybershield/venv/bin/pshield vuln scan --osv --html-output outputs/vuln-nightly.html --json-output outputs/vuln-nightly.json) Tj ET
+BT /F2 10 Tf 50 506 Td () Tj ET
+BT /F2 10 Tf 50 492 Td (Linux systemd timer pattern:) Tj ET
 BT /F2 10 Tf 50 478 Td () Tj ET
-BT /F1 13 Tf 50 464 Td (Troubleshooting) Tj ET
-BT /F2 10 Tf 50 444 Td () Tj ET
-BT /F2 10 Tf 50 430 Td (If a bare output flag creates a file and you cannot find it:) Tj ET
-BT /F2 10 Tf 50 416 Td () Tj ET
-BT /F2 10 Tf 50 402 Td (- PsyberShield writes under `outputs/` in the current project directory) Tj ET
-BT /F2 10 Tf 50 388 Td (- if you pass `\\outputs\\file.html`, PsyberShield treats it as project-relative and tells) Tj ET
-BT /F2 10 Tf 50 374 Td (  you the resolved path) Tj ET
-BT /F2 10 Tf 50 360 Td (- if you pass a full absolute path, PsyberShield respects it) Tj ET
-BT /F2 10 Tf 50 346 Td () Tj ET
-BT /F2 10 Tf 50 332 Td (If `crawl` only reaches login or redirect pages:) Tj ET
-BT /F2 10 Tf 50 318 Td () Tj ET
-BT /F2 10 Tf 50 304 Td (- add auth flags) Tj ET
-BT /F2 10 Tf 50 290 Td (- add `--auth-check-url`) Tj ET
-BT /F2 10 Tf 50 276 Td (- confirm that the login worked before you trust the crawl results) Tj ET
-BT /F2 10 Tf 50 262 Td () Tj ET
-BT /F2 10 Tf 50 248 Td (If `server-check` finds a local app target but still points to the repo `.env`:) Tj ET
-BT /F2 10 Tf 50 234 Td () Tj ET
-BT /F2 10 Tf 50 220 Td (- make sure the discovered `EnvironmentFile` or working directory is correct) Tj ET
-BT /F2 10 Tf 50 206 Td (- pass `--env-file` if you want to override discovery) Tj ET
-BT /F2 10 Tf 50 192 Td () Tj ET
-BT /F1 13 Tf 50 178 Td (Maintaining This Guide) Tj ET
-BT /F2 10 Tf 50 158 Td () Tj ET
+BT /F2 10 Tf 50 464 Td (# /etc/systemd/system/psybershield-app-scan.service) Tj ET
+BT /F2 10 Tf 50 450 Td ([Unit]) Tj ET
+BT /F2 10 Tf 50 436 Td (Description=PsyberShield scheduled app scan) Tj ET
+BT /F2 10 Tf 50 422 Td () Tj ET
+BT /F2 10 Tf 50 408 Td ([Service]) Tj ET
+BT /F2 10 Tf 50 394 Td (Type=oneshot) Tj ET
+BT /F2 10 Tf 50 380 Td (WorkingDirectory=/opt/psybershield) Tj ET
+BT /F2 10 Tf 50 366 Td (ExecStart=/opt/psybershield/venv/bin/pshield crawl https://example.com --profile full --seed-robots --seed-sitemap --html-output outputs/crawl-nightly.html --json-output outputs/crawl-nightly.json --yes) Tj ET
+BT /F2 10 Tf 50 352 Td () Tj ET
+BT /F2 10 Tf 50 338 Td (# /etc/systemd/system/psybershield-app-scan.timer) Tj ET
+BT /F2 10 Tf 50 324 Td ([Unit]) Tj ET
+BT /F2 10 Tf 50 310 Td (Description=Run PsyberShield app scan nightly) Tj ET
+BT /F2 10 Tf 50 296 Td () Tj ET
+BT /F2 10 Tf 50 282 Td ([Timer]) Tj ET
+BT /F2 10 Tf 50 268 Td (OnCalendar=*-*-* 02:00:00) Tj ET
+BT /F2 10 Tf 50 254 Td (Persistent=true) Tj ET
+BT /F2 10 Tf 50 240 Td () Tj ET
+BT /F2 10 Tf 50 226 Td ([Install]) Tj ET
+BT /F2 10 Tf 50 212 Td (WantedBy=timers.target) Tj ET
+BT /F2 10 Tf 50 198 Td () Tj ET
+BT /F2 10 Tf 50 184 Td (Windows Task Scheduler example:) Tj ET
+BT /F2 10 Tf 50 170 Td () Tj ET
 endstream
 endobj
 40 0 obj
-<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 39 0 R >>
+<< /Type /Page /Parent 51 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 39 0 R >>
 endobj
 41 0 obj
-<< /Length 509 >>
+<< /Length 3471 >>
 stream
-BT /F2 10 Tf 50 744 Td (This guide is meant to be updated as PsyberShield grows.) Tj ET
-BT /F2 10 Tf 50 730 Td () Tj ET
-BT /F2 10 Tf 50 716 Td (When you add a new command or flag:) Tj ET
+BT /F2 10 Tf 50 744 Td ($action = New-ScheduledTaskAction -Execute "C:\\Users\\Bernard\\Desktop\\learning\\Turan\\venv\\Scripts\\pshield.exe" -Argument "crawl https://example.com --profile full --seed-robots --seed-sitemap --html-output outputs\\crawl-nightly.html --json-output outputs\\crawl-nightly.json --yes" -WorkingDirectory "C:\\Users\\Bernard\\Desktop\\learning\\Turan") Tj ET
+BT /F2 10 Tf 50 730 Td ($trigger = New-ScheduledTaskTrigger -Daily -At 2am) Tj ET
+BT /F2 10 Tf 50 716 Td (Register-ScheduledTask -TaskName "PsyberShield App Crawl" -Action $action -Trigger $trigger -Description "Run PsyberShield app crawl nightly") Tj ET
 BT /F2 10 Tf 50 702 Td () Tj ET
-BT /F2 10 Tf 50 688 Td (1. update the CLI help in `app/main.py`) Tj ET
-BT /F2 10 Tf 50 674 Td (2. update this guide) Tj ET
-BT /F2 10 Tf 50 660 Td (3. update the README quick-start sections if needed) Tj ET
-BT /F2 10 Tf 50 646 Td (4. regenerate the PDF) Tj ET
+BT /F2 10 Tf 50 688 Td (Useful follow-up workflow:) Tj ET
+BT /F2 10 Tf 50 674 Td () Tj ET
+BT /F2 10 Tf 50 660 Td (pshield compare baselines\\crawl.json outputs\\auto-crawl.json --html-output outputs\\crawl-compare.html) Tj ET
+BT /F2 10 Tf 50 646 Td (pshield bundle outputs\\auto-crawl.json --artifact outputs\\crawl-compare.html --bundle-output outputs\\app-security-bundle.zip) Tj ET
 BT /F2 10 Tf 50 632 Td () Tj ET
+BT /F2 10 Tf 50 618 Td (Safety and limitations:) Tj ET
+BT /F2 10 Tf 50 604 Td () Tj ET
+BT /F2 10 Tf 50 590 Td (- schedule scans only for apps you own or have explicit permission to test) Tj ET
+BT /F2 10 Tf 50 576 Td (- keep crawls passive and scoped unless you intentionally widen scope) Tj ET
+BT /F2 10 Tf 50 562 Td (- authenticated schedules should use environment variables or `.env` values, not) Tj ET
+BT /F2 10 Tf 50 548 Td (  passwords in task definitions) Tj ET
+BT /F2 10 Tf 50 534 Td (- app detection focuses on web security posture, crawl coverage, headers, cookies,) Tj ET
+BT /F2 10 Tf 50 520 Td (  exposed files, and dependency advisories) Tj ET
+BT /F2 10 Tf 50 506 Td (- deeper server/VPS detection, patch validation, and automatic containment should be) Tj ET
+BT /F2 10 Tf 50 492 Td (  phased in later with explicit policy and audit controls) Tj ET
+BT /F2 10 Tf 50 478 Td () Tj ET
+BT /F1 13 Tf 50 464 Td (Private Web Dashboard) Tj ET
+BT /F2 10 Tf 50 444 Td () Tj ET
+BT /F2 10 Tf 50 430 Td (PsyberShield can run as a private FastAPI dashboard on your VPS. This is the preferred) Tj ET
+BT /F2 10 Tf 50 416 Td (source-protection model for a small team: the Python source stays on your server, and) Tj ET
+BT /F2 10 Tf 50 402 Td (users access HTML pages through a private URL, VPN, or localhost tunnel.) Tj ET
+BT /F2 10 Tf 50 388 Td () Tj ET
+BT /F2 10 Tf 50 374 Td (Install the web dependencies:) Tj ET
+BT /F2 10 Tf 50 360 Td () Tj ET
+BT /F2 10 Tf 50 346 Td (.\\venv\\Scripts\\python.exe -m pip install -e .) Tj ET
+BT /F2 10 Tf 50 332 Td () Tj ET
+BT /F2 10 Tf 50 318 Td (Set the dashboard environment variables:) Tj ET
+BT /F2 10 Tf 50 304 Td () Tj ET
+BT /F2 10 Tf 50 290 Td ($env:PSHIELD_DATABASE_URL="postgresql+psycopg://psybershield:change-me@127.0.0.1:5432/psybershield") Tj ET
+BT /F2 10 Tf 50 276 Td ($env:PSHIELD_SECRET_KEY="replace-with-a-long-random-dashboard-secret") Tj ET
+BT /F2 10 Tf 50 262 Td ($env:PSHIELD_OUTPUT_DIR="outputs/web") Tj ET
+BT /F2 10 Tf 50 248 Td ($env:PSHIELD_WEB_HOST="127.0.0.1") Tj ET
+BT /F2 10 Tf 50 234 Td ($env:PSHIELD_WEB_PORT="8787") Tj ET
+BT /F2 10 Tf 50 220 Td ($env:PSHIELD_ADMIN_EMAIL="admin@example.com") Tj ET
+BT /F2 10 Tf 50 206 Td ($env:PSHIELD_ADMIN_PASSWORD="replace-with-a-temporary-admin-password") Tj ET
+BT /F2 10 Tf 50 192 Td () Tj ET
+BT /F2 10 Tf 50 178 Td (Start the web dashboard:) Tj ET
+BT /F2 10 Tf 50 164 Td () Tj ET
 endstream
 endobj
 42 0 obj
-<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 41 0 R >>
+<< /Type /Page /Parent 51 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 41 0 R >>
 endobj
 43 0 obj
-<< /Type /Pages /Kids [4 0 R 6 0 R 8 0 R 10 0 R 12 0 R 14 0 R 16 0 R 18 0 R 20 0 R 22 0 R 24 0 R 26 0 R 28 0 R 30 0 R 32 0 R 34 0 R 36 0 R 38 0 R 40 0 R 42 0 R] /Count 20 >>
+<< /Length 2458 >>
+stream
+BT /F2 10 Tf 50 744 Td (pshield web --host 127.0.0.1 --port 8787) Tj ET
+BT /F2 10 Tf 50 730 Td () Tj ET
+BT /F2 10 Tf 50 716 Td (Start the background worker in a second terminal or service:) Tj ET
+BT /F2 10 Tf 50 702 Td () Tj ET
+BT /F2 10 Tf 50 688 Td (pshield worker) Tj ET
+BT /F2 10 Tf 50 674 Td () Tj ET
+BT /F2 10 Tf 50 660 Td (For Postgres deployments, run the schema migration before production use:) Tj ET
+BT /F2 10 Tf 50 646 Td () Tj ET
+BT /F2 10 Tf 50 632 Td (alembic upgrade head) Tj ET
+BT /F2 10 Tf 50 618 Td () Tj ET
+BT /F2 10 Tf 50 604 Td (V1 dashboard capabilities:) Tj ET
+BT /F2 10 Tf 50 590 Td () Tj ET
+BT /F2 10 Tf 50 576 Td (- local email/password login) Tj ET
+BT /F2 10 Tf 50 562 Td (- roles: `admin`, `operator`, and `viewer`) Tj ET
+BT /F2 10 Tf 50 548 Td (- admin-created users) Tj ET
+BT /F2 10 Tf 50 534 Td (- target management) Tj ET
+BT /F2 10 Tf 50 520 Td (- queued jobs for `scan`, `crawl`, `vuln scan`, `secrets`, `baseline`, `compare`, and) Tj ET
+BT /F2 10 Tf 50 506 Td (  `bundle`) Tj ET
+BT /F2 10 Tf 50 492 Td (- job ownership so the UI can show My Scans, Team Scans, and Recent Scans over time) Tj ET
+BT /F2 10 Tf 50 478 Td (- report metadata stored in Postgres) Tj ET
+BT /F2 10 Tf 50 464 Td (- JSON, Markdown, and HTML report downloads from `PSHIELD_OUTPUT_DIR`) Tj ET
+BT /F2 10 Tf 50 450 Td (- JSON, Markdown, and HTML report previews inside the dashboard) Tj ET
+BT /F2 10 Tf 50 436 Td (- auto-refreshing queued/running job detail pages) Tj ET
+BT /F2 10 Tf 50 422 Td (- CSRF protection for authenticated form submissions) Tj ET
+BT /F2 10 Tf 50 408 Td (- audit events linked to jobs and users) Tj ET
+BT /F2 10 Tf 50 394 Td () Tj ET
+BT /F2 10 Tf 50 380 Td (V1 intentionally does not expose:) Tj ET
+BT /F2 10 Tf 50 366 Td () Tj ET
+BT /F2 10 Tf 50 352 Td (- `fix --local`) Tj ET
+BT /F2 10 Tf 50 338 Td (- live containment) Tj ET
+BT /F2 10 Tf 50 324 Td (- process killing) Tj ET
+BT /F2 10 Tf 50 310 Td (- account disabling) Tj ET
+BT /F2 10 Tf 50 296 Td (- file quarantine) Tj ET
+BT /F2 10 Tf 50 282 Td (- firewall or Nginx changes) Tj ET
+BT /F2 10 Tf 50 268 Td () Tj ET
+BT /F2 10 Tf 50 254 Td (Linux systemd service example for the dashboard:) Tj ET
+BT /F2 10 Tf 50 240 Td () Tj ET
+BT /F2 10 Tf 50 226 Td ([Unit]) Tj ET
+BT /F2 10 Tf 50 212 Td (Description=PsyberShield Web Dashboard) Tj ET
+BT /F2 10 Tf 50 198 Td (After=network.target postgresql.service) Tj ET
+BT /F2 10 Tf 50 184 Td () Tj ET
+BT /F2 10 Tf 50 170 Td ([Service]) Tj ET
+endstream
 endobj
 44 0 obj
-<< /Title (PsyberShield User Guide) /Author (OpenAI Codex) /Subject (Living user guide for the PsyberShield scanner and hardening assistant) /Producer (Custom PDF generator) >>
+<< /Type /Page /Parent 51 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 43 0 R >>
 endobj
 45 0 obj
-<< /Type /Catalog /Pages 43 0 R >>
+<< /Length 2555 >>
+stream
+BT /F2 10 Tf 50 744 Td (WorkingDirectory=/opt/psybershield) Tj ET
+BT /F2 10 Tf 50 730 Td (EnvironmentFile=/opt/psybershield/.env) Tj ET
+BT /F2 10 Tf 50 716 Td (ExecStart=/opt/psybershield/venv/bin/pshield web --host 127.0.0.1 --port 8787) Tj ET
+BT /F2 10 Tf 50 702 Td (Restart=always) Tj ET
+BT /F2 10 Tf 50 688 Td () Tj ET
+BT /F2 10 Tf 50 674 Td ([Install]) Tj ET
+BT /F2 10 Tf 50 660 Td (WantedBy=multi-user.target) Tj ET
+BT /F2 10 Tf 50 646 Td () Tj ET
+BT /F2 10 Tf 50 632 Td (The repository also includes ready-to-adapt examples:) Tj ET
+BT /F2 10 Tf 50 618 Td () Tj ET
+BT /F2 10 Tf 50 604 Td (- `deploy/systemd/psybershield-web.service`) Tj ET
+BT /F2 10 Tf 50 590 Td (- `deploy/systemd/psybershield-worker.service`) Tj ET
+BT /F2 10 Tf 50 576 Td (- `deploy/nginx/psybershield.conf`) Tj ET
+BT /F2 10 Tf 50 562 Td () Tj ET
+BT /F2 10 Tf 50 548 Td (Linux systemd service example for the worker:) Tj ET
+BT /F2 10 Tf 50 534 Td () Tj ET
+BT /F2 10 Tf 50 520 Td ([Unit]) Tj ET
+BT /F2 10 Tf 50 506 Td (Description=PsyberShield Web Worker) Tj ET
+BT /F2 10 Tf 50 492 Td (After=network.target postgresql.service) Tj ET
+BT /F2 10 Tf 50 478 Td () Tj ET
+BT /F2 10 Tf 50 464 Td ([Service]) Tj ET
+BT /F2 10 Tf 50 450 Td (WorkingDirectory=/opt/psybershield) Tj ET
+BT /F2 10 Tf 50 436 Td (EnvironmentFile=/opt/psybershield/.env) Tj ET
+BT /F2 10 Tf 50 422 Td (ExecStart=/opt/psybershield/venv/bin/pshield worker) Tj ET
+BT /F2 10 Tf 50 408 Td (Restart=always) Tj ET
+BT /F2 10 Tf 50 394 Td () Tj ET
+BT /F2 10 Tf 50 380 Td ([Install]) Tj ET
+BT /F2 10 Tf 50 366 Td (WantedBy=multi-user.target) Tj ET
+BT /F2 10 Tf 50 352 Td () Tj ET
+BT /F2 10 Tf 50 338 Td (Recommended exposure:) Tj ET
+BT /F2 10 Tf 50 324 Td () Tj ET
+BT /F2 10 Tf 50 310 Td (- bind the app to `127.0.0.1`) Tj ET
+BT /F2 10 Tf 50 296 Td (- access it through SSH tunnel, Tailscale, WireGuard, or a private reverse proxy) Tj ET
+BT /F2 10 Tf 50 282 Td (- avoid public internet exposure until rate limits, CSRF hardening, and production auth) Tj ET
+BT /F2 10 Tf 50 268 Td (  review are complete) Tj ET
+BT /F2 10 Tf 50 254 Td (- back up Postgres and `PSHIELD_OUTPUT_DIR`) Tj ET
+BT /F2 10 Tf 50 240 Td () Tj ET
+BT /F1 13 Tf 50 226 Td (Containment Planning) Tj ET
+BT /F2 10 Tf 50 206 Td () Tj ET
+BT /F2 10 Tf 50 192 Td (PsyberShield separates containment planning from live containment actions. The current) Tj ET
+BT /F2 10 Tf 50 178 Td (foundation defines recommendation, action, and result models so future defensive) Tj ET
+BT /F2 10 Tf 50 164 Td (features can be explicit, reversible where possible, and audited.) Tj ET
+endstream
+endobj
+46 0 obj
+<< /Type /Page /Parent 51 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 45 0 R >>
+endobj
+47 0 obj
+<< /Length 2544 >>
+stream
+BT /F2 10 Tf 50 744 Td () Tj ET
+BT /F2 10 Tf 50 730 Td (Current status:) Tj ET
+BT /F2 10 Tf 50 716 Td () Tj ET
+BT /F2 10 Tf 50 702 Td (- high-risk watch findings can be mapped into containment recommendations) Tj ET
+BT /F2 10 Tf 50 688 Td (- recommendation types include IP blocking, rate limiting, maintenance mode, file) Tj ET
+BT /F2 10 Tf 50 674 Td (  quarantine, process termination, account disablement, and manual review) Tj ET
+BT /F2 10 Tf 50 660 Td (- generated actions default to dry-run planning and require approval) Tj ET
+BT /F2 10 Tf 50 646 Td (- no automatic process killing, account disabling, file quarantine, or firewall changes) Tj ET
+BT /F2 10 Tf 50 632 Td (  are executed by these models) Tj ET
+BT /F2 10 Tf 50 618 Td () Tj ET
+BT /F1 13 Tf 50 604 Td (Bundle) Tj ET
+BT /F2 10 Tf 50 584 Td () Tj ET
+BT /F2 10 Tf 50 570 Td (`bundle` packages a report together with related artifacts into a ZIP archive.) Tj ET
+BT /F2 10 Tf 50 556 Td () Tj ET
+BT /F2 10 Tf 50 542 Td (Example:) Tj ET
+BT /F2 10 Tf 50 528 Td () Tj ET
+BT /F2 10 Tf 50 514 Td (.\\venv\\Scripts\\python.exe -m app.main bundle outputs\\incident.json --artifact outputs\\incident-fail2ban.conf --bundle-output outputs\\incident-bundle.zip) Tj ET
+BT /F2 10 Tf 50 500 Td () Tj ET
+BT /F2 10 Tf 50 486 Td (If you omit `--bundle-output`, PsyberShield creates a report-named archive like) Tj ET
+BT /F2 10 Tf 50 472 Td (`incident.bundle.zip` and writes a matching manifest inside the ZIP.) Tj ET
+BT /F2 10 Tf 50 458 Td () Tj ET
+BT /F2 10 Tf 50 444 Td (Typical bundle output adds:) Tj ET
+BT /F2 10 Tf 50 430 Td () Tj ET
+BT /F2 10 Tf 50 416 Td (- the archive path) Tj ET
+BT /F2 10 Tf 50 402 Td (- the source report path) Tj ET
+BT /F2 10 Tf 50 388 Td (- the files included in the archive) Tj ET
+BT /F2 10 Tf 50 374 Td (- a small manifest inside the ZIP) Tj ET
+BT /F2 10 Tf 50 360 Td () Tj ET
+BT /F1 13 Tf 50 346 Td (Notifications) Tj ET
+BT /F2 10 Tf 50 326 Td () Tj ET
+BT /F2 10 Tf 50 312 Td (`incident`, `integrity`, and `timeline` can send a short report summary after they) Tj ET
+BT /F2 10 Tf 50 298 Td (finish.) Tj ET
+BT /F2 10 Tf 50 284 Td () Tj ET
+BT /F2 10 Tf 50 270 Td (Common flags:) Tj ET
+BT /F2 10 Tf 50 256 Td () Tj ET
+BT /F2 10 Tf 50 242 Td (- `--webhook-url`) Tj ET
+BT /F2 10 Tf 50 228 Td (- `--slack-webhook-url`) Tj ET
+BT /F2 10 Tf 50 214 Td (- `--discord-webhook-url`) Tj ET
+BT /F2 10 Tf 50 200 Td (- `--email-to`) Tj ET
+BT /F2 10 Tf 50 186 Td (- `--email-from`) Tj ET
+BT /F2 10 Tf 50 172 Td (- `--smtp-host`) Tj ET
+BT /F2 10 Tf 50 158 Td (- `--smtp-port`) Tj ET
+endstream
+endobj
+48 0 obj
+<< /Type /Page /Parent 51 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 47 0 R >>
+endobj
+49 0 obj
+<< /Length 2861 >>
+stream
+BT /F2 10 Tf 50 744 Td (- `--smtp-username`) Tj ET
+BT /F2 10 Tf 50 730 Td (- `--smtp-password-env`) Tj ET
+BT /F2 10 Tf 50 716 Td (- `--smtp-starttls` and `--no-smtp-starttls`) Tj ET
+BT /F2 10 Tf 50 702 Td () Tj ET
+BT /F2 10 Tf 50 688 Td (Example:) Tj ET
+BT /F2 10 Tf 50 674 Td () Tj ET
+BT /F2 10 Tf 50 660 Td (.\\venv\\Scripts\\python.exe -m app.main incident --logs outputs\\access.log --webhook-url https://hooks.example/webhook) Tj ET
+BT /F2 10 Tf 50 646 Td (.\\venv\\Scripts\\python.exe -m app.main integrity . --baseline baselines\\integrity.json --email-to security@example.com --email-from PsyberShield@example.com --smtp-host smtp.example.com --smtp-username PsyberShield --smtp-password-env SMTP_PASSWORD) Tj ET
+BT /F2 10 Tf 50 632 Td (.\\venv\\Scripts\\python.exe -m app.main timeline outputs\\incident.json --audit-log outputs\\audit.log --slack-webhook-url https://hooks.slack.com/services/...) Tj ET
+BT /F2 10 Tf 50 618 Td () Tj ET
+BT /F1 13 Tf 50 604 Td (Troubleshooting) Tj ET
+BT /F2 10 Tf 50 584 Td () Tj ET
+BT /F2 10 Tf 50 570 Td (If a bare output flag creates a file and you cannot find it:) Tj ET
+BT /F2 10 Tf 50 556 Td () Tj ET
+BT /F2 10 Tf 50 542 Td (- PsyberShield writes under `outputs/` in the current project directory) Tj ET
+BT /F2 10 Tf 50 528 Td (- if you pass `\\outputs\\file.html`, PsyberShield treats it as project-relative and tells) Tj ET
+BT /F2 10 Tf 50 514 Td (  you the resolved path) Tj ET
+BT /F2 10 Tf 50 500 Td (- if you pass a full absolute path, PsyberShield respects it) Tj ET
+BT /F2 10 Tf 50 486 Td () Tj ET
+BT /F2 10 Tf 50 472 Td (If `crawl` only reaches login or redirect pages:) Tj ET
+BT /F2 10 Tf 50 458 Td () Tj ET
+BT /F2 10 Tf 50 444 Td (- add auth flags) Tj ET
+BT /F2 10 Tf 50 430 Td (- add `--auth-check-url`) Tj ET
+BT /F2 10 Tf 50 416 Td (- confirm that the login worked before you trust the crawl results) Tj ET
+BT /F2 10 Tf 50 402 Td () Tj ET
+BT /F2 10 Tf 50 388 Td (If `server-check` finds a local app target but still points to the repo `.env`:) Tj ET
+BT /F2 10 Tf 50 374 Td () Tj ET
+BT /F2 10 Tf 50 360 Td (- make sure the discovered `EnvironmentFile` or working directory is correct) Tj ET
+BT /F2 10 Tf 50 346 Td (- pass `--env-file` if you want to override discovery) Tj ET
+BT /F2 10 Tf 50 332 Td () Tj ET
+BT /F1 13 Tf 50 318 Td (Maintaining This Guide) Tj ET
+BT /F2 10 Tf 50 298 Td () Tj ET
+BT /F2 10 Tf 50 284 Td (This guide is meant to be updated as PsyberShield grows.) Tj ET
+BT /F2 10 Tf 50 270 Td () Tj ET
+BT /F2 10 Tf 50 256 Td (When you add a new command or flag:) Tj ET
+BT /F2 10 Tf 50 242 Td () Tj ET
+BT /F2 10 Tf 50 228 Td (1. update the CLI help in `app/main.py`) Tj ET
+BT /F2 10 Tf 50 214 Td (2. update this guide) Tj ET
+BT /F2 10 Tf 50 200 Td (3. update the README quick-start sections if needed) Tj ET
+BT /F2 10 Tf 50 186 Td (4. regenerate the PDF) Tj ET
+BT /F2 10 Tf 50 172 Td () Tj ET
+endstream
+endobj
+50 0 obj
+<< /Type /Page /Parent 51 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 49 0 R >>
+endobj
+51 0 obj
+<< /Type /Pages /Kids [4 0 R 6 0 R 8 0 R 10 0 R 12 0 R 14 0 R 16 0 R 18 0 R 20 0 R 22 0 R 24 0 R 26 0 R 28 0 R 30 0 R 32 0 R 34 0 R 36 0 R 38 0 R 40 0 R 42 0 R 44 0 R 46 0 R 48 0 R 50 0 R] /Count 24 >>
+endobj
+52 0 obj
+<< /Title (PsyberShield User Guide) /Author (OpenAI Codex) /Subject (Living user guide for the PsyberShield scanner and hardening assistant) /Producer (Custom PDF generator) >>
+endobj
+53 0 obj
+<< /Type /Catalog /Pages 51 0 R >>
 endobj
 xref
-0 46
+0 54
 0000000000 65535 f 
 0000000015 00000 n 
 0000000085 00000 n 
@@ -1020,18 +1252,26 @@ xref
 0000042117 00000 n 
 0000044846 00000 n 
 0000044985 00000 n 
-0000047971 00000 n 
-0000048110 00000 n 
-0000051026 00000 n 
-0000051165 00000 n 
-0000054027 00000 n 
-0000054166 00000 n 
-0000054727 00000 n 
-0000054866 00000 n 
-0000055056 00000 n 
-0000055249 00000 n 
+0000047974 00000 n 
+0000048113 00000 n 
+0000052345 00000 n 
+0000052484 00000 n 
+0000055393 00000 n 
+0000055532 00000 n 
+0000059056 00000 n 
+0000059195 00000 n 
+0000061706 00000 n 
+0000061845 00000 n 
+0000064453 00000 n 
+0000064592 00000 n 
+0000067189 00000 n 
+0000067328 00000 n 
+0000070242 00000 n 
+0000070381 00000 n 
+0000070599 00000 n 
+0000070792 00000 n 
 trailer
-<< /Size 46 /Root 45 0 R /Info 44 0 R >>
+<< /Size 54 /Root 53 0 R /Info 52 0 R >>
 startxref
-55300
+70843
 %%EOF

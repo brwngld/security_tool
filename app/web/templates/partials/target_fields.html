@@ -1,0 +1,7 @@
+<label>Saved target
+  <select name="target_id">
+    <option value="">Manual URL</option>
+    {% for target in targets %}<option value="{{ target.id }}">{{ target.name }} - {{ target.url }}</option>{% endfor %}
+  </select>
+</label>
+<label>Target URL <input name="target_url" placeholder="https://example.com"></label>

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="auth-card">
+  <h1>Sign in</h1>
+  <p>Private PsyberShield dashboard for read-only app security workflows.</p>
+  {% if error %}<div class="alert">{{ error }}</div>{% endif %}
+  <form method="post" action="/login" class="form-stack">
+    <label>Email <input type="email" name="email" required></label>
+    <label>Password <input type="password" name="password" required></label>
+    <button type="submit">Sign in</button>
+  </form>
+</section>
+{% endblock %}

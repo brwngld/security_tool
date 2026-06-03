@@ -1,0 +1,23 @@
+<div class="card helper-card">
+  <h3>Auth/session helpers</h3>
+  <p>Use these only for targets you own. Raw passwords are not stored; the worker resolves the password from the named environment variable or root .env.</p>
+  <label>Auth method
+    <select name="auth_method">
+      <option value="">None</option>
+      <option value="json">JSON login</option>
+      <option value="form">Form login</option>
+      <option value="browser">Browser login for JS-heavy flows</option>
+    </select>
+  </label>
+  <label>Login URL <input name="login_url" placeholder="/auth/login"></label>
+  <label>Username <input name="username" placeholder="alice@example.com"></label>
+  <label>Password env name <input name="password_env" placeholder="PSHIELD_APP_PASSWORD"></label>
+  <label>Auth check URL <input name="auth_check_url" placeholder="/account"></label>
+  <label>Storage-state path <input name="storage_state" placeholder="browser/storage_state.json"></label>
+  <label>Session file path <input name="session_file" placeholder="sessions/app.json"></label>
+  <label>Cookie header <input name="cookie" placeholder="session=..."></label>
+  <label>Browser username selector <input name="browser_username_selector" placeholder="#identifier"></label>
+  <label>Browser password selector <input name="browser_password_selector" placeholder="#password"></label>
+  <label>Browser submit selector <input name="browser_submit_selector" placeholder="button[type='submit']"></label>
+  <label class="checkbox"><input name="browser_headless" type="checkbox" value="true" checked> Run browser headless</label>
+</div>

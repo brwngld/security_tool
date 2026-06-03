@@ -704,6 +704,52 @@ def cli_main() -> None:
     app()
 
 
+@app.command(help="Run the private PsyberShield FastAPI dashboard.")
+def web(
+    host: str | None = typer.Option(None, "--host", help="Host interface for the web dashboard"),
+    port: int | None = typer.Option(None, "--port", min=1, max=65535, help="Port for the web dashboard"),
+    reload: bool = typer.Option(False, "--reload", help="Enable Uvicorn reload for local development"),
+) -> None:
+    try:
+        import uvicorn
+
+        from app.web.config import load_web_config_with_diagnostics, render_web_config_diagnostics
+        from app.web.app import create_app
+    except ModuleNotFoundError as exc:
+        raise typer.BadParameter(
+            "The web dashboard dependencies are not installed. Run `pip install -e .` after updating dependencies."
+        ) from exc
+
+    config, diagnostics = load_web_config_with_diagnostics()
+    for line in render_web_config_diagnostics(diagnostics):
+        typer.echo(line)
+    active_host = host or config.host
+    active_port = port or config.port
+    uvicorn.run(create_app(config), host=active_host, port=active_port, reload=reload)
+
+
+@app.command(help="Run the PsyberShield background worker for queued dashboard jobs.")
+def worker(
+    once: bool = typer.Option(False, "--once", help="Process at most one queued job and exit"),
+    poll_seconds: float = typer.Option(5.0, "--poll-seconds", min=0.1, help="Seconds between queue polls"),
+) -> None:
+    typer.echo("worker command entered")
+
+    try:
+        from app.web.config import load_web_config_with_diagnostics, render_web_config_diagnostics
+        from app.web.worker import run_worker
+    except ModuleNotFoundError as exc:
+        raise typer.BadParameter(
+            "The web dashboard dependencies are not installed. Run `pip install -e .` after updating dependencies."
+        ) from exc
+    
+    config, diagnostics = load_web_config_with_diagnostics()
+    for line in render_web_config_diagnostics(diagnostics):
+        typer.echo(line)
+    typer.echo("starting worker loop")
+    run_worker(once=once, poll_seconds=poll_seconds, config=config)
+
+
 @app.command(help="Scan a target URL, or discover one from the local server layout when no URL is supplied.")
 def scan(
     url: str | None = typer.Argument(None, metavar="URL", help="Target URL. If omitted, PsyberShield looks for APP_URL, TARGET_URL, or BASE_URL in .env."),

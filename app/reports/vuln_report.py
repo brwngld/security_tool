@@ -4,12 +4,11 @@ from html import escape
 from pathlib import Path
 
 from app.models import VulnerabilityReport
+from app.reports.branding import report_css, write_branded_json
 
 
 def write_json_vuln_report(report: VulnerabilityReport, output_path: str | Path) -> Path:
-    path = Path(output_path)
-    path.write_text(report.model_dump_json(indent=2), encoding="utf-8")
-    return path
+    return write_branded_json(report, output_path, "vulnerability_inventory")
 
 
 def write_markdown_vuln_report(report: VulnerabilityReport, output_path: str | Path) -> Path:
@@ -51,6 +50,7 @@ def write_markdown_vuln_report(report: VulnerabilityReport, output_path: str | P
         for component in report.components:
             lines.append(f"- [{component.status}] {component.name}")
             lines.append(f"  - Version: {component.version or '-'}")
+            lines.append(f"  - Specifier: {component.version_specifier or '-'}")
             lines.append(f"  - Kind: {component.kind or '-'}")
             lines.append(f"  - Ecosystem: {component.ecosystem or '-'}")
             lines.append(f"  - Source: {component.source or '-'}")
@@ -75,6 +75,7 @@ def write_html_vuln_report(report: VulnerabilityReport, output_path: str | Path)
             f"<td>{escape(component.status)}</td>"
             f"<td>{escape(component.name)}</td>"
             f"<td>{escape(component.version or '-')}</td>"
+            f"<td>{escape(component.version_specifier or '-')}</td>"
             f"<td>{escape(component.kind or '-')}</td>"
             f"<td>{escape(component.ecosystem or '-')}</td>"
             f"<td>{escape(component.source or '-')}</td>"
@@ -113,6 +114,7 @@ def write_html_vuln_report(report: VulnerabilityReport, output_path: str | Path)
     th {{ background: rgba(5, 12, 18, 0.72); }}
     li {{ margin: 6px 0; }}
   </style>
+  <style>{report_css()}</style>
 </head>
 <body>
   <div class="page">
@@ -138,10 +140,10 @@ def write_html_vuln_report(report: VulnerabilityReport, output_path: str | Path)
       <h2>Software Inventory</h2>
       <table>
         <thead>
-          <tr><th>Status</th><th>Name</th><th>Version</th><th>Kind</th><th>Ecosystem</th><th>Source</th><th>Evidence</th></tr>
+          <tr><th>Status</th><th>Name</th><th>Version</th><th>Specifier</th><th>Kind</th><th>Ecosystem</th><th>Source</th><th>Evidence</th></tr>
         </thead>
         <tbody>
-          {"".join(rows) or "<tr><td colspan='7'>No components were checked.</td></tr>"}
+          {"".join(rows) or "<tr><td colspan='8'>No components were checked.</td></tr>"}
         </tbody>
       </table>
     </div>

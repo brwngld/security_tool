@@ -69,6 +69,9 @@ def _dedupe_notes(notes: Iterable[str]) -> list[str]:
 
 def _convert_incident_finding(finding: IncidentFinding) -> WatchFinding:
     response_label = response_label_for_severity(finding.severity)
+    evidence = dict(finding.evidence)
+    if finding.affected_ips:
+        evidence["affected_ips"] = ", ".join(finding.affected_ips)
     return WatchFinding(
         id=f"incident:{finding.id}",
         source="incident",
@@ -76,7 +79,7 @@ def _convert_incident_finding(finding: IncidentFinding) -> WatchFinding:
         severity=finding.severity,
         title=finding.title,
         description=finding.description,
-        evidence=finding.evidence,
+        evidence=evidence,
         recommended_action=finding.recommended_action,
         response_label=response_label,
     )

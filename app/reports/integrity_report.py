@@ -4,12 +4,11 @@ from html import escape
 from pathlib import Path
 
 from app.models import IntegrityReport
+from app.reports.branding import report_css, write_branded_json
 
 
 def write_json_integrity_report(report: IntegrityReport, output_path: str | Path) -> Path:
-    path = Path(output_path)
-    path.write_text(report.model_dump_json(indent=2), encoding="utf-8")
-    return path
+    return write_branded_json(report, output_path, "integrity")
 
 
 def write_markdown_integrity_report(report: IntegrityReport, output_path: str | Path) -> Path:
@@ -131,6 +130,7 @@ def write_html_integrity_report(report: IntegrityReport, output_path: str | Path
     li {{ margin: 6px 0; }}
     .muted {{ color: #64748b; }}
   </style>
+  <style>{report_css()}</style>
 </head>
 <body>
   <div class="page">

@@ -13,9 +13,9 @@ SCAN_TARGET_KEYS = ("APP_URL", "TARGET_URL", "BASE_URL")
 def build_no_scan_target_message(keys: Sequence[str] = SCAN_TARGET_KEYS) -> str:
     checked = [
         "command line URL",
+        "OS environment",
         "--env-file",
         "project .env",
-        "OS environment",
     ]
     lines = ["No scan target provided.", "", "Checked:"]
     lines.extend(f"- {name}: not set" for name in checked)
@@ -80,15 +80,15 @@ def iter_env_paths(root: Path | None = None, env_file: Path | None = None) -> li
 
 
 def lookup_env_value(key: str, root: Path | None = None, env_file: Path | None = None) -> ResolvedScanTarget | None:
+    runtime_value = os.environ.get(key)
+    if runtime_value and runtime_value.strip():
+        return ResolvedScanTarget(value=runtime_value.strip(), source="environment", key=key)
+
     for env_path in iter_env_paths(root, env_file):
         env_data = read_env_path(env_path)
         value = env_data.get(key)
         if value and value.strip():
             return ResolvedScanTarget(value=value.strip(), source=str(env_path), key=key)
-
-    runtime_value = os.environ.get(key)
-    if runtime_value and runtime_value.strip():
-        return ResolvedScanTarget(value=runtime_value.strip(), source="environment", key=key)
 
     return None
 

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h1>Jobs</h1>
+  {% for job in jobs %}
+    <a class="row" href="/jobs/{{ job.id }}">
+      <span>#{{ job.id }} {{ job.job_type }}{% if job.target_url %} - {{ job.target_url }}{% endif %}</span>
+      <strong><span class="status-badge status-{{ job.status }}">{{ job.status }}</span></strong>
+    </a>
+  {% else %}
+    <p>No jobs yet.</p>
+  {% endfor %}
+</section>
+{% endblock %}

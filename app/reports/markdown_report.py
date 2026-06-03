@@ -4,6 +4,7 @@ from pathlib import Path
 
 from app.remediation.recommendations import suggest_first_move
 from app.models import ScanResult
+from app.reports.branding import markdown_header
 
 
 _SEVERITY_ORDER = {
@@ -132,12 +133,14 @@ def _append_findings_block(lines: list[str], result: ScanResult) -> None:
 
 def write_markdown_report(result: ScanResult, output_path: str | Path, include_fix_plans: bool = False) -> Path:
     path = Path(output_path)
-    lines = [
-        "# PsyberShield Report",
+    lines = markdown_header("PsyberShield Scan Report", "scan")
+    lines.extend(
+        [
         "",
         f"Target: {result.target.url}",
         f"Findings: {len(result.findings)}",
-    ]
+        ]
+    )
     _append_executive_summary(lines, result)
     _append_context_block(lines, result)
     _append_crawl_block(lines, result)

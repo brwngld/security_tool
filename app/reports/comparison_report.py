@@ -5,6 +5,7 @@ from pathlib import Path
 from jinja2 import Environment, select_autoescape
 
 from app.models import ComparisonResult
+from app.reports.branding import report_css
 
 _TEMPLATE = """
 <!doctype html>
@@ -122,6 +123,7 @@ _TEMPLATE = """
     .trend-good { color: var(--good); font-weight: 700; }
     .trend-bad { color: var(--bad); font-weight: 700; }
   </style>
+  <style>{{ report_css() }}</style>
 </head>
 <body>
   <div class="page">
@@ -311,5 +313,5 @@ def write_html_comparison_report(comparison: ComparisonResult, output_path: str 
     path = Path(output_path)
     environment = Environment(autoescape=select_autoescape())
     template = environment.from_string(_TEMPLATE)
-    path.write_text(template.render(comparison=comparison), encoding="utf-8")
+    path.write_text(template.render(comparison=comparison, report_css=report_css), encoding="utf-8")
     return path

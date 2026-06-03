@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h1>Users</h1>
+  <form method="post" action="/admin/users" class="inline-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input name="email" type="email" placeholder="user@example.com" required>
+    <input name="password" type="password" placeholder="temporary password" required>
+    <select name="role">
+      <option value="viewer">Viewer</option>
+      <option value="operator">Operator</option>
+      <option value="admin">Admin</option>
+    </select>
+    <button type="submit">Create user</button>
+  </form>
+  {% for item in users %}
+    <div class="row">
+      <span>{{ item.email }} {% if not item.is_active %}(disabled){% endif %}</span>
+      <strong>
+        {{ item.role }}
+        {% if item.id != user.id %}
+        <form method="post" action="/admin/users/{{ item.id }}/toggle" class="mini-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button type="submit" class="{% if item.is_active %}danger-button{% else %}safe-button{% endif %}">{% if item.is_active %}Disable{% else %}Enable{% endif %}</button>
+        </form>
+        {% endif %}
+      </strong>
+    </div>
+  {% endfor %}
+</section>
+{% endblock %}

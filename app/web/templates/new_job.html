@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <p class="eyebrow">Queue read-only work</p>
+  <h1>New app security job</h1>
+  <p>Choose the workflow that matches the question you want PsyberShield to answer.</p>
+</section>
+
+<section class="grid two">
+  <div class="card">
+    <h2>Quick app scan</h2>
+    <form method="post" action="/jobs" class="form-stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="job_type" value="scan">
+      {% include "partials/target_fields.html" %}
+      {% include "partials/auth_fields.html" %}
+      <div class="helper-note">
+        <strong>Safe fix helpers:</strong> web scan jobs remain report-only for now. CLI options like --preview-fixes, --interactive, --generate-fixes, and --apply-fixes are intentionally not executable from the dashboard yet.
+      </div>
+      <button type="submit">Queue quick scan</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Full app crawl</h2>
+    <form method="post" action="/jobs" class="form-stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="job_type" value="crawl">
+      {% include "partials/target_fields.html" %}
+      <label>Max pages <input name="max_pages" type="number" value="100" min="1"></label>
+      <label>Max depth <input name="max_depth" type="number" value="2" min="0"></label>
+      {% include "partials/auth_fields.html" %}
+      <button type="submit">Queue crawl</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Dependency advisories</h2>
+    <form method="post" action="/jobs" class="form-stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="job_type" value="vuln_scan">
+      <label>Local root <input name="root" value="."></label>
+      <label class="checkbox"><input name="include_osv" type="checkbox" value="true"> Enable OSV for exact dependency versions</label>
+      <button type="submit">Queue advisory scan</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Secret exposure</h2>
+    <form method="post" action="/jobs" class="form-stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="job_type" value="secrets">
+      <label>Local root <input name="root" value="."></label>
+      <button type="submit">Queue secrets scan</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Baseline</h2>
+    <form method="post" action="/jobs" class="form-stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="job_type" value="baseline">
+      {% include "partials/target_fields.html" %}
+      <button type="submit">Queue baseline</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Compare reports</h2>
+    <form method="post" action="/jobs" class="form-stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="job_type" value="compare">
+      <label>Old report path <input name="old_report" placeholder="baselines/crawl.json" required></label>
+      <label>New report path <input name="new_report" placeholder="outputs/auto-crawl.json" required></label>
+      <button type="submit">Queue compare</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Bundle report</h2>
+    <form method="post" action="/jobs" class="form-stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="job_type" value="bundle">
+      <label>Report path <input name="report_path" placeholder="outputs/scan.json" required></label>
+      <button type="submit">Queue bundle</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Doctor readiness</h2>
+    <form method="post" action="/jobs" class="form-stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="job_type" value="doctor">
+      <label>Local root <input name="root" value="."></label>
+      <label>Env file <input name="env_file" placeholder=".env"></label>
+      <div class="helper-note">
+        Doctor checks live/process environment first, then falls back to the selected env file or root .env.
+      </div>
+      <button type="submit">Queue doctor</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Server check</h2>
+    <form method="post" action="/jobs" class="form-stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="job_type" value="server_check">
+      <label>Local root <input name="root" value="."></label>
+      <label>Env file <input name="env_file" placeholder=".env"></label>
+      <label>Nginx config <input name="nginx_config" placeholder="/etc/nginx/nginx.conf"></label>
+      <div class="helper-note">
+        Server check keeps the web dashboard read-only. It reports service/config signals but does not apply fixes.
+      </div>
+      <button type="submit">Queue server check</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Incident review</h2>
+    <form method="post" action="/jobs" class="form-stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="job_type" value="incident">
+      {% include "partials/target_fields.html" %}
+      <label>Local root <input name="root" value="."></label>
+      <label>Log paths <textarea name="logs" placeholder="outputs/access.log&#10;outputs/error.log"></textarea></label>
+      <label>Block threshold <input name="block_threshold" type="number" value="5" min="1"></label>
+      <button type="submit">Queue incident review</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Integrity drift</h2>
+    <form method="post" action="/jobs" class="form-stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="job_type" value="integrity">
+      <label>Local root <input name="root" value="."></label>
+      <label>Baseline path <input name="baseline_path" placeholder="baselines/integrity.json"></label>
+      <label>Extra paths <textarea name="extra_paths" placeholder=".env&#10;config/settings.py"></textarea></label>
+      <button type="submit">Queue integrity check</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Watch snapshot</h2>
+    <form method="post" action="/jobs" class="form-stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="job_type" value="watch">
+      <label>Local root <input name="root" value="."></label>
+      <label>Log paths <textarea name="logs" placeholder="outputs/access.log"></textarea></label>
+      <label>Tail files <textarea name="tail_file" placeholder="outputs/access.log"></textarea></label>
+      <label>Baseline path <input name="baseline_path" placeholder="baselines/integrity.json"></label>
+      <label>Policy path <input name="policy_path" placeholder="policy.json"></label>
+      <label class="checkbox"><input name="compact" type="checkbox" value="true" checked> Compact report</label>
+      <button type="submit">Queue watch snapshot</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Report drift</h2>
+    <form method="post" action="/jobs" class="form-stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="job_type" value="drift">
+      <label>Baseline report <input name="old_report" placeholder="baselines/scan.json" required></label>
+      <label>Current report <input name="new_report" placeholder="outputs/scan.json" required></label>
+      <button type="submit">Queue drift analysis</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Incident timeline</h2>
+    <form method="post" action="/jobs" class="form-stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="job_type" value="timeline">
+      <label>Incident report <input name="incident_report" placeholder="outputs/incident.json" required></label>
+      <label>Audit log <input name="audit_log" placeholder="outputs/audit.log"></label>
+      <button type="submit">Queue timeline</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Audit export</h2>
+    <form method="post" action="/jobs" class="form-stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="job_type" value="audit">
+      <label>Audit log <input name="audit_log" value="outputs/audit.log"></label>
+      <button type="submit">Queue audit export</button>
+    </form>
+  </div>
+</section>
+
+<section class="hero disabled-zone">
+  <p class="eyebrow">Future response controls</p>
+  <h2>Disabled until policy, rollback, and approval gates are ready</h2>
+  <p>These actions are intentionally visible but unavailable in v1. PsyberShield can recommend containment from the web dashboard, but it will not change firewall rules, kill processes, disable accounts, quarantine files, or apply fixes here yet.</p>
+</section>
+
+<section class="grid two">
+  {% for action in [
+    ("Fix locally", "Apply safe local remediations"),
+    ("Live containment", "Generate or apply denylist/rate-limit controls"),
+    ("Kill process", "Stop a suspicious process"),
+    ("Disable account", "Disable a suspected compromised account"),
+    ("Quarantine file", "Move a suspicious file into quarantine"),
+    ("Firewall change", "Add Windows Firewall, iptables, nftables, or ufw rules")
+  ] %}
+  <div class="card disabled-card">
+    <h2>{{ action[0] }}</h2>
+    <p>{{ action[1] }}</p>
+    <button type="button" disabled>Disabled for v1</button>
+  </div>
+  {% endfor %}
+</section>
+{% endblock %}

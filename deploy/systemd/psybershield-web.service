@@ -1,0 +1,13 @@
+[Unit]
+Description=PsyberShield Web Dashboard
+After=network.target postgresql.service
+
+[Service]
+WorkingDirectory=/opt/psybershield
+EnvironmentFile=/opt/psybershield/.env
+ExecStart=/opt/psybershield/venv/bin/pshield web --host 127.0.0.1 --port 8787
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -283,6 +283,7 @@ class ReportBundle(BaseModel):
 class SoftwareComponent(BaseModel):
     name: str
     version: str | None = None
+    version_specifier: str = ""
     kind: str = ""
     source: str = ""
     path: str | None = None

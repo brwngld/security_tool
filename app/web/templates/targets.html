@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h1>Targets</h1>
+  {% if user.role in ["admin", "operator"] %}
+  <form method="post" action="/targets" class="inline-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input name="name" placeholder="Name" required>
+    <input name="url" placeholder="https://example.com" required>
+    <button type="submit">Add target</button>
+  </form>
+  {% endif %}
+  {% for target in targets %}
+    <div class="row"><span>{{ target.name }}</span><strong>{{ target.url }}</strong></div>
+  {% else %}
+    <p>No targets yet.</p>
+  {% endfor %}
+</section>
+{% endblock %}

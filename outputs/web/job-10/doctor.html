@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PsyberShield Doctor Report</title>
+  <style>
+    body { margin: 0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif; background: #0b1020; color: #e5eefb; }
+    .page { max-width: 1120px; margin: 0 auto; padding: 32px 20px 56px; }
+    .hero, .card { background: rgba(15, 23, 42, 0.92); border: 1px solid rgba(148, 163, 184, 0.18); border-radius: 20px; padding: 18px 20px; margin-bottom: 18px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid rgba(148, 163, 184, 0.2); vertical-align: top; }
+    th { background: rgba(15, 23, 42, 0.9); }
+    li { margin: 6px 0; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="hero">
+      <h1>PsyberShield Doctor Report</h1>
+      <p><strong>Root:</strong> .</p>
+      <p><strong>OS:</strong> Windows 10</p>
+      <p><strong>Python:</strong> 3.14.0</p>
+      <p><strong>Readiness state:</strong> danger</p>
+      <p><strong>Readiness score:</strong> 69%</p>
+    </div>
+    <div class="card">
+      <h2>Readiness Breakdown</h2>
+      <ul><li>Readiness score is a weighted average across 14 check(s).</li><li>Main drag from warnings: Process and port activity, DEBUG, SECRET_KEY, SERVER_NAME.</li><li>Info checks: 3; unknown checks: 1.</li></ul>
+    </div>
+    
+        <div class="card">
+          <h2>Application Context</h2>
+          <p><strong>Root:</strong> .</p>
+          <p><strong>Target:</strong> http://69.10.53.250</p>
+          <p><strong>Target source:</strong> .env</p>
+          <p><strong>Discovered app:</strong> -</p>
+          <p><strong>Public URL:</strong> -</p>
+          <p><strong>Local URL:</strong> http://127.0.0.1:3000</p>
+          <p><strong>Env file:</strong> .env</p>
+          <p><strong>Env source:</strong> project .env</p>
+          <p><strong>Nginx config:</strong> -</p>
+          <p><strong>Systemd service:</strong> -</p>
+        </div>
+        
+    <div class="card">
+      <h2>Checks</h2>
+      <table>
+        <thead>
+          <tr><th>Name</th><th>Status</th><th>Summary</th><th>Details</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>.env</td><td>ok</td><td>found</td><td>path=.env</td></tr><tr><td>Scan target</td><td>ok</td><td>present</td><td>source=.env; key=APP_URL; value=http://69.10.53.250</td></tr><tr><td>Deployment profile</td><td>info</td><td>likely local development server</td><td>profile=likely local development server; signals=local URL discovered</td></tr><tr><td>Output folder</td><td>ok</td><td>writable</td><td>path=outputs</td></tr><tr><td>App config paths</td><td>ok</td><td>found</td><td>paths=.env, policy.example.json, app\config.py</td></tr><tr><td>Nginx config paths</td><td>info</td><td>not found</td><td>searched=nginx.conf, conf\nginx.conf, C:\nginx\conf\nginx.conf, C:\Program Files\nginx\conf\nginx.conf, C:\Program Files (x86)\nginx\conf\nginx.conf, \etc\nginx\nginx.conf, \usr\local\etc\nginx\nginx.conf</td></tr><tr><td>Nginx hardening</td><td>unknown</td><td>config not found</td><td>-</td></tr><tr><td>Process and port activity</td><td>warn</td><td>74 suspicious listener(s); 26 outbound connection(s)</td><td>command=netstat -ano; listeners=0.0.0.0:135 (pid=476), 0.0.0.0:445 (pid=4), 0.0.0.0:5040 (pid=7232), 0.0.0.0:5357 (pid=4); outbound=192.168.100.2:49437 -&gt; 104.18.32.47:443 (pid=8832), 192.168.100.2:49765 -&gt; 57.144.39.32:443 (pid=15628), 192.168.100.2:51152 -&gt; 104.18.32.47:443 (pid=8832), 192.168.100.2:51331 -&gt; 52.214.67.209:443 (pid=12144); processes=pid=476, pid=4, pid=7232, pid=4628</td></tr><tr><td>Open local ports</td><td>info</td><td>listening on localhost: 3000</td><td>ports=3000</td></tr><tr><td>DEBUG</td><td>warn</td><td>missing</td><td>-</td></tr><tr><td>SECRET_KEY</td><td>warn</td><td>missing</td><td>-</td></tr><tr><td>SERVER_NAME</td><td>warn</td><td>missing</td><td>-</td></tr><tr><td>DATABASE_URL</td><td>warn</td><td>missing</td><td>-</td></tr><tr><td>SMTP_PASSWORD</td><td>warn</td><td>missing</td><td>-</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>

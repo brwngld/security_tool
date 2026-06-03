@@ -39,7 +39,7 @@ The launcher entry point is [build_pshield.py](build_pshield.py), which calls `a
 - `server-check` checks the server-facing config, discovers the app target, and scans it locally
 - `incident` detects suspicious activity from logs and can generate or apply a denylist containment artifact
 - `watch` monitors logs, file drift, and process activity in a snapshot or follow loop, writes JSON/Markdown/HTML reports under `outputs/` by default, and can compare file drift against a saved integrity baseline with `--baseline`
-- `vuln scan` inventories local software versions, parses pinned Python dependencies, matches bundled offline advisories, and can opt in to OSV dependency checks with `--osv`
+- `vuln scan` inventories local software versions, parses Python dependency manifests, matches bundled offline advisories, and can opt in to OSV dependency checks for exact versions with `--osv`
 - `timeline` shows a chronological view of findings and containment activity from a saved incident report
 - `fix` applies the first real local fix lane with `--local`
 - `demo` starts the local test site
@@ -157,9 +157,44 @@ pshield vuln scan --inventory-only
 pshield vuln scan --osv --osv-cache outputs\advisory-cache\osv
 ```
 
-This checks common local commands such as Nginx, Apache, OpenSSL, Python, Node, npm, and PHP, then records the versions it can prove. It also parses simple pinned Python dependencies from `requirements.txt` and `pyproject.toml`.
+This checks common local commands such as Nginx, Apache, OpenSSL, Python, Node, npm, and PHP, then records the versions it can prove. It also parses Python dependencies from `requirements.txt` and `pyproject.toml`, including exact pins, version ranges, extras, environment markers, and direct references.
 
-By default, CVE matching uses a small bundled offline ruleset only. Add `--osv` when you want PsyberShield to query OSV for parsed Python dependencies. OSV responses are cached under `outputs\advisory-cache\osv` unless you pass `--osv-cache`. Confirm distro backports and vendor advisories before treating system-package findings as final.
+By default, CVE matching uses a small bundled offline ruleset only. Add `--osv` when you want PsyberShield to query OSV for parsed Python dependencies with exact versions, such as `flask==3.0.0`. Non-exact constraints such as `django>=5.0` stay in the inventory but are not treated as confirmed installed versions. OSV responses are cached under `outputs\advisory-cache\osv` unless you pass `--osv-cache`. Confirm distro backports and vendor advisories before treating system-package findings as final.
+
+Containment planning is intentionally separated from live actions. PsyberShield now has recommendation, action, and result models for future containment workflows, but those models do not kill processes, disable accounts, quarantine files, or write firewall changes by themselves.
+
+For automatic app-focused reporting, schedule the existing commands with cron, systemd timers, Windows Task Scheduler, or CI:
+
+```powershell
+pshield scan https://example.com --profile quick --html-output outputs\auto-scan.html --json-output outputs\auto-scan.json --yes
+pshield crawl https://example.com --profile full --seed-robots --seed-sitemap --html-output outputs\auto-crawl.html --json-output outputs\auto-crawl.json --yes
+pshield vuln scan --osv --html-output outputs\vuln-app.html --json-output outputs\vuln-app.json
+```
+
+This is best treated as app security visibility first. Deeper server/VPS automation and automatic containment should be enabled only after policy, rollback, and audit behavior are explicit.
+
+## Private Web Dashboard
+
+PsyberShield includes a private FastAPI dashboard for VPS-hosted, read-only app security workflows. It keeps source code on your server while users interact through HTML pages.
+
+```powershell
+pshield web --host 127.0.0.1 --port 8787
+pshield worker
+```
+
+Set these before first launch:
+
+```powershell
+$env:PSHIELD_DATABASE_URL="postgresql+psycopg://psybershield:change-me@127.0.0.1:5432/psybershield"
+$env:PSHIELD_SECRET_KEY="replace-with-a-long-random-secret"
+$env:PSHIELD_OUTPUT_DIR="outputs/web"
+$env:PSHIELD_ADMIN_EMAIL="admin@example.com"
+$env:PSHIELD_ADMIN_PASSWORD="replace-with-a-temporary-admin-password"
+```
+
+V1 exposes read-only/reporting workflows only: targets, queued jobs, scan, crawl, vuln scan, secrets, baseline, compare, bundle, reports, audit history, and admin-created users. It does not expose local fixes, live containment, process killing, account disabling, file quarantine, or firewall changes.
+
+The dashboard includes CSRF protection for authenticated POST routes, auto-refreshes queued/running job detail pages, and can preview JSON/Markdown/HTML reports before download. Example VPS service files live under `deploy/systemd/`, and a private Nginx reverse-proxy example lives under `deploy/nginx/`.
 
 You can bundle a report and its related artifacts into a ZIP archive:
 

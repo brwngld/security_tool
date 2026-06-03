@@ -506,11 +506,29 @@ Phase 1: advisory abstraction
 Phase 2: OSV dependency advisories
 
 - support Python dependency manifests first
-- parse simple pinned versions from `requirements.txt`
-- parse simple pinned versions from `pyproject.toml`
+- parse exact pins, ranges, extras, markers, and direct references from `requirements.txt`
+- parse exact pins, ranges, extras, markers, and direct references from `pyproject.toml`
 - keep live OSV API calls disabled unless `--osv` is supplied
+- only query OSV when a concrete exact version is known
 - add local cache and graceful offline handling
 - label findings as confirmed, potential, or unknown
+
+Phase 2a: scheduled app-first reporting
+
+- schedule `scan`, `crawl`, `vuln scan --osv`, and `secrets` with cron, systemd timers, Windows Task Scheduler, or CI
+- keep the first automation profile focused on hosted app detection and report generation
+- reuse browser auth or storage-state flags for authenticated scheduled crawls
+- keep server/VPS automation separate until server-side detection and containment policies are mature
+
+Phase 2b: private web dashboard
+
+- add FastAPI and Jinja as a private UI over the same PsyberShield engine used by the CLI
+- use Postgres for users, targets, jobs, reports, audit events, and settings
+- run scans through a background worker instead of blocking web requests
+- keep v1 read-only and app-detection focused
+- keep source code on the VPS while users interact through the dashboard
+- protect authenticated forms with CSRF tokens and keep report previews behind login
+- ship starter systemd and private Nginx reverse-proxy examples
 
 Phase 3: version and distro awareness
 
@@ -524,6 +542,7 @@ Phase 4: containment planning
 - add `ContainmentAction`
 - add `ContainmentResult`
 - make `watch` produce recommendations before any action execution exists
+- keep all actions dry-run and approval-oriented until an explicit future containment flag is designed
 
 Phase 5: containment artifacts
 

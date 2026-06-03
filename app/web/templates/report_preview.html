@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h1>{{ report.report_type }} {{ format_name }} preview</h1>
+  <p><a href="/jobs/{{ report.job_id }}">Back to job</a> | <a href="/reports/{{ report.id }}/download/{{ format_name }}">Download</a></p>
+  {% if format_name == "html" %}
+    <iframe class="report-frame" src="/reports/{{ report.id }}/download/html" sandbox></iframe>
+  {% else %}
+    <pre class="report-preview">{{ content }}</pre>
+  {% endif %}
+</section>
+{% endblock %}

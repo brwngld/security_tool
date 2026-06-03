@@ -4,12 +4,11 @@ from html import escape
 from pathlib import Path
 
 from app.doctor import DoctorReport
+from app.reports.branding import report_css, write_branded_json
 
 
 def write_json_doctor_report(report: DoctorReport, output_path: str | Path) -> Path:
-    path = Path(output_path)
-    path.write_text(report.model_dump_json(indent=2), encoding="utf-8")
-    return path
+    return write_branded_json(report, output_path, "doctor")
 
 
 def write_markdown_doctor_report(report: DoctorReport, output_path: str | Path) -> Path:
@@ -105,6 +104,7 @@ def write_html_doctor_report(report: DoctorReport, output_path: str | Path) -> P
     th {{ background: rgba(15, 23, 42, 0.9); }}
     li {{ margin: 6px 0; }}
   </style>
+  <style>{report_css()}</style>
 </head>
 <body>
   <div class="page">

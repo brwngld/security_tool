@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+{% if job.status in ["queued", "running"] %}
+<script>
+  setTimeout(() => window.location.reload(), 5000);
+</script>
+{% endif %}
+<section class="card">
+  <h1>Job #{{ job.id }}</h1>
+  <dl class="details">
+    <dt>Type</dt><dd>{{ job.job_type }}</dd>
+    <dt>Status</dt><dd><span class="status-badge status-{{ job.status }}">{{ job.status }}</span></dd>
+    <dt>Target</dt><dd>{{ job.target_url or "-" }}</dd>
+    <dt>Error</dt><dd>{{ job.error_message or "-" }}</dd>
+  </dl>
+  <h2>Reports</h2>
+  {% for report in reports %}
+    <div class="row">
+      <span>{{ report.report_type }}</span>
+      <strong>
+        {% if report.json_path %}<a href="/reports/{{ report.id }}/download/json">JSON</a>{% endif %}
+        {% if report.markdown_path %}<a href="/reports/{{ report.id }}/download/markdown">Markdown</a>{% endif %}
+        {% if report.html_path %}<a href="/reports/{{ report.id }}/download/html">HTML</a>{% endif %}
+        {% if report.json_path %}<a href="/reports/{{ report.id }}/preview/json">Preview JSON</a>{% endif %}
+        {% if report.markdown_path %}<a href="/reports/{{ report.id }}/preview/markdown">Preview Markdown</a>{% endif %}
+        {% if report.html_path %}<a href="/reports/{{ report.id }}/preview/html">Preview HTML</a>{% endif %}
+      </strong>
+    </div>
+  {% else %}
+    <p>No reports yet.</p>
+  {% endfor %}
+  <h2>Audit events</h2>
+  {% for event in events %}
+    <div class="row"><span>{{ event.action }} - {{ event.target }}</span><strong><span class="status-badge status-{{ event.result }}">{{ event.result }}</span></strong></div>
+  {% else %}
+    <p>No audit events yet.</p>
+  {% endfor %}
+</section>
+{% endblock %}

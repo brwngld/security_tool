@@ -1,0 +1,100 @@
+{
+  "target": {
+    "url": "http://69.10.53.250/",
+    "scheme": "http",
+    "host": "69.10.53.250",
+    "port": null,
+    "scope_root": null
+  },
+  "context": null,
+  "baseline_label": "",
+  "findings": [
+    {
+      "id": "weak-cookie-0",
+      "target_url": "http://69.10.53.250/",
+      "affected_urls": [],
+      "title": "Weak cookie flags",
+      "description": "A cookie is missing Secure or HttpOnly. CSRF-related cookies can intentionally remain readable to client-side code.",
+      "severity": "low",
+      "category": "cookies",
+      "evidence": {
+        "cookie_name": "csrf_token",
+        "set_cookie": "csrf_token=9j9H5evlvEmhhBxVESEkH2o57AT6DytzBhO7nqJOUIU; Path=/; SameSite=Lax",
+        "status_code": 200,
+        "url": "http://69.10.53.250/"
+      },
+      "fix_level": 0,
+      "risk_level": "low",
+      "confidence": "medium",
+      "requires_approval": false,
+      "backup_path": null,
+      "rollback_command": null,
+      "expected_impact": "Review issuance location before applying.",
+      "references": [
+        "https://owasp.org/www-community/HttpOnly"
+      ]
+    },
+    {
+      "id": "server-banner-disclosure",
+      "target_url": "http://69.10.53.250/",
+      "affected_urls": [],
+      "title": "Server information disclosure",
+      "description": "The response reveals a server banner or framework header.",
+      "severity": "low",
+      "category": "server_info",
+      "evidence": {
+        "header_value": "nginx",
+        "status_code": 200,
+        "url": "http://69.10.53.250/"
+      },
+      "fix_level": 0,
+      "risk_level": "low",
+      "confidence": "high",
+      "requires_approval": false,
+      "backup_path": null,
+      "rollback_command": null,
+      "expected_impact": "Report only; no system change required.",
+      "references": [
+        "https://owasp.org/www-project-web-security-testing-guide/"
+      ]
+    }
+  ],
+  "fix_plans": [
+    {
+      "finding_id": "weak-cookie-0",
+      "fix_level": 0,
+      "risk_level": "low",
+      "requires_approval": false,
+      "backup_path": null,
+      "rollback_command": "Restore the previous cookie settings.",
+      "expected_impact": "Review issuance location before applying.",
+      "status": "proposed",
+      "approved_by": null,
+      "approved_at": null,
+      "applied_at": null,
+      "confidence": 1.0
+    },
+    {
+      "finding_id": "server-banner-disclosure",
+      "fix_level": 0,
+      "risk_level": "low",
+      "requires_approval": false,
+      "backup_path": null,
+      "rollback_command": "Re-enable the banner only if you really need it.",
+      "expected_impact": "Hide the banner in the web server config first.",
+      "status": "proposed",
+      "approved_by": null,
+      "approved_at": null,
+      "applied_at": null,
+      "confidence": 1.0
+    }
+  ],
+  "scanned_urls": [
+    "http://69.10.53.250/"
+  ],
+  "crawl_seed_sources": [],
+  "notes": [],
+  "waf_signals": [],
+  "tls_summary": {},
+  "scan_confidence": 1.0
+}

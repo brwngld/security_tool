@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <p class="eyebrow">Read-only v1</p>
+  <h1>Security visibility for your apps</h1>
+  <p>Launch app scans and review reports without exposing PsyberShield source code to dashboard users.</p>
+</section>
+<section class="grid two">
+  <div class="card">
+    <h2>Recent jobs</h2>
+    {% for job in jobs %}
+      <a class="row" href="/jobs/{{ job.id }}"><span>#{{ job.id }} {{ job.job_type }}</span><strong><span class="status-badge status-{{ job.status }}">{{ job.status }}</span></strong></a>
+    {% else %}
+      <p>No jobs yet.</p>
+    {% endfor %}
+  </div>
+  <div class="card">
+    <h2>Targets</h2>
+    {% for target in targets %}
+      <div class="row"><span>{{ target.name }}</span><strong>{{ target.url }}</strong></div>
+    {% else %}
+      <p>No targets yet.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

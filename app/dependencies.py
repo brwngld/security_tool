@@ -2,26 +2,89 @@ from __future__ import annotations
 
 import re
 import tomllib
+from dataclasses import dataclass
 from pathlib import Path
 
 from app.models import SoftwareComponent
 
 
-PINNED_REQUIREMENT_RE = re.compile(
-    r"^\s*([A-Za-z0-9_.-]+)\s*==\s*([A-Za-z0-9_.!+*-]+)"
+REQUIREMENT_RE = re.compile(
+    r"^\s*(?P<name>[A-Za-z0-9_.-]+)(?:\[[^\]]+\])?\s*(?P<specifier>.*)?$"
 )
+DIRECT_REFERENCE_RE = re.compile(r"^\s*(?P<name>[A-Za-z0-9_.-]+)(?:\[[^\]]+\])?\s*@\s*(?P<target>.+)$")
+EXACT_SPECIFIERS = {"==", "==="}
 
 
-def _component_from_dependency(name: str, version: str, source: Path) -> SoftwareComponent:
+@dataclass(frozen=True)
+class ParsedDependency:
+    name: str
+    version: str | None
+    version_specifier: str
+    evidence: str
+
+
+def _component_from_dependency(dependency: ParsedDependency, source: Path) -> SoftwareComponent:
     return SoftwareComponent(
-        name=name,
-        version=version,
+        name=dependency.name,
+        version=dependency.version,
+        version_specifier=dependency.version_specifier,
         kind="python dependency",
         source=source.as_posix(),
         status="found",
-        evidence=f"{name}=={version}",
+        evidence=dependency.evidence,
         ecosystem="PyPI",
     )
+
+
+def _strip_inline_comment(value: str) -> str:
+    if " #" not in value:
+        return value.strip()
+    return value.split(" #", 1)[0].strip()
+
+
+def parse_dependency_string(value: str) -> ParsedDependency | None:
+    clean = _strip_inline_comment(value).strip()
+    if not clean or clean.startswith(("#", "-")):
+        return None
+    clean = clean.split(";", 1)[0].strip()
+
+    direct = DIRECT_REFERENCE_RE.match(clean)
+    if direct:
+        return ParsedDependency(
+            name=direct.group("name"),
+            version=None,
+            version_specifier=f"@ {direct.group('target').strip()}",
+            evidence=clean,
+        )
+
+    match = REQUIREMENT_RE.match(clean)
+    if not match:
+        return None
+
+    name = match.group("name")
+    if not name:
+        return None
+
+    version_specifier = _normalize_specifier((match.group("specifier") or "").strip())
+    first_specifier, first_version = _first_version_specifier(version_specifier)
+    concrete_version = first_version if first_specifier in EXACT_SPECIFIERS and first_version else None
+    return ParsedDependency(
+        name=name,
+        version=concrete_version,
+        version_specifier=version_specifier,
+        evidence=clean,
+    )
+
+
+def _normalize_specifier(value: str) -> str:
+    return re.sub(r"\s+", "", value)
+
+
+def _first_version_specifier(value: str) -> tuple[str, str | None]:
+    match = re.match(r"(===|==|~=|!=|>=|<=|>|<)([^,]+)", value)
+    if not match:
+        return "", None
+    return match.group(1), match.group(2)
 
 
 def parse_requirements_file(path: str | Path) -> list[SoftwareComponent]:
@@ -33,18 +96,18 @@ def parse_requirements_file(path: str | Path) -> list[SoftwareComponent]:
         stripped = line.strip()
         if not stripped or stripped.startswith("#") or stripped.startswith("-"):
             continue
-        match = PINNED_REQUIREMENT_RE.match(stripped)
-        if not match:
+        dependency = parse_dependency_string(stripped)
+        if dependency is None:
             continue
-        components.append(_component_from_dependency(match.group(1), match.group(2), req_path))
+        components.append(_component_from_dependency(dependency, req_path))
     return components
 
 
 def _parse_dependency_string(value: str, source: Path) -> SoftwareComponent | None:
-    match = PINNED_REQUIREMENT_RE.match(value)
-    if not match:
+    dependency = parse_dependency_string(value)
+    if dependency is None:
         return None
-    return _component_from_dependency(match.group(1), match.group(2), source)
+    return _component_from_dependency(dependency, source)
 
 
 def parse_pyproject_file(path: str | Path) -> list[SoftwareComponent]:
@@ -89,6 +152,10 @@ def discover_python_dependency_components(root: str | Path) -> tuple[list[Softwa
             components.extend(parse_pyproject_file(candidate))
         added = len(components) - before
         if candidate.exists():
-            notes.append(f"Parsed {added} pinned Python dependency component(s) from {candidate.as_posix()}.")
+            known_versions = sum(1 for component in components[before:] if component.version)
+            notes.append(
+                f"Parsed {added} Python dependency component(s) from {candidate.as_posix()} "
+                f"({known_versions} exact version candidate(s) for OSV)."
+            )
 
     return components, notes

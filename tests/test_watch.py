@@ -94,6 +94,7 @@ def test_build_watch_report_combines_sources_and_sets_response_label() -> None:
     assert report.risk_score > 0
     assert report.baseline_path == "baseline.json"
     assert any(finding.source == "incident" for finding in report.findings)
+    assert any(finding.evidence.get("affected_ips") == "10.0.0.1" for finding in report.findings)
     assert any(finding.source == "integrity" for finding in report.findings)
     assert any(finding.source == "doctor" for finding in report.findings)
     assert any(observation.source == "capture" for observation in report.observations)

@@ -19,6 +19,8 @@ def test_top_level_help_mentions_preferred_command() -> None:
     assert "demo" in result.stdout
     assert "watch" in result.stdout
     assert "vuln" in result.stdout
+    assert "web" in result.stdout
+    assert "worker" in result.stdout
     assert "preset profiles" in result.stdout
     assert "safe-vps" in result.stdout
 

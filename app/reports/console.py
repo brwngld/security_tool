@@ -683,6 +683,7 @@ def render_vuln_report(report: VulnerabilityReport) -> Group:
     components.add_column("Status", style="cyan", no_wrap=True)
     components.add_column("Name", style="white", no_wrap=True)
     components.add_column("Version", style="white", no_wrap=True)
+    components.add_column("Specifier", style="white", no_wrap=True)
     components.add_column("Kind", style="white", no_wrap=True)
     components.add_column("Ecosystem", style="white", no_wrap=True)
     components.add_column("Evidence", style="white")
@@ -692,12 +693,13 @@ def render_vuln_report(report: VulnerabilityReport) -> Group:
                 component.status,
                 component.name,
                 component.version or "-",
+                component.version_specifier or "-",
                 component.kind or "-",
                 component.ecosystem or "-",
                 component.evidence or "-",
             )
     else:
-        components.add_row("-", "-", "-", "-", "-", "No components were checked.")
+        components.add_row("-", "-", "-", "-", "-", "-", "No components were checked.")
 
     notes = Table(title="Notes")
     notes.add_column("Message", style="white")

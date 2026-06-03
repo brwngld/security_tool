@@ -7,6 +7,7 @@ from jinja2 import Environment, select_autoescape
 
 from app.remediation.recommendations import suggest_first_move
 from app.models import ScanResult
+from app.reports.branding import report_css
 
 
 _SEVERITY_ORDER = {
@@ -307,6 +308,7 @@ _TEMPLATE = """
       margin: 8px 0;
     }
   </style>
+  <style>{{ report_css() }}</style>
 </head>
 <body>
   <div class="page">
@@ -594,6 +596,7 @@ def write_html_report(result: ScanResult, output_path: str | Path, include_fix_p
         low_count=severity_counts.get("low", 0),
         info_count=severity_counts.get("info", 0),
         priority_findings=priority_findings,
+        report_css=report_css,
     )
     path.write_text(rendered, encoding="utf-8")
     return path

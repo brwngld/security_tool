@@ -4,12 +4,11 @@ from html import escape
 from pathlib import Path
 
 from app.models import SecretExposureReport
+from app.reports.branding import report_css, write_branded_json
 
 
 def write_json_secret_report(report: SecretExposureReport, output_path: str | Path) -> Path:
-    path = Path(output_path)
-    path.write_text(report.model_dump_json(indent=2), encoding="utf-8")
-    return path
+    return write_branded_json(report, output_path, "secrets")
 
 
 def write_markdown_secret_report(report: SecretExposureReport, output_path: str | Path) -> Path:
@@ -76,6 +75,7 @@ def write_html_secret_report(report: SecretExposureReport, output_path: str | Pa
     th {{ background: #e2e8f0; }}
     li {{ margin: 6px 0; }}
   </style>
+  <style>{report_css()}</style>
 </head>
 <body>
   <div class="page">

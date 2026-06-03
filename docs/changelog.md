@@ -30,7 +30,11 @@ It is intentionally short and practical so it can stay current as the app grows.
 - Added `secrets` for redacted secret exposure checks in logs and config files, with default saved report outputs when none are supplied.
 - Added `vuln scan` for local software inventory with bundled offline advisory matching for a small initial CVE ruleset.
 - Added an advisory source abstraction and routed the bundled local CVE rules through `LocalRulesSource`.
-- Added pinned Python dependency parsing for `requirements.txt` and `pyproject.toml`, plus opt-in OSV advisory lookups with cache and graceful offline handling.
+- Added richer Python dependency parsing for `requirements.txt` and `pyproject.toml`, including exact pins, ranges, extras, markers, and direct references. Exact versions can use opt-in OSV lookups with cache and graceful offline handling.
+- Added containment recommendation, action, and result models as a safe foundation for future defensive actions. No live auto-containment actions are executed by these models.
+- Added automatic app-security reporting guidance covering scheduled `scan`, `crawl`, `vuln scan --osv`, and `secrets` runs with cron, systemd timers, and Windows Task Scheduler examples.
+- Added the first private FastAPI/Jinja web dashboard foundation with local users, Postgres-backed job/report/audit models, read-only job queue workflows, and a background worker.
+- Added dashboard CSRF protection, separate job forms, report previews, auto-refreshing queued/running job pages, and starter systemd/Nginx deployment examples.
 - Added `bundle` for packaging reports and related containment artifacts into ZIP archives.
 
 ## Notes

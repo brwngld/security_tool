@@ -135,7 +135,8 @@ def test_write_markdown_report_creates_file(workspace_temp_dir) -> None:
 
     assert output_path.exists()
     text = output_path.read_text(encoding="utf-8")
-    assert "# PsyberShield Report" in text
+    assert "# // PsyberShield Scan Report" in text
+    assert "- App: PsyberShield" in text
     assert "## Executive Summary" in text
     assert "## Severity Guide" in text
     assert "## What to Fix First" in text

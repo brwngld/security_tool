@@ -1,0 +1,81 @@
+{
+  "target": {
+    "url": "http://69.10.53.250/",
+    "scheme": "http",
+    "host": "69.10.53.250",
+    "port": null,
+    "scope_root": null
+  },
+  "context": null,
+  "baseline_label": null,
+  "findings": [
+    {
+      "id": "p1-server-banner-disclosure",
+      "target_url": "http://69.10.53.250/",
+      "affected_urls": [
+        "http://69.10.53.250/",
+        "http://69.10.53.250/auth/login",
+        "http://69.10.53.250/terms",
+        "http://69.10.53.250/auth/forgot-password",
+        "http://69.10.53.250/auth/reset-password",
+        "http://69.10.53.250/auth/register"
+      ],
+      "title": "Server information disclosure",
+      "description": "The response reveals a server banner or framework header.",
+      "severity": "low",
+      "category": "server_info",
+      "evidence": {
+        "header_value": "nginx",
+        "status_code": 200,
+        "url": "http://69.10.53.250/"
+      },
+      "fix_level": 0,
+      "risk_level": "low",
+      "confidence": "high",
+      "requires_approval": false,
+      "backup_path": null,
+      "rollback_command": null,
+      "expected_impact": "Report only; no system change required.",
+      "references": [
+        "https://owasp.org/www-project-web-security-testing-guide/"
+      ]
+    }
+  ],
+  "fix_plans": [
+    {
+      "finding_id": "p1-server-banner-disclosure",
+      "fix_level": 0,
+      "risk_level": "low",
+      "requires_approval": false,
+      "backup_path": null,
+      "rollback_command": "Re-enable the banner only if you really need it.",
+      "expected_impact": "Hide the banner in the web server config first.",
+      "status": "proposed",
+      "approved_by": null,
+      "approved_at": null,
+      "applied_at": null,
+      "confidence": 1.0
+    }
+  ],
+  "scanned_urls": [
+    "http://69.10.53.250/",
+    "http://69.10.53.250/auth/login",
+    "http://69.10.53.250/terms",
+    "http://69.10.53.250/auth/forgot-password",
+    "http://69.10.53.250/auth/reset-password",
+    "http://69.10.53.250/auth/register"
+  ],
+  "crawl_seed_sources": [
+    "page links"
+  ],
+  "notes": [
+    "Why these pages? PsyberShield starts at http://69.10.53.250/ and follows in-scope links until it reaches the crawl limits.",
+    "Scope: same-host only, max depth 2, max pages 100.",
+    "Discovery seeds: page links only.",
+    "Seed URLs queued: none beyond the starting page.",
+    "Crawled 6 page(s) within scope."
+  ],
+  "waf_signals": [],
+  "tls_summary": {},
+  "scan_confidence": 1.0
+}

@@ -1,0 +1,164 @@
+{
+  "root": ".",
+  "os_name": "Windows",
+  "os_release": "10",
+  "python_version": "3.14.0",
+  "context": {
+    "root": ".",
+    "target": {
+      "value": "http://69.10.53.250",
+      "source": ".env",
+      "key": "APP_URL"
+    },
+    "discovery": {
+      "discovered": true,
+      "app_name": null,
+      "target_url": "http://69.10.53.250",
+      "target_source": ".env",
+      "public_url": null,
+      "local_url": "http://127.0.0.1:3000",
+      "env_file": ".env",
+      "env_source": "project .env",
+      "nginx_config": null,
+      "systemd_service": null,
+      "signals": [
+        {
+          "name": "configured target",
+          "status": "ok",
+          "summary": "http://69.10.53.250",
+          "details": {
+            "source": ".env",
+            "key": "APP_URL"
+          }
+        },
+        {
+          "name": "open local ports",
+          "status": "info",
+          "summary": "3000",
+          "details": {
+            "ports": "3000"
+          }
+        }
+      ],
+      "notes": [
+        "scan target configured in .env",
+        "localhost ports listening: 3000"
+      ]
+    }
+  },
+  "checks": [
+    {
+      "name": ".env",
+      "status": "ok",
+      "summary": "found",
+      "details": {
+        "path": ".env"
+      }
+    },
+    {
+      "name": "Scan target",
+      "status": "ok",
+      "summary": "present",
+      "details": {
+        "source": ".env",
+        "key": "APP_URL",
+        "value": "http://69.10.53.250"
+      }
+    },
+    {
+      "name": "Deployment profile",
+      "status": "info",
+      "summary": "likely local development server",
+      "details": {
+        "profile": "likely local development server",
+        "signals": "local URL discovered"
+      }
+    },
+    {
+      "name": "Output folder",
+      "status": "ok",
+      "summary": "writable",
+      "details": {
+        "path": "outputs"
+      }
+    },
+    {
+      "name": "App config paths",
+      "status": "ok",
+      "summary": "found",
+      "details": {
+        "paths": ".env, policy.example.json, app\\config.py"
+      }
+    },
+    {
+      "name": "Nginx config paths",
+      "status": "info",
+      "summary": "not found",
+      "details": {
+        "searched": "nginx.conf, conf\\nginx.conf, C:\\nginx\\conf\\nginx.conf, C:\\Program Files\\nginx\\conf\\nginx.conf, C:\\Program Files (x86)\\nginx\\conf\\nginx.conf, \\etc\\nginx\\nginx.conf, \\usr\\local\\etc\\nginx\\nginx.conf"
+      }
+    },
+    {
+      "name": "Nginx hardening",
+      "status": "unknown",
+      "summary": "config not found",
+      "details": {}
+    },
+    {
+      "name": "Process and port activity",
+      "status": "warn",
+      "summary": "74 suspicious listener(s); 26 outbound connection(s)",
+      "details": {
+        "command": "netstat -ano",
+        "listeners": "0.0.0.0:135 (pid=476), 0.0.0.0:445 (pid=4), 0.0.0.0:5040 (pid=7232), 0.0.0.0:5357 (pid=4)",
+        "outbound": "192.168.100.2:49437 -> 104.18.32.47:443 (pid=8832), 192.168.100.2:49765 -> 57.144.39.32:443 (pid=15628), 192.168.100.2:51152 -> 104.18.32.47:443 (pid=8832), 192.168.100.2:51331 -> 52.214.67.209:443 (pid=12144)",
+        "processes": "pid=476, pid=4, pid=7232, pid=4628"
+      }
+    },
+    {
+      "name": "Open local ports",
+      "status": "info",
+      "summary": "listening on localhost: 3000",
+      "details": {
+        "ports": "3000"
+      }
+    },
+    {
+      "name": "DEBUG",
+      "status": "warn",
+      "summary": "missing",
+      "details": {}
+    },
+    {
+      "name": "SECRET_KEY",
+      "status": "warn",
+      "summary": "missing",
+      "details": {}
+    },
+    {
+      "name": "SERVER_NAME",
+      "status": "warn",
+      "summary": "missing",
+      "details": {}
+    },
+    {
+      "name": "DATABASE_URL",
+      "status": "warn",
+      "summary": "missing",
+      "details": {}
+    },
+    {
+      "name": "SMTP_PASSWORD",
+      "status": "warn",
+      "summary": "missing",
+      "details": {}
+    }
+  ],
+  "readiness_score": 69,
+  "readiness_state": "danger",
+  "readiness_notes": [
+    "Readiness score is a weighted average across 14 check(s).",
+    "Main drag from warnings: Process and port activity, DEBUG, SECRET_KEY, SERVER_NAME.",
+    "Info checks: 3; unknown checks: 1."
+  ]
+}
