@@ -7,7 +7,7 @@ from app.audit import describe_audit_event
 from app.config import AppConfig
 from app.context import ApplicationContext, DiscoveryReport
 from app.diagnostics import DoctorCheck
-from app.models import IncidentFinding, IncidentReport, IntegrityFinding, IntegrityReport, WatchObservation, WatchReport
+from app.models import IncidentFinding, IncidentReport, IntegrityFinding, IntegrityReport, WatchFinding, WatchObservation, WatchReport
 from app.watch import build_watch_report
 
 
@@ -69,6 +69,7 @@ def test_build_watch_report_combines_sources_and_sets_response_label() -> None:
         mode="snapshot",
         interval_seconds=30.0,
         policy_path=Path("policy.json"),
+        baseline_path=Path("baseline.json"),
         source_paths=[Path("access.log"), Path("app/main.py")],
         incident_report=_build_incident_report(),
         integrity_report=_build_integrity_report(),
@@ -91,6 +92,7 @@ def test_build_watch_report_combines_sources_and_sets_response_label() -> None:
     assert report.risk_level == "high"
     assert report.response_label == "recommend contain"
     assert report.risk_score > 0
+    assert report.baseline_path == "baseline.json"
     assert any(finding.source == "incident" for finding in report.findings)
     assert any(finding.source == "integrity" for finding in report.findings)
     assert any(finding.source == "doctor" for finding in report.findings)
@@ -119,7 +121,6 @@ def test_watch_command_repeats_in_follow_mode(monkeypatch, workspace_temp_dir) -
     recorded_console = Console(record=True, width=120)
     audit_events = []
     output_calls = []
-    sleep_calls = {"count": 0}
     reports = [report, report.model_copy(update={"cycles": 2})]
 
     monkeypatch.setattr(main, "console", recorded_console)
@@ -129,28 +130,69 @@ def test_watch_command_repeats_in_follow_mode(monkeypatch, workspace_temp_dir) -
     monkeypatch.setattr(main, "append_audit_event", lambda path, event: audit_events.append((Path(path), event)))
     monkeypatch.setattr(main, "write_watch_outputs", lambda report, json_output_path, markdown_output_path, html_output_path: output_calls.append((json_output_path, markdown_output_path, html_output_path, report.cycles)))
 
-    def fake_sleep(_seconds):
-        sleep_calls["count"] += 1
-        if sleep_calls["count"] >= 2:
-            raise KeyboardInterrupt
-
-    monkeypatch.setattr(main.time, "sleep", fake_sleep)
+    monkeypatch.setattr(main.time, "sleep", lambda _seconds: None)
 
     main.watch(
         workspace_temp_dir,
         follow=True,
         interval=1.0,
+        max_cycles=2,
         audit_log=workspace_temp_dir / "outputs" / "watch-audit.log",
     )
 
     text = recorded_console.export_text()
     assert "Watch cycle 1 starting" in text
+    assert "Watch max cycles reached (2); stopping." in text
     assert len(audit_events) == 2
     assert len(output_calls) == 2
     assert output_calls[0][3] == 1
     assert output_calls[1][3] == 2
     assert audit_events[0][1].action == "watch"
     assert audit_events[0][1].result == "log only"
+
+
+def test_watch_command_compact_mode_shows_top_actions(monkeypatch, workspace_temp_dir) -> None:
+    report = WatchReport(
+        root=str(workspace_temp_dir),
+        mode="snapshot",
+        interval_seconds=1.0,
+        compact=True,
+        risk_level="high",
+        response_label="recommend contain",
+        observations=[],
+        findings=[
+            WatchFinding(
+                id="watch-1",
+                source="incident",
+                category="scanner",
+                severity="high",
+                title="Repeated probing detected",
+                description="A burst of suspicious requests was recorded.",
+                evidence={"ip": "10.0.0.5"},
+                recommended_action="Review the source IP and consider a denylist entry.",
+                response_label="recommend contain",
+            )
+        ],
+        notes=["Suspicious activity captured."],
+    )
+
+    recorded_console = Console(record=True, width=120)
+    monkeypatch.setattr(main, "console", recorded_console)
+    monkeypatch.setattr(main, "load_app_config", lambda policy_file: AppConfig(audit_log_path=str(workspace_temp_dir / "audit.log")))
+    monkeypatch.setattr(main, "resolve_application_context", lambda url, root, env_file, nginx_config=None, require_target=False: ApplicationContext(root=str(workspace_temp_dir), discovery=DiscoveryReport()))
+    monkeypatch.setattr(main, "run_watch_snapshot", lambda **kwargs: report)
+    monkeypatch.setattr(main, "append_audit_event", lambda path, event: None)
+    monkeypatch.setattr(main, "write_watch_outputs", lambda *args, **kwargs: None)
+    main.watch(
+        workspace_temp_dir,
+        compact=True,
+        audit_log=workspace_temp_dir / "outputs" / "watch-audit.log",
+    )
+
+    text = recorded_console.export_text()
+    assert "Watch Status" in text
+    assert "Top Risks" in text
+    assert "Recommended Next Actions" in text
 
 
 def test_watch_audit_summary_mentions_risk_and_response() -> None:

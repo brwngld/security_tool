@@ -133,3 +133,35 @@ def test_integrity_command_forwards_notification_targets(monkeypatch, workspace_
     assert forwarded["email_recipients"] == ["ops@example.com"]
     assert forwarded["email_sender"] == "PsyberShield@example.com"
 
+
+def test_integrity_command_can_create_baseline(monkeypatch, workspace_temp_dir) -> None:
+    report = IntegrityReport(
+        root=str(workspace_temp_dir),
+        baseline_path=None,
+        monitored_paths=[str(workspace_temp_dir / "app" / "main.py")],
+        files=[],
+        findings=[],
+        notes=["Captured a fresh snapshot only."],
+    )
+
+    recorded_console = Console(record=True, width=120)
+    output_path = workspace_temp_dir / "baselines" / "integrity.json"
+    written_reports = []
+    audit_events = []
+
+    monkeypatch.setattr(main, "console", recorded_console)
+    monkeypatch.setattr(main, "analyze_integrity_sources", lambda root, baseline_path=None, extra_paths=None: report)
+    monkeypatch.setattr(main, "append_audit_event", lambda path, event: audit_events.append((Path(path), event)))
+    monkeypatch.setattr(main, "write_json_integrity_report", lambda report, path: written_reports.append(Path(path)))
+
+    main.integrity(
+        workspace_temp_dir,
+        create_baseline=output_path,
+    )
+
+    text = recorded_console.export_text()
+    assert "Wrote integrity baseline to" in text
+    assert written_reports == [output_path]
+    assert audit_events
+    assert audit_events[0][1].action == "integrity"
+

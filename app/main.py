@@ -16,6 +16,7 @@ from app.audit import (
     build_incident_audit_event,
     build_local_fix_audit_event,
     build_scan_audit_event,
+    build_vuln_audit_event,
     build_watch_audit_event,
     filter_audit_events,
     read_audit_events,
@@ -42,6 +43,7 @@ from app.notifications import send_report_notifications, summarize_notification_
 from app.secrets import analyze_secret_exposures
 from app.profiles import profile_summary_notes, resolve_profile_preset
 from app.timeline import load_timeline_report_from_path
+from app.vuln import scan_software_inventory
 from app.watch import run_watch_snapshot
 from app.http.auth import CrawlAuthConfig
 from app.http.normalizer import normalize_url
@@ -78,6 +80,7 @@ from app.reports.console import (
     render_secret_report,
     render_watch_report,
     render_timeline_report,
+    render_vuln_report,
 )
 from app.reports.drift_report import write_html_drift_report, write_json_drift_report, write_markdown_drift_report
 from app.reports.doctor_report import write_html_doctor_report, write_json_doctor_report, write_markdown_doctor_report
@@ -86,6 +89,7 @@ from app.reports.incident_report import write_html_incident_report, write_json_i
 from app.reports.watch_report import write_html_watch_report, write_json_watch_report, write_markdown_watch_report
 from app.reports.secret_report import write_html_secret_report, write_json_secret_report, write_markdown_secret_report
 from app.reports.timeline_report import write_html_timeline_report, write_json_timeline_report, write_markdown_timeline_report
+from app.reports.vuln_report import write_html_vuln_report, write_json_vuln_report, write_markdown_vuln_report
 from app.reports.html_report import write_html_report
 from app.reports.json_report import write_json_report
 from app.reports.markdown_report import write_markdown_report
@@ -131,6 +135,7 @@ app = typer.Typer(
         "- Watches logs, file drift, and process/port activity in a snapshot or follow loop\n"
         "- Detects drift between saved baseline and current reports across scans, files, logs, and config checks\n"
         "- Scans files for obvious secret exposure with redacted evidence\n"
+        "- Inventories local software versions for future CVE matching with `vuln scan`\n"
         "- Packages related reports and containment artifacts into a ZIP bundle\n"
         "- Sends incident, integrity, and timeline notifications via webhooks, Slack, Discord, or email\n"
         "- Runs a local demo site for testing (`demo` alias)\n\n"
@@ -215,6 +220,7 @@ app = typer.Typer(
         "incident --logs C:\\logs --html-output\n"
         "watch --logs outputs\\access.log --json-output outputs\\watch.json\n"
         "watch --follow --interval 30 --tail-file outputs\\access.log --html-output\n"
+        "vuln scan --html-output\n"
         "baseline http://127.0.0.1:8000 --label vps-west\n"
         "baseline http://127.0.0.1:8000 --output baselines\\vps-west.json\n"
         "compare old.json new.json --markdown-output compare.md\n"
@@ -226,12 +232,17 @@ app = typer.Typer(
         "```"
     ),
 )
+vuln_app = typer.Typer(help="Inventory local software versions and match bundled offline advisories.")
 console = Console()
 CLI_OPTIONAL_OUTPUT_NOTES: list[str] = []
 
 
 def flag_is_enabled(value: object) -> bool:
     return value is True
+
+
+def flag_is_not_disabled(value: object) -> bool:
+    return value is not False
 
 
 def path_option_value(value: object) -> Path | None:
@@ -610,6 +621,28 @@ def write_watch_outputs(
     if html_output_path is not None:
         html_output_path.parent.mkdir(parents=True, exist_ok=True)
         write_html_watch_report(report, html_output_path)
+        console.print(f"Wrote HTML report to {html_output_path}")
+
+
+def write_vuln_outputs(
+    report,
+    json_output_path: Path | None,
+    markdown_output_path: Path | None,
+    html_output_path: Path | None,
+) -> None:
+    if json_output_path is not None:
+        json_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_json_vuln_report(report, json_output_path)
+        console.print(f"Wrote JSON report to {json_output_path}")
+
+    if markdown_output_path is not None:
+        markdown_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_markdown_vuln_report(report, markdown_output_path)
+        console.print(f"Wrote Markdown report to {markdown_output_path}")
+
+    if html_output_path is not None:
+        html_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_html_vuln_report(report, html_output_path)
         console.print(f"Wrote HTML report to {html_output_path}")
 
 
@@ -1546,6 +1579,7 @@ def integrity(
         help="Directory to monitor. Defaults to the current working directory.",
     ),
     baseline: Path | None = typer.Option(None, "--baseline", help="Compare against a saved integrity snapshot"),
+    create_baseline: Path | None = typer.Option(None, "--create-baseline", help="Write the current integrity snapshot here without comparing against a baseline"),
     path: list[Path] = typer.Option([], "--path", help="Add a specific file or directory to monitor"),
     audit_log: Path | None = typer.Option(None, "--audit-log", help="Write the integrity event to a specific audit log"),
     json_output: Path | None = typer.Option(None, "--json-output", help="Write a JSON report here"),
@@ -1564,6 +1598,7 @@ def integrity(
 ) -> None:
     root_path = Path.cwd() if root is None else Path(root)
     baseline_path = path_option_value(baseline)
+    create_baseline_path = path_option_value(create_baseline)
     extra_paths = [Path(item) for item in list_option_value(path)]
     audit_log_path, audit_log_note = normalize_output_option(path_option_value(audit_log))
     json_output_path, json_output_note = normalize_output_option(path_option_value(json_output))
@@ -1573,6 +1608,22 @@ def integrity(
     slack_webhook_urls = [str(value).strip() for value in list_option_value(slack_webhook_url) if str(value).strip()]
     discord_webhook_urls = [str(value).strip() for value in list_option_value(discord_webhook_url) if str(value).strip()]
     email_recipients = [str(value).strip() for value in list_option_value(email_to) if str(value).strip()]
+    write_audit_path = audit_log_path or Path("outputs") / "audit.log"
+
+    if create_baseline_path is not None:
+        baseline_output_path, baseline_output_note = normalize_output_option(create_baseline_path)
+        report = analyze_integrity_sources(root_path, baseline_path=None)
+        console.print(render_integrity_report(report))
+        if baseline_output_path is None:
+            baseline_output_path = default_output_path("integrity", "--output")
+            baseline_output_note = f"Using default output path for --create-baseline: {baseline_output_path.as_posix()}"
+        baseline_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_json_integrity_report(report, baseline_output_path)
+        append_audit_event(write_audit_path, build_integrity_audit_event(report))
+        if baseline_output_note is not None:
+            console.print(f"[info] {baseline_output_note}")
+        console.print(f"Wrote integrity baseline to {baseline_output_path}")
+        return
 
     report = analyze_integrity_sources(root_path, baseline_path=baseline_path, extra_paths=extra_paths)
     console.print(render_integrity_report(report))
@@ -1617,7 +1668,9 @@ def watch(
     tail_lines: int = typer.Option(250, "--tail-lines", min=1, help="Number of recent lines to capture for live sources"),
     baseline: Path | None = typer.Option(None, "--baseline", help="Compare file drift against this saved integrity snapshot"),
     follow: bool = typer.Option(False, "--follow/--no-follow", help="Keep taking snapshots on an interval"),
+    compact: bool = typer.Option(False, "--compact/--no-compact", help="Use a shorter terminal summary that is easier to read during follow mode"),
     interval: float = typer.Option(30.0, "--interval", min=1.0, help="Seconds between follow-up snapshots"),
+    max_cycles: int | None = typer.Option(None, "--max-cycles", min=1, hidden=True, help="Stop follow mode after this many cycles"),
     env_file: Path | None = typer.Option(None, "--env-file", help="Read local defaults from a specific .env file"),
     nginx_config: Path | None = typer.Option(None, "--nginx-config", help="Use a specific Nginx config file for context discovery"),
     policy_file: Path | None = typer.Option(None, "--policy", help="Load watch settings from a JSON file"),
@@ -1635,6 +1688,8 @@ def watch(
     json_output_path, json_output_note = normalize_output_option(path_option_value(json_output))
     markdown_output_path, markdown_output_note = normalize_output_option(path_option_value(markdown_output))
     html_output_path, html_output_note = normalize_output_option(path_option_value(html_output))
+    follow_enabled = flag_is_enabled(follow)
+    compact_enabled = flag_is_enabled(compact)
 
     policy = load_app_config(policy_file_path)
     context = resolve_application_context(None, root_path, env_file_path, nginx_config_path, require_target=False)
@@ -1651,6 +1706,7 @@ def watch(
     tail_file_values = [value for value in list_option_value(tail_file) if isinstance(value, Path)]
     tail_lines_value = int_option_value(tail_lines) or 250
     interval_seconds = timeout_option_value(interval) or 30.0
+    max_cycles_value = int_option_value(max_cycles)
 
     if json_output_path is None and markdown_output_path is None and html_output_path is None:
         json_output_path = default_output_path("watch", "--json-output")
@@ -1666,14 +1722,14 @@ def watch(
 
     print_optional_output_notes()
     write_audit_path = audit_log_path or Path(policy.audit_log_path)
-    mode = "follow" if follow else "snapshot"
+    mode = "follow" if follow_enabled else "snapshot"
     cycle = 0
 
     try:
         while True:
             cycle += 1
-            if follow:
-                console.print(f"[info] Watch cycle {cycle} starting...")
+            if follow_enabled:
+                console.print(f"Watch cycle {cycle} starting...")
             report = run_watch_snapshot(
                 root=root_path,
                 env_file=env_file_path,
@@ -1687,21 +1743,65 @@ def watch(
                 policy_path=policy_file_path,
                 mode=mode,
                 interval_seconds=interval_seconds,
+                compact=compact_enabled,
             )
             report.mode = mode
             report.interval_seconds = interval_seconds
             report.cycles = cycle
+            report.compact = compact_enabled
             report.policy_path = str(policy_file_path) if policy_file_path is not None else report.policy_path
             if report.context is None:
                 report.context = context
             console.print(render_watch_report(report))
             append_audit_event(write_audit_path, build_watch_audit_event(report, policy.allowed_fix_level))
             write_watch_outputs(report, json_output_path, markdown_output_path, html_output_path)
-            if not follow:
+            if not follow_enabled:
+                break
+            if max_cycles_value is not None and cycle >= max_cycles_value:
+                console.print(f"Watch max cycles reached ({max_cycles_value}); stopping.")
                 break
             time.sleep(interval_seconds)
     except KeyboardInterrupt:
         console.print("[warning] Watch loop interrupted.")
+
+
+@vuln_app.command("scan", help="Inventory local software versions and match bundled offline advisories.")
+def vuln_scan(
+    root: Path | None = typer.Argument(
+        None,
+        metavar="ROOT",
+        help="Directory to use as the inventory root. Defaults to the current working directory.",
+    ),
+    audit_log: Path | None = typer.Option(None, "--audit-log", help="Write the vulnerability inventory event to a specific audit log"),
+    match_cves: bool = typer.Option(True, "--match-cves/--inventory-only", help="Match discovered versions against the bundled offline advisory ruleset"),
+    json_output: Path | None = typer.Option(None, "--json-output", help="Write a JSON vulnerability inventory report"),
+    markdown_output: Path | None = typer.Option(None, "--markdown-output", help="Write a Markdown vulnerability inventory report"),
+    html_output: Path | None = typer.Option(None, "--html-output", help="Write an HTML vulnerability inventory report"),
+) -> None:
+    root_path = Path.cwd() if root is None else Path(root)
+    audit_log_path, audit_log_note = normalize_output_option(path_option_value(audit_log))
+    json_output_path, json_output_note = normalize_output_option(path_option_value(json_output))
+    markdown_output_path, markdown_output_note = normalize_output_option(path_option_value(markdown_output))
+    html_output_path, html_output_note = normalize_output_option(path_option_value(html_output))
+
+    if json_output_path is None and markdown_output_path is None and html_output_path is None:
+        json_output_path = default_output_path("vuln", "--json-output")
+        markdown_output_path = default_output_path("vuln", "--markdown-output")
+        html_output_path = default_output_path("vuln", "--html-output")
+        json_output_note = f"Using default output path for --json-output: {json_output_path.as_posix()}"
+        markdown_output_note = f"Using default output path for --markdown-output: {markdown_output_path.as_posix()}"
+        html_output_note = f"Using default output path for --html-output: {html_output_path.as_posix()}"
+
+    report = scan_software_inventory(root_path, match_cves=flag_is_not_disabled(match_cves))
+    console.print(render_vuln_report(report))
+    write_audit_path = audit_log_path or Path("outputs") / "audit.log"
+    append_audit_event(write_audit_path, build_vuln_audit_event(report))
+
+    for note in (audit_log_note, json_output_note, markdown_output_note, html_output_note):
+        if note is not None:
+            console.print(f"[info] {note}")
+    print_optional_output_notes()
+    write_vuln_outputs(report, json_output_path, markdown_output_path, html_output_path)
 
 
 @app.command(help="Detect baseline drift across saved reports for scan, integrity, incident, or doctor data.")
@@ -2020,6 +2120,9 @@ def compare(
             console.print(f"[info] {note}")
     print_optional_output_notes()
     compare_outputs(comparison, markdown_output_path, html_output_path)
+
+
+app.add_typer(vuln_app, name="vuln")
 
 
 if __name__ == "__main__":

@@ -491,6 +491,60 @@ Release prep:
 - refresh the user guide PDF if the docs change again
 - run a final focused test pass before cutting a release
 
+## Defensive Engine Roadmap
+
+The next major evolution is split into advisory intelligence and containment planning. The guiding rule is that destructive actions must be explicit, reversible where possible, and audited.
+
+Phase 1: advisory abstraction
+
+- add `AdvisorySource`
+- add `AdvisoryQuery`
+- add `LocalRulesSource`
+- route the existing bundled offline CVE rules through the source abstraction
+- keep `vuln scan` behavior compatible
+
+Phase 2: OSV dependency advisories
+
+- support Python dependency manifests first
+- parse `requirements.txt`
+- parse `pyproject.toml` where feasible
+- add local cache and graceful offline handling
+- label findings as confirmed, potential, or unknown
+
+Phase 3: version and distro awareness
+
+- normalize package names and versions
+- separate upstream version matches from distro-patched package status
+- report vendor backport uncertainty clearly
+
+Phase 4: containment planning
+
+- add `ContainmentRecommendation`
+- add `ContainmentAction`
+- add `ContainmentResult`
+- make `watch` produce recommendations before any action execution exists
+
+Phase 5: containment artifacts
+
+- generate Windows Firewall, iptables/nftables, Nginx denylist, and fail2ban artifacts
+- keep artifact generation separate from application
+
+Phase 6: dry-run containment
+
+- add `watch --contain --dry-run`
+- audit the plan without changing the system
+
+Phase 7: low-risk temporary blocking
+
+- add explicit temporary IP containment behind policy approval
+- audit every applied action
+- include rollback guidance
+
+Phase 8: high-risk actions
+
+- consider process kill, account disablement, and file quarantine only behind strict policy
+- require explicit flags, confidence thresholds, audit records, and rollback or restoration guidance
+
 Optional report exports:
 
 ```powershell

@@ -94,7 +94,9 @@ class WatchReport(BaseModel):
     root: str
     mode: str = Field(default="snapshot", pattern=r"^(snapshot|follow)$")
     interval_seconds: float = Field(default=0.0, ge=0.0)
+    compact: bool = False
     policy_path: str | None = None
+    baseline_path: str | None = None
     sources: list[str] = Field(default_factory=list)
     observations: list[WatchObservation] = Field(default_factory=list)
     findings: list[WatchFinding] = Field(default_factory=list)
@@ -276,3 +278,35 @@ class ReportBundle(BaseModel):
     source_report: str
     items: list[ReportBundleItem] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
+
+
+class SoftwareComponent(BaseModel):
+    name: str
+    version: str | None = None
+    kind: str = ""
+    source: str = ""
+    path: str | None = None
+    status: str = Field(default="found", pattern=r"^(found|missing|error)$")
+    evidence: str = ""
+
+
+class VulnerabilityFinding(BaseModel):
+    id: str
+    component: str
+    installed_version: str | None = None
+    cve_id: str
+    title: str
+    severity: str = Field(pattern=r"^(info|low|medium|high|critical)$")
+    cvss: float | None = None
+    affected_versions: str
+    fixed_version: str | None = None
+    reference: str
+    recommended_action: str
+
+
+class VulnerabilityReport(BaseModel):
+    root: str
+    components: list[SoftwareComponent] = Field(default_factory=list)
+    findings: list[VulnerabilityFinding] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+    cve_matching: bool = False

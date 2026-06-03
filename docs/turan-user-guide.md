@@ -39,6 +39,7 @@ PsyberShield is intentionally defensive:
 | `compare` | Compares two saved scans and crawl coverage | See what changed |
 | `drift` | Compares saved reports and highlights baseline drift | Watch for scan, file, log, and config changes |
 | `secrets` | Scans files for obvious secret exposure | Check logs and configs for leaked values |
+| `vuln scan` | Inventories local software versions and matches a small bundled offline advisory ruleset | Start a vulnerability-scanner workflow without changing the system |
 | `bundle` | Packages a report and related artifacts into a ZIP archive | Share a handoff bundle |
 | `doctor` | Checks the local machine and app environment | Health check without a URL |
 | `server-check` | Discovers the server layout and scans the local app target | VPS/server discovery mode |
@@ -91,6 +92,7 @@ Check logs for suspicious activity and optionally apply containment:
 .\venv\Scripts\python.exe -m app.main timeline outputs\incident.json --audit-log outputs\audit.log
 .\venv\Scripts\python.exe -m app.main watch --logs outputs\access.log --json-output
 .\venv\Scripts\python.exe -m app.main watch --follow --interval 30 --tail-file outputs\access.log --html-output
+.\venv\Scripts\python.exe -m app.main vuln scan --html-output
 ```
 
 Capture fresh snapshots from live sources:
@@ -128,6 +130,14 @@ Scan for obvious secret exposure:
 
 ```powershell
 .\venv\Scripts\python.exe -m app.main secrets . --markdown-output outputs\secrets.md
+```
+
+Inventory local software versions and match bundled offline advisories:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main vuln scan
+.\venv\Scripts\python.exe -m app.main vuln scan --json-output outputs\vuln.json --html-output outputs\vuln.html
+.\venv\Scripts\python.exe -m app.main vuln scan --inventory-only
 ```
 
 Bundle a report and related artifacts:
@@ -667,6 +677,33 @@ Typical integrity output adds:
 - changed, missing, and new monitored files
 - the file category, kind, hash, size, and timestamp for each tracked file
 
+### Baseline Workflow
+
+Create a baseline after a known-good deployment:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main integrity . --create-baseline baselines\integrity.json
+```
+
+Refresh the baseline after approved changes only:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main integrity . --create-baseline baselines\integrity.json
+```
+
+Use the baseline in `watch` when you want live drift checks:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main watch --baseline baselines\integrity.json --logs outputs\access.log
+```
+
+Operational notes:
+
+- keep the baseline file in a team-owned location
+- refresh it only after approved changes land
+- expect ordinary drift from releases, config edits, and content updates
+- record what changed when you refresh it so the baseline stays trusted
+
 ## Drift
 
 `drift` compares two saved reports of the same type and surfaces changes that matter for defensive operations.
@@ -702,6 +739,28 @@ Typical secret-exposure output adds:
 - candidate source file count
 - redacted snippets from matching lines
 - a short recommendation for each exposure
+
+## Vulnerability Inventory
+
+`vuln scan` inventories local software versions and compares them with a small bundled offline advisory ruleset.
+
+Example:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main vuln scan
+.\venv\Scripts\python.exe -m app.main vuln scan --json-output outputs\vuln.json --html-output outputs\vuln.html
+.\venv\Scripts\python.exe -m app.main vuln scan --inventory-only
+```
+
+This version checks common local commands such as Nginx, Apache, OpenSSL, Python, Node, npm, and PHP, then records the versions it can prove. CVE matching currently uses bundled offline rules for a few well-known advisories, including Apache HTTP Server 2.4.49/2.4.50 and OpenSSL 3.0.0 through 3.0.6. It does not query NVD, OSV, distro advisories, or other live CVE feeds yet.
+
+Typical vulnerability-inventory output adds:
+
+- the monitored root
+- the software components checked
+- versions discovered from local command output
+- local advisory matches when the bundled ruleset applies
+- a note that distro backports and vendor advisories should be confirmed
 
 ## Bundle
 

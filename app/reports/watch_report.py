@@ -6,6 +6,35 @@ from pathlib import Path
 from app.models import WatchReport
 
 
+def _severity_rank(level: str) -> int:
+    return {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}.get(level, 5)
+
+
+def _top_findings(report: WatchReport, limit: int = 5):
+    return sorted(report.findings, key=lambda finding: (_severity_rank(finding.severity), finding.title))[:limit]
+
+
+def _top_actions(report: WatchReport, limit: int = 5) -> list[str]:
+    actions: list[str] = []
+    seen: set[str] = set()
+    for finding in _top_findings(report, limit=limit * 2):
+        action = finding.recommended_action.strip()
+        if action and action not in seen:
+            seen.add(action)
+            actions.append(action)
+        if len(actions) >= limit:
+            break
+    return actions
+
+
+def _top_categories(report: WatchReport, limit: int = 4):
+    counts: dict[str, int] = {}
+    for finding in report.findings:
+        if finding.category:
+            counts[finding.category] = counts.get(finding.category, 0) + 1
+    return sorted(counts.items(), key=lambda item: (-item[1], item[0]))[:limit]
+
+
 def write_json_watch_report(report: WatchReport, output_path: str | Path) -> Path:
     path = Path(output_path)
     path.write_text(report.model_dump_json(indent=2), encoding="utf-8")
@@ -22,16 +51,40 @@ def write_markdown_watch_report(report: WatchReport, output_path: str | Path) ->
         f"Risk level: {report.risk_level}",
         f"Risk score: {report.risk_score}/100",
         f"Response: {report.response_label}",
+        f"Compact: {'yes' if report.compact else 'no'}",
         f"Sources: {len(report.sources)}",
         f"Observations: {len(report.observations)}",
         f"Findings: {len(report.findings)}",
     ]
     if report.policy_path:
         lines.append(f"Policy: {report.policy_path}")
+    if report.baseline_path:
+        lines.append(f"Baseline: {report.baseline_path}")
     lines.extend(["", "## Response", ""])
     lines.append(f"- Recommended response: {report.response_label}")
     lines.append(f"- Risk score: {report.risk_score}/100")
     lines.append(f"- Risk level: {report.risk_level}")
+    top_categories = _top_categories(report)
+    if top_categories:
+        lines.append(f"- Top categories: {', '.join(f'{category}={count}' for category, count in top_categories)}")
+    top_actions = _top_actions(report)
+    if top_actions:
+        lines.append(f"- Top action: {top_actions[0]}")
+    if report.findings:
+        lines.extend(["", "## Top Risks", ""])
+        for finding in _top_findings(report):
+            lines.append(f"- [{finding.severity}] {finding.title}")
+            lines.append(f"  - Source: {finding.source}")
+            lines.append(f"  - Category: {finding.category}")
+            lines.append(f"  - Recommended action: {finding.recommended_action or '-'}")
+            if finding.evidence:
+                lines.append(
+                    f"  - Evidence: {', '.join(f'{key}={value}' for key, value in finding.evidence.items() if value not in (None, ''))}"
+                )
+    if top_actions:
+        lines.extend(["", "## Recommended Next Actions", ""])
+        for index, action in enumerate(top_actions, start=1):
+            lines.append(f"{index}. {action}")
     if report.notes:
         lines.extend(["", "## Notes", ""])
         for note in report.notes:
@@ -96,6 +149,21 @@ def write_html_watch_report(report: WatchReport, output_path: str | Path) -> Pat
 
     note_items = "".join(f"<li>{escape(note)}</li>" for note in report.notes) or "<li>None</li>"
     source_items = "".join(f"<li>{escape(source)}</li>" for source in report.sources) or "<li>None</li>"
+    top_actions = _top_actions(report)
+    top_categories = _top_categories(report)
+    top_risk_rows = []
+    for finding in _top_findings(report):
+        evidence = ", ".join(f"{key}={value}" for key, value in finding.evidence.items() if value not in (None, ""))
+        top_risk_rows.append(
+            "<tr>"
+            f"<td class='severity-{escape(finding.severity)}'>{escape(finding.severity)}</td>"
+            f"<td>{escape(finding.source)}</td>"
+            f"<td>{escape(finding.category)}</td>"
+            f"<td>{escape(finding.title)}</td>"
+            f"<td>{escape(finding.recommended_action or '-')}</td>"
+            f"<td>{escape(evidence or '-')}</td>"
+            "</tr>"
+        )
     html = f"""<!doctype html>
 <html lang="en">
 <head>
@@ -125,11 +193,29 @@ def write_html_watch_report(report: WatchReport, output_path: str | Path) -> Pat
       padding: 18px 20px;
       margin-bottom: 18px;
     }}
+    .grid {{
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }}
+    .metric {{
+      background: #0f172a;
+      color: #f8fafc;
+      border-radius: 16px;
+      padding: 14px 16px;
+    }}
+    .metric .label {{ color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; }}
+    .metric .value {{ font-size: 1.2rem; font-weight: 700; margin-top: 4px; }}
     table {{ width: 100%; border-collapse: collapse; overflow: hidden; border-radius: 16px; }}
     th, td {{ text-align: left; padding: 12px 14px; border-bottom: 1px solid rgba(148, 163, 184, 0.2); vertical-align: top; }}
     th {{ background: #e2e8f0; }}
     li {{ margin: 6px 0; }}
     .muted {{ color: #64748b; }}
+    .severity-critical {{ background: #7f1d1d; color: #fff; font-weight: 700; }}
+    .severity-high {{ background: #dc2626; color: #fff; font-weight: 700; }}
+    .severity-medium {{ background: #f59e0b; color: #111827; font-weight: 700; }}
+    .severity-low {{ background: #1d4ed8; color: #fff; font-weight: 700; }}
+    .severity-info {{ background: #0f766e; color: #fff; font-weight: 700; }}
   </style>
 </head>
 <body>
@@ -139,6 +225,16 @@ def write_html_watch_report(report: WatchReport, output_path: str | Path) -> Pat
       <p class="muted" style="color: rgba(248, 250, 252, 0.8);">Root: {escape(report.root)}</p>
       <p class="muted" style="color: rgba(248, 250, 252, 0.8);">Mode: {escape(report.mode)} | Response: {escape(report.response_label)}</p>
       <p class="muted" style="color: rgba(248, 250, 252, 0.8);">Risk level: {escape(report.risk_level)} | Risk score: {report.risk_score}/100 | Findings: {len(report.findings)}</p>
+      {f'<p class="muted" style="color: rgba(248, 250, 252, 0.8);">Baseline: {escape(report.baseline_path)}</p>' if report.baseline_path else ''}
+    </div>
+    <div class="card">
+      <h2>Watch Status</h2>
+      <div class="grid">
+        <div class="metric"><div class="label">Risk</div><div class="value">{escape(report.risk_level.upper())}</div></div>
+        <div class="metric"><div class="label">Response</div><div class="value">{escape(report.response_label)}</div></div>
+        <div class="metric"><div class="label">Compact</div><div class="value">{'yes' if report.compact else 'no'}</div></div>
+        <div class="metric"><div class="label">Top category</div><div class="value">{escape(', '.join(f'{category}={count}' for category, count in top_categories) if top_categories else '-')}</div></div>
+      </div>
     </div>
     <div class="card">
       <h2>Sources</h2>
@@ -150,7 +246,26 @@ def write_html_watch_report(report: WatchReport, output_path: str | Path) -> Pat
         <li>Recommended response: {escape(report.response_label)}</li>
         <li>Risk level: {escape(report.risk_level)}</li>
         <li>Risk score: {report.risk_score}/100</li>
+        <li>Top categories: {escape(', '.join(f'{category}={count}' for category, count in top_categories) if top_categories else '-')}</li>
+        <li>Top action: {escape(top_actions[0] if top_actions else '-')}</li>
       </ul>
+    </div>
+    <div class="card">
+      <h2>Top Risks</h2>
+      <table>
+        <thead>
+          <tr><th>Severity</th><th>Source</th><th>Category</th><th>Title</th><th>Recommended action</th><th>Evidence</th></tr>
+        </thead>
+        <tbody>
+          {"".join(top_risk_rows) or "<tr><td colspan='6'>No findings</td></tr>"}
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h2>Recommended Next Actions</h2>
+      <ol>
+        {''.join(f'<li>{escape(action)}</li>' for action in top_actions) or '<li>No action required</li>'}
+      </ol>
     </div>
     <div class="card">
       <h2>Observations</h2>

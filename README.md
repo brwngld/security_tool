@@ -4,7 +4,7 @@ PsyberShield is a Python-based security visibility and response tool for small s
 
 ## Status
 
-Active CLI slice with scan, crawl, report, baseline, compare, drift, secrets, bundle, audit, doctor, server-check, incident, watch, fix, demo, and demo-site compatibility commands.
+Active CLI slice with scan, crawl, report, baseline, compare, drift, secrets, bundle, audit, doctor, server-check, incident, watch, vuln, fix, demo, and demo-site compatibility commands.
 
 ## Documentation
 
@@ -39,6 +39,7 @@ The launcher entry point is [build_pshield.py](build_pshield.py), which calls `a
 - `server-check` checks the server-facing config, discovers the app target, and scans it locally
 - `incident` detects suspicious activity from logs and can generate or apply a denylist containment artifact
 - `watch` monitors logs, file drift, and process activity in a snapshot or follow loop, writes JSON/Markdown/HTML reports under `outputs/` by default, and can compare file drift against a saved integrity baseline with `--baseline`
+- `vuln scan` inventories local software versions and matches them against a small bundled offline advisory ruleset; it does not query live CVE feeds yet
 - `timeline` shows a chronological view of findings and containment activity from a saved incident report
 - `fix` applies the first real local fix lane with `--local`
 - `demo` starts the local test site
@@ -86,6 +87,7 @@ pshield scan https://example.com
 pshield scan https://example.com --yes
 pshield watch --logs outputs\access.log --json-output
 pshield watch --follow --interval 30 --tail-file outputs\access.log --html-output
+pshield vuln scan --html-output
 ```
 
 If you want PsyberShield to discover the app target on a VPS, you can leave the URL off:
@@ -146,6 +148,16 @@ pshield secrets . --markdown-output outputs\secrets.md
 
 If you omit all output flags, `secrets` now writes JSON, Markdown, and HTML reports under `outputs/` by default.
 
+You can inventory local software versions and match them against bundled offline advisories:
+
+```powershell
+pshield vuln scan
+pshield vuln scan --json-output outputs\vuln.json --html-output outputs\vuln.html
+pshield vuln scan --inventory-only
+```
+
+This checks common local commands such as Nginx, Apache, OpenSSL, Python, Node, npm, and PHP, then records the versions it can prove. CVE matching currently uses a small bundled offline ruleset, so confirm distro backports and vendor advisories before treating a finding as final.
+
 You can bundle a report and its related artifacts into a ZIP archive:
 
 ```powershell
@@ -167,6 +179,21 @@ Monitor key files against a saved baseline:
 ```powershell
 .\venv\Scripts\python.exe -m app.main integrity . --baseline baselines\integrity.json --json-output outputs\integrity.json
 ```
+
+Create or refresh an integrity baseline:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main integrity . --create-baseline baselines\integrity.json
+.\venv\Scripts\python.exe -m app.main baseline https://example.com --output baselines\scan.json
+```
+
+Baseline workflow notes:
+
+- create the first baseline after a known-good deployment
+- refresh the baseline only after approved changes, then note what changed
+- expect small drift from normal edits, version bumps, and content updates
+- keep a team-owned baseline path and review it before using it in `watch`
+- use `watch --baseline baselines\integrity.json` to compare live drift against that known-good snapshot
 
 PsyberShield looks for `APP_URL`, then `TARGET_URL`, then `BASE_URL`.
 
@@ -293,6 +320,58 @@ Release prep:
 - verify the packaged `.exe`
 - refresh the user guide PDF if the docs change again
 - run a final focused test pass before cutting a release
+
+## Defensive Engine Roadmap
+
+Phase 1: advisory abstraction
+
+- add `AdvisorySource`
+- add `AdvisoryQuery`
+- add `LocalRulesSource`
+- route the existing bundled offline CVE rules through the source abstraction
+- keep `vuln scan` behavior compatible
+
+Phase 2: OSV dependency advisories
+
+- support Python dependency manifests first
+- parse `requirements.txt`
+- parse `pyproject.toml` where feasible
+- add local cache and graceful offline handling
+- label findings as confirmed, potential, or unknown
+
+Phase 3: version and distro awareness
+
+- normalize package names and versions
+- separate upstream version matches from distro-patched package status
+- report vendor backport uncertainty clearly
+
+Phase 4: containment planning
+
+- add `ContainmentRecommendation`
+- add `ContainmentAction`
+- add `ContainmentResult`
+- make `watch` produce recommendations before any action execution exists
+
+Phase 5: containment artifacts
+
+- generate Windows Firewall, iptables/nftables, Nginx denylist, and fail2ban artifacts
+- keep artifact generation separate from application
+
+Phase 6: dry-run containment
+
+- add `watch --contain --dry-run`
+- audit the plan without changing the system
+
+Phase 7: low-risk temporary blocking
+
+- add explicit temporary IP containment behind policy approval
+- audit every applied action
+- include rollback guidance
+
+Phase 8: high-risk actions
+
+- consider process kill, account disablement, and file quarantine only behind strict policy
+- require explicit flags, confidence thresholds, audit records, and rollback or restoration guidance
 
 ## `.env` variables
 

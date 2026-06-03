@@ -6,7 +6,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-from app.models import Finding, FixDecision, FixPlan, IncidentReport, IntegrityReport, ScanResult, WatchReport
+from app.models import Finding, FixDecision, FixPlan, IncidentReport, IntegrityReport, ScanResult, VulnerabilityReport, WatchReport
 from app.models import LocalFixResult
 
 
@@ -184,6 +184,23 @@ def build_watch_audit_event(report: WatchReport, policy_level: int | None = None
             "sources": len(report.sources),
             "observations": len(report.observations),
             "findings": len(report.findings),
+        },
+    )
+
+
+def build_vuln_audit_event(report: VulnerabilityReport, policy_level: int | None = None) -> AuditEvent:
+    found_count = sum(1 for component in report.components if component.status == "found")
+    return AuditEvent(
+        action="vuln_scan",
+        target=report.root,
+        result="findings" if report.findings else "inventory",
+        policy_level=policy_level,
+        severity="high" if any(finding.severity in {"critical", "high"} for finding in report.findings) else "info",
+        details={
+            "components_checked": len(report.components),
+            "components_found": found_count,
+            "findings": len(report.findings),
+            "cve_matching": report.cve_matching,
         },
     )
 

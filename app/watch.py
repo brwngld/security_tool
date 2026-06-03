@@ -134,7 +134,9 @@ def build_watch_report(
     context,
     mode: str,
     interval_seconds: float,
+    compact: bool = False,
     policy_path: Path | None,
+    baseline_path: Path | None,
     source_paths: Iterable[Path],
     incident_report,
     integrity_report,
@@ -237,7 +239,9 @@ def build_watch_report(
         root=str(root),
         mode=mode,
         interval_seconds=interval_seconds,
+        compact=compact,
         policy_path=str(policy_path) if policy_path is not None else None,
+        baseline_path=str(baseline_path) if baseline_path is not None else None,
         sources=source_list,
         observations=observations,
         findings=watch_findings,
@@ -264,6 +268,7 @@ def run_watch_snapshot(
     policy_path: Path | None = None,
     mode: str = "snapshot",
     interval_seconds: float = 0.0,
+    compact: bool = False,
 ) -> WatchReport:
     root_path = Path(root)
     context = resolve_application_context(None, root_path, env_file, nginx_config, require_target=False)
@@ -305,7 +310,9 @@ def run_watch_snapshot(
         context=context,
         mode=mode,
         interval_seconds=interval_seconds,
+        compact=compact,
         policy_path=policy_path,
+        baseline_path=baseline_path,
         source_paths=source_paths + [Path(path) for path in incident_report.source_files],
         incident_report=incident_report,
         integrity_report=integrity_report,

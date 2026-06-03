@@ -11,7 +11,7 @@ from app.audit import AuditEvent, describe_audit_event
 from app.context import ApplicationContext
 from app.diagnostics import DoctorCheck, DoctorReport
 from app.config import AppConfig
-from app.models import ComparisonResult, DriftReport, FixDecision, IncidentReport, IntegrityReport, LocalFixResult, ReportBundle, ScanResult, SecretExposureReport, TimelineReport, WatchReport
+from app.models import ComparisonResult, DriftReport, FixDecision, IncidentReport, IntegrityReport, LocalFixResult, ReportBundle, ScanResult, SecretExposureReport, TimelineReport, VulnerabilityReport, WatchReport
 
 
 def summarize_evidence(evidence: dict[str, object]) -> str:
@@ -469,6 +469,48 @@ def render_watch_response(label: str) -> Text:
     return Text(label, style="bold white on dark_green")
 
 
+def render_watch_severity(level: str) -> Text:
+    label = level.upper()
+    if level == "critical":
+        return Text(label, style="bold white on dark_red")
+    if level == "high":
+        return Text(label, style="bold black on bright_red")
+    if level == "medium":
+        return Text(label, style="bold black on bright_yellow")
+    if level == "low":
+        return Text(label, style="bold white on dark_blue")
+    if level == "info":
+        return Text(label, style="bold black on bright_cyan")
+    return Text(label, style="dim")
+
+
+def _watch_severity_rank(level: str) -> int:
+    ranks = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
+    return ranks.get(level, 5)
+
+
+def _watch_top_findings(report: WatchReport, limit: int = 5):
+    return sorted(report.findings, key=lambda finding: (_watch_severity_rank(finding.severity), finding.title))[:limit]
+
+
+def _watch_recommended_actions(report: WatchReport, limit: int = 5) -> list[str]:
+    actions: list[str] = []
+    seen: set[str] = set()
+    for finding in _watch_top_findings(report, limit=limit * 2):
+        action = finding.recommended_action.strip()
+        if action and action not in seen:
+            seen.add(action)
+            actions.append(action)
+        if len(actions) >= limit:
+            break
+    return actions
+
+
+def _watch_top_categories(report: WatchReport, limit: int = 4) -> list[tuple[str, int]]:
+    counts = Counter(finding.category for finding in report.findings if finding.category)
+    return counts.most_common(limit)
+
+
 def render_watch_report(report: WatchReport) -> Group:
     summary = Table(title="PsyberShield Watch")
     summary.add_column("Field", style="cyan", no_wrap=True)
@@ -479,12 +521,66 @@ def render_watch_report(report: WatchReport) -> Group:
     summary.add_row("Risk level", render_watch_risk(report.risk_level))
     summary.add_row("Risk score", f"{report.risk_score}/100")
     summary.add_row("Response", render_watch_response(report.response_label))
+    summary.add_row("Compact", "yes" if report.compact else "no")
     summary.add_row("Sources", str(len(report.sources)))
     summary.add_row("Observations", str(len(report.observations)))
     summary.add_row("Findings", str(len(report.findings)))
     summary.add_row("Notes", str(len(report.notes)))
     if report.policy_path:
         summary.add_row("Policy", report.policy_path)
+    if report.baseline_path:
+        summary.add_row("Baseline", report.baseline_path)
+
+    status = Table(title="Watch Status")
+    status.add_column("Risk", style="cyan", no_wrap=True)
+    status.add_column("Response", style="white", no_wrap=True)
+    status.add_column("Top category", style="white", no_wrap=True)
+    status.add_column("Top action", style="white")
+    top_categories = _watch_top_categories(report)
+    top_category_text = ", ".join(f"{category}={count}" for category, count in top_categories) if top_categories else "-"
+    top_actions = _watch_recommended_actions(report)
+    status.add_row(
+        render_watch_risk(report.risk_level),
+        render_watch_response(report.response_label),
+        top_category_text,
+        top_actions[0] if top_actions else "-",
+    )
+
+    top_risks = Table(title="Top Risks")
+    top_risks.add_column("Severity", style="magenta", no_wrap=True)
+    top_risks.add_column("Source", style="cyan", no_wrap=True)
+    top_risks.add_column("Category", style="white", no_wrap=True)
+    top_risks.add_column("Title", style="white")
+    top_risks.add_column("Recommended action", style="white")
+    if report.findings:
+        for finding in _watch_top_findings(report):
+            top_risks.add_row(
+                render_watch_severity(finding.severity),
+                finding.source,
+                finding.category,
+                finding.title,
+                finding.recommended_action or "-",
+            )
+    else:
+        top_risks.add_row("-", "-", "-", "No findings", "-")
+
+    actions = Table(title="Recommended Next Actions")
+    actions.add_column("Priority", style="cyan", no_wrap=True)
+    actions.add_column("Action", style="white")
+    if top_actions:
+        for index, action in enumerate(top_actions, start=1):
+            actions.add_row(str(index), action)
+    else:
+        actions.add_row("-", "No action required")
+
+    category_summary = Table(title="Finding Categories")
+    category_summary.add_column("Category", style="cyan", no_wrap=True)
+    category_summary.add_column("Count", style="white", no_wrap=True)
+    if top_categories:
+        for category, count in top_categories:
+            category_summary.add_row(category, str(count))
+    else:
+        category_summary.add_row("-", "0")
 
     sources = Table(title="Watched Sources")
     sources.add_column("Source", style="cyan", no_wrap=True)
@@ -543,7 +639,69 @@ def render_watch_report(report: WatchReport) -> Group:
     else:
         notes.add_row("-")
 
-    return Group(summary, sources, observations, findings, notes)
+    if report.compact:
+        return Group(summary, status, top_risks, actions, category_summary, notes)
+    return Group(summary, status, top_risks, actions, category_summary, sources, observations, findings, notes)
+
+
+def render_vuln_report(report: VulnerabilityReport) -> Group:
+    found = [component for component in report.components if component.status == "found"]
+    summary = Table(title="PsyberShield Vulnerability Inventory")
+    summary.add_column("Field", style="cyan", no_wrap=True)
+    summary.add_column("Value", style="white")
+    summary.add_row("Root", report.root)
+    summary.add_row("Components checked", str(len(report.components)))
+    summary.add_row("Components found", str(len(found)))
+    summary.add_row("Findings", str(len(report.findings)))
+    summary.add_row("CVE matching", "enabled" if report.cve_matching else "not enabled")
+
+    findings = Table(title="Vulnerability Findings")
+    findings.add_column("Severity", style="magenta", no_wrap=True)
+    findings.add_column("CVE", style="cyan", no_wrap=True)
+    findings.add_column("Component", style="white", no_wrap=True)
+    findings.add_column("Installed", style="white", no_wrap=True)
+    findings.add_column("Fixed", style="white", no_wrap=True)
+    findings.add_column("Action", style="white")
+    if report.findings:
+        for finding in report.findings:
+            findings.add_row(
+                render_watch_severity(finding.severity),
+                finding.cve_id,
+                finding.component,
+                finding.installed_version or "-",
+                finding.fixed_version or "-",
+                finding.recommended_action,
+            )
+    else:
+        findings.add_row("-", "-", "-", "-", "-", "No local advisory matches.")
+
+    components = Table(title="Software Inventory")
+    components.add_column("Status", style="cyan", no_wrap=True)
+    components.add_column("Name", style="white", no_wrap=True)
+    components.add_column("Version", style="white", no_wrap=True)
+    components.add_column("Kind", style="white", no_wrap=True)
+    components.add_column("Evidence", style="white")
+    if report.components:
+        for component in report.components:
+            components.add_row(
+                component.status,
+                component.name,
+                component.version or "-",
+                component.kind or "-",
+                component.evidence or "-",
+            )
+    else:
+        components.add_row("-", "-", "-", "-", "No components were checked.")
+
+    notes = Table(title="Notes")
+    notes.add_column("Message", style="white")
+    if report.notes:
+        for note in report.notes:
+            notes.add_row(note)
+    else:
+        notes.add_row("-")
+
+    return Group(summary, findings, components, notes)
 
 
 def render_comparison(comparison: ComparisonResult) -> Group:
