@@ -34,10 +34,12 @@ def write_markdown_vuln_report(report: VulnerabilityReport, output_path: str | P
             lines.append(f"  - Affected versions: {finding.affected_versions}")
             lines.append(f"  - Fixed version: {finding.fixed_version or '-'}")
             lines.append(f"  - CVSS: {finding.cvss if finding.cvss is not None else '-'}")
+            lines.append(f"  - Source: {finding.source or '-'}")
+            lines.append(f"  - Confidence: {finding.confidence}")
             lines.append(f"  - Reference: {finding.reference}")
             lines.append(f"  - Recommended action: {finding.recommended_action}")
     else:
-        lines.append("- No local advisory matches.")
+        lines.append("- No advisory matches.")
     lines.extend(
         [
             "",
@@ -50,6 +52,7 @@ def write_markdown_vuln_report(report: VulnerabilityReport, output_path: str | P
             lines.append(f"- [{component.status}] {component.name}")
             lines.append(f"  - Version: {component.version or '-'}")
             lines.append(f"  - Kind: {component.kind or '-'}")
+            lines.append(f"  - Ecosystem: {component.ecosystem or '-'}")
             lines.append(f"  - Source: {component.source or '-'}")
             lines.append(f"  - Evidence: {component.evidence or '-'}")
     else:
@@ -73,6 +76,7 @@ def write_html_vuln_report(report: VulnerabilityReport, output_path: str | Path)
             f"<td>{escape(component.name)}</td>"
             f"<td>{escape(component.version or '-')}</td>"
             f"<td>{escape(component.kind or '-')}</td>"
+            f"<td>{escape(component.ecosystem or '-')}</td>"
             f"<td>{escape(component.source or '-')}</td>"
             f"<td>{escape(component.evidence or '-')}</td>"
             "</tr>"
@@ -86,6 +90,8 @@ def write_html_vuln_report(report: VulnerabilityReport, output_path: str | Path)
             f"<td>{escape(finding.component)}</td>"
             f"<td>{escape(finding.installed_version or '-')}</td>"
             f"<td>{escape(finding.fixed_version or '-')}</td>"
+            f"<td>{escape(finding.source or '-')}</td>"
+            f"<td>{escape(finding.confidence)}</td>"
             f"<td>{escape(str(finding.cvss) if finding.cvss is not None else '-')}</td>"
             f"<td><a href='{escape(finding.reference)}'>{escape(finding.reference)}</a></td>"
             f"<td>{escape(finding.recommended_action)}</td>"
@@ -121,10 +127,10 @@ def write_html_vuln_report(report: VulnerabilityReport, output_path: str | Path)
       <h2>Vulnerability Findings</h2>
       <table>
         <thead>
-          <tr><th>Severity</th><th>CVE</th><th>Component</th><th>Installed</th><th>Fixed</th><th>CVSS</th><th>Reference</th><th>Action</th></tr>
+          <tr><th>Severity</th><th>CVE</th><th>Component</th><th>Installed</th><th>Fixed</th><th>Source</th><th>Confidence</th><th>CVSS</th><th>Reference</th><th>Action</th></tr>
         </thead>
         <tbody>
-          {"".join(finding_rows) or "<tr><td colspan='8'>No local advisory matches.</td></tr>"}
+          {"".join(finding_rows) or "<tr><td colspan='10'>No advisory matches.</td></tr>"}
         </tbody>
       </table>
     </div>
@@ -132,10 +138,10 @@ def write_html_vuln_report(report: VulnerabilityReport, output_path: str | Path)
       <h2>Software Inventory</h2>
       <table>
         <thead>
-          <tr><th>Status</th><th>Name</th><th>Version</th><th>Kind</th><th>Source</th><th>Evidence</th></tr>
+          <tr><th>Status</th><th>Name</th><th>Version</th><th>Kind</th><th>Ecosystem</th><th>Source</th><th>Evidence</th></tr>
         </thead>
         <tbody>
-          {"".join(rows) or "<tr><td colspan='6'>No components were checked.</td></tr>"}
+          {"".join(rows) or "<tr><td colspan='7'>No components were checked.</td></tr>"}
         </tbody>
       </table>
     </div>

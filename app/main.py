@@ -1774,6 +1774,8 @@ def vuln_scan(
     ),
     audit_log: Path | None = typer.Option(None, "--audit-log", help="Write the vulnerability inventory event to a specific audit log"),
     match_cves: bool = typer.Option(True, "--match-cves/--inventory-only", help="Match discovered versions against the bundled offline advisory ruleset"),
+    osv: bool = typer.Option(False, "--osv/--no-osv", help="Opt in to OSV dependency advisory lookups for parsed Python manifests"),
+    osv_cache: Path | None = typer.Option(None, "--osv-cache", help="Cache OSV API responses under this directory"),
     json_output: Path | None = typer.Option(None, "--json-output", help="Write a JSON vulnerability inventory report"),
     markdown_output: Path | None = typer.Option(None, "--markdown-output", help="Write a Markdown vulnerability inventory report"),
     html_output: Path | None = typer.Option(None, "--html-output", help="Write an HTML vulnerability inventory report"),
@@ -1783,6 +1785,7 @@ def vuln_scan(
     json_output_path, json_output_note = normalize_output_option(path_option_value(json_output))
     markdown_output_path, markdown_output_note = normalize_output_option(path_option_value(markdown_output))
     html_output_path, html_output_note = normalize_output_option(path_option_value(html_output))
+    osv_cache_path = path_option_value(osv_cache)
 
     if json_output_path is None and markdown_output_path is None and html_output_path is None:
         json_output_path = default_output_path("vuln", "--json-output")
@@ -1792,7 +1795,15 @@ def vuln_scan(
         markdown_output_note = f"Using default output path for --markdown-output: {markdown_output_path.as_posix()}"
         html_output_note = f"Using default output path for --html-output: {html_output_path.as_posix()}"
 
-    report = scan_software_inventory(root_path, match_cves=flag_is_not_disabled(match_cves))
+    if flag_is_enabled(osv) and osv_cache_path is None:
+        osv_cache_path = Path("outputs") / "advisory-cache" / "osv"
+
+    report = scan_software_inventory(
+        root_path,
+        match_cves=flag_is_not_disabled(match_cves),
+        include_osv=flag_is_enabled(osv),
+        osv_cache_dir=osv_cache_path,
+    )
     console.print(render_vuln_report(report))
     write_audit_path = audit_log_path or Path("outputs") / "audit.log"
     append_audit_event(write_audit_path, build_vuln_audit_event(report))

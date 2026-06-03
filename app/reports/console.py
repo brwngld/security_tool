@@ -661,6 +661,8 @@ def render_vuln_report(report: VulnerabilityReport) -> Group:
     findings.add_column("Component", style="white", no_wrap=True)
     findings.add_column("Installed", style="white", no_wrap=True)
     findings.add_column("Fixed", style="white", no_wrap=True)
+    findings.add_column("Source", style="white", no_wrap=True)
+    findings.add_column("Confidence", style="white", no_wrap=True)
     findings.add_column("Action", style="white")
     if report.findings:
         for finding in report.findings:
@@ -670,16 +672,19 @@ def render_vuln_report(report: VulnerabilityReport) -> Group:
                 finding.component,
                 finding.installed_version or "-",
                 finding.fixed_version or "-",
+                finding.source or "-",
+                finding.confidence,
                 finding.recommended_action,
             )
     else:
-        findings.add_row("-", "-", "-", "-", "-", "No local advisory matches.")
+        findings.add_row("-", "-", "-", "-", "-", "-", "-", "No advisory matches.")
 
     components = Table(title="Software Inventory")
     components.add_column("Status", style="cyan", no_wrap=True)
     components.add_column("Name", style="white", no_wrap=True)
     components.add_column("Version", style="white", no_wrap=True)
     components.add_column("Kind", style="white", no_wrap=True)
+    components.add_column("Ecosystem", style="white", no_wrap=True)
     components.add_column("Evidence", style="white")
     if report.components:
         for component in report.components:
@@ -688,10 +693,11 @@ def render_vuln_report(report: VulnerabilityReport) -> Group:
                 component.name,
                 component.version or "-",
                 component.kind or "-",
+                component.ecosystem or "-",
                 component.evidence or "-",
             )
     else:
-        components.add_row("-", "-", "-", "-", "No components were checked.")
+        components.add_row("-", "-", "-", "-", "-", "No components were checked.")
 
     notes = Table(title="Notes")
     notes.add_column("Message", style="white")

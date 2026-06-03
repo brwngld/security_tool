@@ -506,8 +506,9 @@ Phase 1: advisory abstraction
 Phase 2: OSV dependency advisories
 
 - support Python dependency manifests first
-- parse `requirements.txt`
-- parse `pyproject.toml` where feasible
+- parse simple pinned versions from `requirements.txt`
+- parse simple pinned versions from `pyproject.toml`
+- keep live OSV API calls disabled unless `--osv` is supplied
 - add local cache and graceful offline handling
 - label findings as confirmed, potential, or unknown
 

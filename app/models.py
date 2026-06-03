@@ -288,6 +288,7 @@ class SoftwareComponent(BaseModel):
     path: str | None = None
     status: str = Field(default="found", pattern=r"^(found|missing|error)$")
     evidence: str = ""
+    ecosystem: str | None = None
 
 
 class VulnerabilityFinding(BaseModel):
@@ -302,6 +303,8 @@ class VulnerabilityFinding(BaseModel):
     fixed_version: str | None = None
     reference: str
     recommended_action: str
+    confidence: str = Field(default="potential", pattern=r"^(confirmed|potential|unknown)$")
+    source: str = ""
 
 
 class VulnerabilityReport(BaseModel):

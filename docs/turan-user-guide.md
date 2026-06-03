@@ -742,7 +742,7 @@ Typical secret-exposure output adds:
 
 ## Vulnerability Inventory
 
-`vuln scan` inventories local software versions and compares them with a small bundled offline advisory ruleset.
+`vuln scan` inventories local software versions, parses pinned Python dependencies, and compares discovered versions with advisory sources.
 
 Example:
 
@@ -750,16 +750,24 @@ Example:
 .\venv\Scripts\python.exe -m app.main vuln scan
 .\venv\Scripts\python.exe -m app.main vuln scan --json-output outputs\vuln.json --html-output outputs\vuln.html
 .\venv\Scripts\python.exe -m app.main vuln scan --inventory-only
+.\venv\Scripts\python.exe -m app.main vuln scan --osv --osv-cache outputs\advisory-cache\osv
 ```
 
-This version checks common local commands such as Nginx, Apache, OpenSSL, Python, Node, npm, and PHP, then records the versions it can prove. CVE matching currently uses bundled offline rules for a few well-known advisories, including Apache HTTP Server 2.4.49/2.4.50 and OpenSSL 3.0.0 through 3.0.6. It does not query NVD, OSV, distro advisories, or other live CVE feeds yet.
+This version checks common local commands such as Nginx, Apache, OpenSSL, Python, Node, npm, and PHP, then records the versions it can prove. It also parses simple pinned Python dependencies from `requirements.txt` and `pyproject.toml`.
+
+Default behavior stays offline and uses bundled rules for a few well-known advisories, including Apache HTTP Server 2.4.49/2.4.50 and OpenSSL 3.0.0 through 3.0.6. Use `--osv` to explicitly query OSV for parsed Python dependency manifests. OSV responses are cached under `outputs\advisory-cache\osv` by default, or under the path supplied with `--osv-cache`.
+
+Important limitation: this is still not a full NVD, distro-advisory, or vendor-backport scanner. Treat dependency matches as strong signals, and confirm system package findings against the operating-system vendor before making production decisions.
 
 Typical vulnerability-inventory output adds:
 
 - the monitored root
 - the software components checked
 - versions discovered from local command output
+- pinned Python dependency versions discovered from dependency manifests
 - local advisory matches when the bundled ruleset applies
+- OSV dependency matches when `--osv` is enabled
+- source and confidence labels for each advisory finding
 - a note that distro backports and vendor advisories should be confirmed
 
 ## Bundle

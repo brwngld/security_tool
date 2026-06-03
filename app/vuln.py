@@ -6,7 +6,8 @@ import subprocess
 from pathlib import Path
 from typing import Callable
 
-from app.advisories import match_advisories
+from app.advisories import advisory_sources, match_advisories
+from app.dependencies import discover_python_dependency_components
 from app.models import SoftwareComponent, VulnerabilityFinding, VulnerabilityReport
 
 CommandRunner = Callable[[list[str]], subprocess.CompletedProcess[str]]
@@ -103,6 +104,8 @@ def scan_software_inventory(
     *,
     runner: CommandRunner | None = None,
     match_cves: bool = True,
+    include_osv: bool = False,
+    osv_cache_dir: str | Path | None = None,
 ) -> VulnerabilityReport:
     command_runner = runner or _run_command
     root_path = Path(root)
@@ -110,16 +113,29 @@ def scan_software_inventory(
         _probe_command(name, kind, command, pattern, runner=command_runner)
         for name, kind, command, pattern in COMMAND_PROBES
     ]
-    findings = match_advisories(components) if match_cves else []
+    dependency_components, dependency_notes = discover_python_dependency_components(root_path)
+    components.extend(dependency_components)
+
+    sources = advisory_sources(include_osv=include_osv, osv_cache_dir=osv_cache_dir)
+    findings = match_advisories(components, sources=sources) if match_cves else []
     notes = [
         f"Host platform: {platform.system()} {platform.release()}",
-        "CVE matching uses a small bundled offline advisory set; it is not a full NVD/OSV feed yet.",
+        "CVE matching always includes a small bundled offline advisory set.",
         "Confirm vendor backports before treating an older distro package as definitely vulnerable.",
     ]
+    notes.extend(dependency_notes)
     found_count = sum(1 for component in components if component.status == "found")
-    notes.append(f"Discovered {found_count} software component(s) from local command probes.")
+    notes.append(f"Discovered {found_count} software component(s) from command probes and dependency manifests.")
     if match_cves:
-        notes.append(f"Matched {len(findings)} local advisory finding(s).")
+        if include_osv:
+            notes.append("OSV dependency advisory lookup was enabled for parsed Python dependency manifests.")
+            if osv_cache_dir is not None:
+                notes.append(f"OSV cache directory: {Path(osv_cache_dir).as_posix()}.")
+        else:
+            notes.append("OSV dependency advisory lookup was not enabled; use --osv to query OSV for parsed dependencies.")
+        for source in sources:
+            notes.extend(getattr(source, "notes", []))
+        notes.append(f"Matched {len(findings)} advisory finding(s).")
     else:
         notes.append("CVE matching was disabled for this run.")
     return VulnerabilityReport(

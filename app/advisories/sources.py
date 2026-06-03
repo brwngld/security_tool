@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Protocol
 
 from app.models import SoftwareComponent, VulnerabilityFinding
@@ -18,10 +19,19 @@ class AdvisorySource(Protocol):
         ...
 
 
-def advisory_sources() -> list[AdvisorySource]:
+def advisory_sources(
+    *,
+    include_osv: bool = False,
+    osv_cache_dir: str | Path | None = None,
+) -> list[AdvisorySource]:
     from app.advisories.local import LocalRulesSource
 
-    return [LocalRulesSource()]
+    sources: list[AdvisorySource] = [LocalRulesSource()]
+    if include_osv:
+        from app.advisories.osv import OSVSource
+
+        sources.append(OSVSource(cache_dir=Path(osv_cache_dir) if osv_cache_dir is not None else None))
+    return sources
 
 
 def match_advisories(

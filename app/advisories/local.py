@@ -125,6 +125,8 @@ class LocalRulesSource:
                     fixed_version=advisory.fixed_version,
                     reference=advisory.reference,
                     recommended_action=advisory.recommended_action,
+                    confidence="potential",
+                    source=self.name,
                 )
             )
         return findings

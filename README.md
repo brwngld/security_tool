@@ -39,7 +39,7 @@ The launcher entry point is [build_pshield.py](build_pshield.py), which calls `a
 - `server-check` checks the server-facing config, discovers the app target, and scans it locally
 - `incident` detects suspicious activity from logs and can generate or apply a denylist containment artifact
 - `watch` monitors logs, file drift, and process activity in a snapshot or follow loop, writes JSON/Markdown/HTML reports under `outputs/` by default, and can compare file drift against a saved integrity baseline with `--baseline`
-- `vuln scan` inventories local software versions and matches them against a small bundled offline advisory ruleset; it does not query live CVE feeds yet
+- `vuln scan` inventories local software versions, parses pinned Python dependencies, matches bundled offline advisories, and can opt in to OSV dependency checks with `--osv`
 - `timeline` shows a chronological view of findings and containment activity from a saved incident report
 - `fix` applies the first real local fix lane with `--local`
 - `demo` starts the local test site
@@ -154,9 +154,12 @@ You can inventory local software versions and match them against bundled offline
 pshield vuln scan
 pshield vuln scan --json-output outputs\vuln.json --html-output outputs\vuln.html
 pshield vuln scan --inventory-only
+pshield vuln scan --osv --osv-cache outputs\advisory-cache\osv
 ```
 
-This checks common local commands such as Nginx, Apache, OpenSSL, Python, Node, npm, and PHP, then records the versions it can prove. CVE matching currently uses a small bundled offline ruleset, so confirm distro backports and vendor advisories before treating a finding as final.
+This checks common local commands such as Nginx, Apache, OpenSSL, Python, Node, npm, and PHP, then records the versions it can prove. It also parses simple pinned Python dependencies from `requirements.txt` and `pyproject.toml`.
+
+By default, CVE matching uses a small bundled offline ruleset only. Add `--osv` when you want PsyberShield to query OSV for parsed Python dependencies. OSV responses are cached under `outputs\advisory-cache\osv` unless you pass `--osv-cache`. Confirm distro backports and vendor advisories before treating system-package findings as final.
 
 You can bundle a report and its related artifacts into a ZIP archive:
 

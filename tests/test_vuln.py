@@ -37,6 +37,7 @@ def test_scan_software_inventory_extracts_known_versions(workspace_temp_dir) -> 
     assert versions["Node.js"] == "22.1.0"
     assert report.cve_matching is True
     assert any("bundled offline advisory" in note for note in report.notes)
+    assert any("OSV dependency advisory lookup was not enabled" in note for note in report.notes)
 
 
 def test_match_local_advisories_flags_known_apache_and_openssl_versions() -> None:
@@ -65,6 +66,20 @@ def test_scan_software_inventory_can_disable_cve_matching(workspace_temp_dir) ->
     assert any("disabled" in note for note in report.notes)
 
 
+def test_scan_software_inventory_includes_dependency_manifest_components(workspace_temp_dir) -> None:
+    (workspace_temp_dir / "requirements.txt").write_text("flask==3.0.0\n", encoding="utf-8")
+
+    def fake_runner(command: list[str]) -> subprocess.CompletedProcess[str]:
+        raise FileNotFoundError(command[0])
+
+    report = scan_software_inventory(workspace_temp_dir, runner=fake_runner, match_cves=False)
+
+    dependency = next(component for component in report.components if component.name == "flask")
+    assert dependency.version == "3.0.0"
+    assert dependency.kind == "python dependency"
+    assert dependency.ecosystem == "PyPI"
+
+
 def test_vuln_scan_command_renders_and_writes_outputs(monkeypatch, workspace_temp_dir) -> None:
     report = VulnerabilityReport(
         root=str(workspace_temp_dir),
@@ -86,7 +101,11 @@ def test_vuln_scan_command_renders_and_writes_outputs(monkeypatch, workspace_tem
     audit_events = []
 
     monkeypatch.setattr(main, "console", recorded_console)
-    monkeypatch.setattr(main, "scan_software_inventory", lambda root, match_cves=True: report)
+    monkeypatch.setattr(
+        main,
+        "scan_software_inventory",
+        lambda root, match_cves=True, include_osv=False, osv_cache_dir=None: report,
+    )
     monkeypatch.setattr(main, "append_audit_event", lambda path, event: audit_events.append((Path(path), event)))
     monkeypatch.setattr(
         main,
@@ -101,6 +120,8 @@ def test_vuln_scan_command_renders_and_writes_outputs(monkeypatch, workspace_tem
         json_output=workspace_temp_dir / "outputs" / "vuln.json",
         markdown_output=workspace_temp_dir / "outputs" / "vuln.md",
         html_output=workspace_temp_dir / "outputs" / "vuln.html",
+        osv=True,
+        osv_cache=workspace_temp_dir / "osv-cache",
     )
 
     text = recorded_console.export_text()
@@ -125,3 +146,4 @@ def test_vuln_scan_help_is_available() -> None:
     assert "Inventory local software versions" in result.stdout
     assert "bundled offline advisories" in result.stdout
     assert "--inventory-only" in result.stdout
+    assert "--osv" in result.stdout
