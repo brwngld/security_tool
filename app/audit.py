@@ -6,7 +6,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-from app.models import Finding, FixDecision, FixPlan, IncidentReport, IntegrityReport, ScanResult
+from app.models import Finding, FixDecision, FixPlan, IncidentReport, IntegrityReport, ScanResult, VulnerabilityReport, WatchReport
 from app.models import LocalFixResult
 
 
@@ -167,6 +167,44 @@ def build_integrity_audit_event(report: IntegrityReport, policy_level: int | Non
     )
 
 
+def build_watch_audit_event(report: WatchReport, policy_level: int | None = None) -> AuditEvent:
+    target = report.context.target.value if report.context is not None and report.context.target is not None else report.root
+    return AuditEvent(
+        action="watch",
+        target=target,
+        result=report.response_label,
+        policy_level=policy_level,
+        severity=report.risk_level,
+        details={
+            "mode": report.mode,
+            "cycles": report.cycles,
+            "risk_score": report.risk_score,
+            "risk_level": report.risk_level,
+            "response": report.response_label,
+            "sources": len(report.sources),
+            "observations": len(report.observations),
+            "findings": len(report.findings),
+        },
+    )
+
+
+def build_vuln_audit_event(report: VulnerabilityReport, policy_level: int | None = None) -> AuditEvent:
+    found_count = sum(1 for component in report.components if component.status == "found")
+    return AuditEvent(
+        action="vuln_scan",
+        target=report.root,
+        result="findings" if report.findings else "inventory",
+        policy_level=policy_level,
+        severity="high" if any(finding.severity in {"critical", "high"} for finding in report.findings) else "info",
+        details={
+            "components_checked": len(report.components),
+            "components_found": found_count,
+            "findings": len(report.findings),
+            "cve_matching": report.cve_matching,
+        },
+    )
+
+
 def describe_audit_event(event: AuditEvent) -> str:
     if event.action == "fix" and event.finding_title:
         pieces = [event.finding_title]
@@ -180,6 +218,13 @@ def describe_audit_event(event: AuditEvent) -> str:
         if extras:
             pieces.append(f"({'; '.join(extras)})")
         return " ".join(pieces)
+    if event.action == "watch":
+        pieces = [
+            f"risk={event.details.get('risk_level', event.severity or '-')}",
+            f"response={event.result}",
+            f"findings={event.details.get('findings', 0)}",
+        ]
+        return ", ".join(pieces)
     if event.details:
         keys = list(event.details.keys())[:2]
         return ", ".join(f"{key}={event.details[key]}" for key in keys)

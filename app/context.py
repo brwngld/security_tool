@@ -371,7 +371,7 @@ def resolve_application_context(
             "Or set:",
             "  APP_URL=http://127.0.0.1:5000",
             "",
-            "Or point Turan at a file:",
+            "Or point PsyberShield at a file:",
             "  python -m app.main scan --env-file /path/to/autoentrytrack/.env",
         ]
         raise ValueError("\n".join(lines))
@@ -395,3 +395,4 @@ def summarize_application_context(context: ApplicationContext | None) -> str:
     if context.discovery.env_source and context.discovery.env_file:
         pieces.append(f"env={context.discovery.env_source}")
     return ", ".join(pieces) if pieces else "context not captured"
+

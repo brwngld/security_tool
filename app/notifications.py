@@ -30,7 +30,7 @@ def _shorten(text: str, limit: int = 200) -> str:
 
 
 def _incident_summary(report: IncidentReport) -> tuple[str, str]:
-    subject = f"Turan incident: {len(report.blocked_ips)} blocked, {len(report.findings)} findings"
+    subject = f"PsyberShield incident: {len(report.blocked_ips)} blocked, {len(report.findings)} findings"
     lines = [
         f"Target: {report.target or 'not resolved'}",
         f"Sources: {len(report.source_files)}",
@@ -51,7 +51,7 @@ def _integrity_summary(report: IntegrityReport) -> tuple[str, str]:
     changed = len([item for item in report.files if item.status == "changed"])
     missing = len([item for item in report.files if item.status == "missing"])
     new = len([item for item in report.files if item.status == "new"])
-    subject = f"Turan integrity: {changed} changed, {missing} missing, {new} new"
+    subject = f"PsyberShield integrity: {changed} changed, {missing} missing, {new} new"
     lines = [
         f"Root: {report.root}",
         f"Baseline: {report.baseline_path or 'not supplied'}",
@@ -68,7 +68,7 @@ def _integrity_summary(report: IntegrityReport) -> tuple[str, str]:
 
 
 def _timeline_summary(report: TimelineReport) -> tuple[str, str]:
-    subject = f"Turan timeline: {len(report.events)} event(s)"
+    subject = f"PsyberShield timeline: {len(report.events)} event(s)"
     lines = [
         f"Incident report: {report.incident_report or '-'}",
         f"Audit log: {report.audit_log or '-'}",
@@ -110,7 +110,7 @@ def send_webhook_notification(
     request = Request(
         url,
         data=payload,
-        headers={"Content-Type": "application/json", "User-Agent": "Turan/notification"},
+        headers={"Content-Type": "application/json", "User-Agent": "PsyberShield/notification"},
         method="POST",
     )
     try:
@@ -195,7 +195,7 @@ def send_report_notifications(
     recipients = [recipient for recipient in (email_recipients or []) if recipient.strip()]
     if recipients:
         smtp_host_value = smtp_host or "localhost"
-        sender_value = email_sender or "turan@localhost"
+        sender_value = email_sender or "PsyberShield@localhost"
         smtp_password = resolve_smtp_password(smtp_password_env, root=root, env_file=env_file)
         results.append(
             send_email_notification(
@@ -222,3 +222,4 @@ def summarize_notification_results(results: list[NotificationResult]) -> str:
     failed = len([result for result in results if result.status == "failed"])
     skipped = len([result for result in results if result.status == "skipped"])
     return f"Notifications: {sent} sent, {failed} failed, {skipped} skipped"
+

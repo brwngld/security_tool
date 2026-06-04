@@ -16,8 +16,9 @@ def create_backup(stem: str, output_dir: str | Path = "backups") -> Path:
             backup_file.write_text("", encoding="utf-8")
     except PermissionError as exc:
         raise PermissionError(
-            f"Turan could not create a backup for {source_path}. "
-            "If you are in the Turan project root, try: sudo -E ./venv/bin/python -m app.main fix --local. "
-            "Or point Turan at an app-owned file."
+            f"PsyberShield could not create a backup for {source_path}. "
+            "If you are in the PsyberShield project root, try: sudo -E ./venv/bin/python -m app.main fix --local. "
+            "Or point PsyberShield at an app-owned file."
         ) from exc
     return backup_file
+

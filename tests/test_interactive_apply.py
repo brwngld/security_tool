@@ -40,7 +40,7 @@ def build_generate_result() -> ScanResult:
 
 def build_local_result(nginx_config: Path) -> ScanResult:
     context = ApplicationContext(
-        root="/srv/turan",
+        root="/srv/PsyberShield",
         target=ResolvedScanTarget(value="http://127.0.0.1:8000", source="discovery", key="discovered"),
         discovery=DiscoveryReport(
             discovered=True,
@@ -289,3 +289,4 @@ def test_choose_interactive_fix_selection_pages_through_results(monkeypatch) -> 
     text = recorded_console.export_text()
     assert "Page 1-10 of 12" in text
     assert "Page 11-12 of 12" in text
+

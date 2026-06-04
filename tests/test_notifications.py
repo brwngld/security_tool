@@ -66,11 +66,11 @@ def test_send_email_notification_sends_message(monkeypatch) -> None:
     result = send_email_notification(
         smtp_host="smtp.example.com",
         smtp_port=587,
-        sender="turan@example.com",
+        sender="PsyberShield@example.com",
         recipients=["ops@example.com"],
         subject="Incident summary",
         body="Something happened",
-        smtp_username="turan",
+        smtp_username="PsyberShield",
         smtp_password="secret",
     )
 
@@ -78,9 +78,9 @@ def test_send_email_notification_sends_message(monkeypatch) -> None:
     assert captured["host"] == "smtp.example.com"
     assert captured["port"] == 587
     assert captured["starttls"] is True
-    assert captured["login"] == ("turan", "secret")
+    assert captured["login"] == ("PsyberShield", "secret")
     assert captured["message"]["Subject"] == "Incident summary"
-    assert captured["message"]["From"] == "turan@example.com"
+    assert captured["message"]["From"] == "PsyberShield@example.com"
     assert "Something happened" in captured["message"].get_content()
 
 
@@ -128,14 +128,15 @@ def test_send_report_notifications_routes_targets(monkeypatch, workspace_temp_di
         slack_webhook_urls=["https://hooks.example/slack"],
         discord_webhook_urls=["https://hooks.example/discord"],
         email_recipients=["ops@example.com"],
-        email_sender="turan@example.com",
+        email_sender="PsyberShield@example.com",
         smtp_host="smtp.example.com",
-        smtp_username="turan",
+        smtp_username="PsyberShield",
         root=workspace_temp_dir,
     )
 
     assert len(results) == 4
     assert [call[0] for call in webhook_calls] == ["webhook", "slack", "discord"]
     assert email_calls[0]["smtp_password"] == "secret"
-    assert "Turan incident" in email_calls[0]["subject"]
+    assert "PsyberShield incident" in email_calls[0]["subject"]
     assert "Target: http://127.0.0.1:8000" in email_calls[0]["body"]
+

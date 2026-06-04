@@ -5,8 +5,17 @@ from pathlib import Path
 
 from jinja2 import Environment, select_autoescape
 
-from app.hardening.recommendations import suggest_first_move
+from app.remediation.recommendations import suggest_first_move
 from app.models import ScanResult
+
+
+_SEVERITY_ORDER = {
+    "critical": 0,
+    "high": 1,
+    "medium": 2,
+    "low": 3,
+    "info": 4,
+}
 
 _TEMPLATE = """
 <!doctype html>
@@ -14,23 +23,23 @@ _TEMPLATE = """
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Turan Report</title>
+  <title>PsyberShield Deployment Readiness Review</title>
   <style>
     :root {
-      --bg: #eef2ff;
-      --bg-2: #f8fafc;
-      --panel: rgba(255, 255, 255, 0.9);
-      --text: #0f172a;
-      --muted: #64748b;
-      --line: rgba(148, 163, 184, 0.22);
-      --header: #0f172a;
-      --accent: #0284c7;
-      --accent-2: #14b8a6;
-      --low: #dbeafe;
-      --medium: #fef3c7;
-      --high: #fee2e2;
-      --critical: #fee2e2;
-      --info: #e2e8f0;
+      --bg: #050816;
+      --bg-2: #0f172a;
+      --panel: rgba(15, 23, 42, 0.86);
+      --text: #e5eefb;
+      --muted: #9aa9c2;
+      --line: rgba(148, 163, 184, 0.18);
+      --header: #f8fafc;
+      --accent: #f59e0b;
+      --accent-2: #22c55e;
+      --low: rgba(59, 130, 246, 0.18);
+      --medium: rgba(245, 158, 11, 0.18);
+      --high: rgba(248, 113, 113, 0.18);
+      --critical: rgba(248, 113, 113, 0.22);
+      --info: rgba(148, 163, 184, 0.18);
     }
     * { box-sizing: border-box; }
     body {
@@ -38,9 +47,9 @@ _TEMPLATE = """
       margin: 0;
       color: var(--text);
       background:
-        radial-gradient(circle at top left, rgba(14, 165, 233, 0.16), transparent 28%),
-        radial-gradient(circle at top right, rgba(20, 184, 166, 0.1), transparent 24%),
-        linear-gradient(180deg, #ffffff 0%, var(--bg) 45%, var(--bg-2) 100%);
+        radial-gradient(circle at top left, rgba(245, 158, 11, 0.12), transparent 26%),
+        radial-gradient(circle at top right, rgba(34, 197, 94, 0.11), transparent 24%),
+        linear-gradient(180deg, #020617 0%, var(--bg) 38%, var(--bg-2) 100%);
     }
     .page {
       max-width: 1180px;
@@ -53,12 +62,12 @@ _TEMPLATE = """
       gap: 18px;
       align-items: stretch;
       padding: 24px;
-      border: 1px solid rgba(148, 163, 184, 0.16);
-      border-radius: 26px;
+      border: 1px solid rgba(245, 158, 11, 0.2);
+      border-radius: 24px;
       background:
-        linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.9) 54%, rgba(2, 132, 199, 0.82));
+        linear-gradient(135deg, rgba(2, 6, 23, 0.98), rgba(15, 23, 42, 0.94) 58%, rgba(30, 41, 59, 0.9));
       color: #f8fafc;
-      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+      box-shadow: 0 28px 70px rgba(2, 6, 23, 0.5);
       margin-bottom: 18px;
     }
     h1 {
@@ -82,9 +91,9 @@ _TEMPLATE = """
       align-self: stretch;
       border-radius: 20px;
       padding: 18px;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      backdrop-filter: blur(10px);
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(14px);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -110,8 +119,8 @@ _TEMPLATE = """
       border-radius: 20px;
       padding: 18px 20px;
       margin: 18px 0;
-      box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
-      backdrop-filter: blur(10px);
+      box-shadow: 0 14px 34px rgba(2, 6, 23, 0.24);
+      backdrop-filter: blur(14px);
     }
     .summary-grid {
       display: grid;
@@ -120,11 +129,11 @@ _TEMPLATE = """
       margin-top: 12px;
     }
     .metric {
-      border: 1px solid rgba(148, 163, 184, 0.18);
+      border: 1px solid rgba(148, 163, 184, 0.16);
       border-radius: 16px;
       padding: 14px 15px;
-      background: linear-gradient(180deg, #ffffff, #f8fafc);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.92));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
     }
     .metric-critical { border-left: 4px solid #dc2626; }
     .metric-high { border-left: 4px solid #f97316; }
@@ -167,9 +176,9 @@ _TEMPLATE = """
     .context-item {
       padding: 12px 14px;
       border-radius: 14px;
-      background: #ffffff;
+      background: rgba(2, 6, 23, 0.55);
       border: 1px solid rgba(148, 163, 184, 0.18);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
     }
     .context-label {
       display: block;
@@ -200,11 +209,11 @@ _TEMPLATE = """
       gap: 6px;
       padding: 6px 12px;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.78);
+      background: rgba(15, 23, 42, 0.72);
       border: 1px solid rgba(148, 163, 184, 0.18);
       font-size: 0.82rem;
       font-weight: 700;
-      color: var(--header);
+      color: var(--text);
     }
     .chip-dot {
       width: 8px;
@@ -231,7 +240,7 @@ _TEMPLATE = """
       overflow: hidden;
       border: 1px solid rgba(148, 163, 184, 0.18);
       border-radius: 16px;
-      background: rgba(255, 255, 255, 0.76);
+      background: rgba(2, 6, 23, 0.72);
     }
     th, td {
       text-align: left;
@@ -240,22 +249,23 @@ _TEMPLATE = """
       vertical-align: top;
     }
     th {
-      background: linear-gradient(180deg, #f8fafc, #eef2ff);
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.94));
       color: var(--header);
       font-size: 0.92rem;
     }
     tr:last-child td { border-bottom: 0; }
-    tbody tr:hover td { background: rgba(14, 165, 233, 0.04); }
+    tbody tr:hover td { background: rgba(245, 158, 11, 0.06); }
     .muted { color: var(--muted); }
     .pill {
       display: inline-block;
       padding: 3px 10px;
       border-radius: 999px;
-      background: #e5e7eb;
+      background: rgba(148, 163, 184, 0.18);
       margin-right: 6px;
       font-size: 0.82rem;
       line-height: 1.3;
       font-weight: 700;
+      color: var(--text);
     }
     .sev-low { background: var(--low); color: #1d4ed8; }
     .sev-medium { background: var(--medium); color: #92400e; }
@@ -266,10 +276,11 @@ _TEMPLATE = """
       white-space: pre-wrap;
       word-break: break-word;
       margin: 0;
-      background: #f8fafc;
+      background: rgba(2, 6, 23, 0.75);
       border: 1px solid rgba(148, 163, 184, 0.18);
       border-radius: 10px;
       padding: 10px 12px;
+      color: var(--text);
     }
     .section-label {
       display: inline-block;
@@ -285,8 +296,15 @@ _TEMPLATE = """
       border-radius: 14px;
       border: 1px dashed rgba(148, 163, 184, 0.38);
       color: var(--muted);
-      background: rgba(248, 250, 252, 0.8);
+      background: rgba(2, 6, 23, 0.65);
       margin-top: 10px;
+    }
+    .summary-list {
+      margin: 12px 0 0;
+      padding-left: 20px;
+    }
+    .summary-list li {
+      margin: 8px 0;
     }
   </style>
 </head>
@@ -294,48 +312,23 @@ _TEMPLATE = """
   <div class="page">
     <div class="hero">
       <div>
-        <h1>Turan Report</h1>
-        <p class="subtitle">Target: {{ result.target.url }}</p>
+        <h1>PsyberShield Deployment Readiness Review</h1>
+        <p class="subtitle">Control-room view for the current deployment target: {{ result.target.url }}</p>
         <div class="hero-meta">
-          <span class="pill">Findings {{ result.findings|length }}</span>
+          <span class="pill">Detections {{ result.findings|length }}</span>
           <span class="pill">Notes {{ result.notes|length }}</span>
-          <span class="pill">Confidence {{ (result.scan_confidence * 100) | round(0) | int }}%</span>
+          <span class="pill">Readiness {{ (result.scan_confidence * 100) | round(0) | int }}%</span>
         </div>
       </div>
       <div class="hero-panel">
         <div>
-          <div class="hero-label">Generated for</div>
-          <div class="hero-value">Local review</div>
+          <div class="hero-label">Mode</div>
+          <div class="hero-value">Deployment review</div>
         </div>
         <div>
-          <div class="hero-label">WAF signals</div>
+          <div class="hero-label">Priority signals</div>
           <div class="hero-value">{{ result.waf_signals|join(", ") if result.waf_signals else "None noted" }}</div>
         </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="section-header">
-        <h2>Summary</h2>
-        <div class="section-hint">Quick read before you scroll into the findings</div>
-      </div>
-      <div class="summary-grid">
-        <div class="metric metric-accent"><span class="metric-label">Findings</span><span class="metric-value">{{ result.findings|length }}</span><span class="metric-subtext">All issues found in this pass</span></div>
-        <div class="metric metric-info"><span class="metric-label">Notes</span><span class="metric-value">{{ result.notes|length }}</span><span class="metric-subtext">Useful context and scan clues</span></div>
-        <div class="metric metric-positive"><span class="metric-label">TLS</span><span class="metric-value">{{ result.tls_summary.get("status", "-") }}</span><span class="metric-subtext">{% if result.tls_summary.get("expires_on") %}Expires {{ result.tls_summary.get("expires_on") }}{% else %}No TLS detail captured{% endif %}</span></div>
-        <div class="metric metric-low"><span class="metric-label">Low</span><span class="metric-value">{{ result.findings | selectattr("severity", "equalto", "low") | list | length }}</span><span class="metric-subtext">Small but worth fixing</span></div>
-        <div class="metric metric-medium"><span class="metric-label">Medium</span><span class="metric-value">{{ result.findings | selectattr("severity", "equalto", "medium") | list | length }}</span><span class="metric-subtext">Needs a closer look</span></div>
-        <div class="metric metric-high"><span class="metric-label">High / Critical</span><span class="metric-value">{{ (result.findings | selectattr("severity", "equalto", "high") | list | length) + (result.findings | selectattr("severity", "equalto", "critical") | list | length) }}</span><span class="metric-subtext">None in the current slice is expected to be fatal</span></div>
-      </div>
-      <div class="summary-chips">
-        {% if category_chips %}
-          {% for chip in category_chips[:4] %}
-            <span class="chip"><span class="chip-dot"></span>{{ chip.name }} <span class="chip-count">{{ chip.count }}</span></span>
-          {% endfor %}
-        {% else %}
-          <span class="chip"><span class="chip-dot"></span>No categories yet</span>
-        {% endif %}
-        <span class="chip"><span class="chip-dot"></span>Exposed files: {{ result.findings | selectattr("category", "equalto", "exposed_files") | list | length }}</span>
       </div>
     </div>
 
@@ -343,7 +336,7 @@ _TEMPLATE = """
     <div class="card">
       <div class="section-header">
         <h2>Application Context</h2>
-        <div class="section-hint">This is the discovery trail Turan used when no URL was supplied</div>
+        <div class="section-hint">This is the discovery trail PsyberShield used when no URL was supplied</div>
       </div>
       <div class="context-grid">
         <div class="context-item"><span class="context-label">Root</span><span class="context-value">{{ result.context.root }}</span></div>
@@ -363,11 +356,111 @@ _TEMPLATE = """
     </div>
     {% endif %}
 
+    <div class="card">
+      <div class="section-header">
+        <h2>Operational Snapshot</h2>
+        <div class="section-hint">The posture view for the current target</div>
+      </div>
+      <div class="summary-grid">
+        <div class="metric metric-accent"><span class="metric-label">Detections</span><span class="metric-value">{{ result.findings|length }}</span><span class="metric-subtext">All issues surfaced in this pass</span></div>
+        <div class="metric metric-info"><span class="metric-label">Notes</span><span class="metric-value">{{ result.notes|length }}</span><span class="metric-subtext">Context and scan clues worth keeping</span></div>
+        <div class="metric metric-positive"><span class="metric-label">TLS posture</span><span class="metric-value">{{ result.tls_summary.get("status", "-") }}</span><span class="metric-subtext">{% if result.tls_summary.get("expires_on") %}Expires {{ result.tls_summary.get("expires_on") }}{% else %}No TLS detail captured{% endif %}</span></div>
+        <div class="metric metric-low"><span class="metric-label">Low</span><span class="metric-value">{{ result.findings | selectattr("severity", "equalto", "low") | list | length }}</span><span class="metric-subtext">Worth fixing before handoff</span></div>
+        <div class="metric metric-medium"><span class="metric-label">Medium</span><span class="metric-value">{{ result.findings | selectattr("severity", "equalto", "medium") | list | length }}</span><span class="metric-subtext">Needs a closer look</span></div>
+        <div class="metric metric-high"><span class="metric-label">High / Critical</span><span class="metric-value">{{ (result.findings | selectattr("severity", "equalto", "high") | list | length) + (result.findings | selectattr("severity", "equalto", "critical") | list | length) }}</span><span class="metric-subtext">Anything here needs priority handling</span></div>
+      </div>
+      <div class="summary-chips">
+        {% if category_chips %}
+          {% for chip in category_chips[:4] %}
+            <span class="chip"><span class="chip-dot"></span>{{ chip.name }} <span class="chip-count">{{ chip.count }}</span></span>
+          {% endfor %}
+        {% else %}
+          <span class="chip"><span class="chip-dot"></span>No categories yet</span>
+        {% endif %}
+        <span class="chip"><span class="chip-dot"></span>Exposed files: {{ result.findings | selectattr("category", "equalto", "exposed_files") | list | length }}</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-header">
+        <h2>Executive Summary</h2>
+        <div class="section-hint">A short readout for handoff and triage</div>
+      </div>
+      <ul class="summary-list">
+        <li><strong>Detections:</strong> {{ result.findings|length }}</li>
+        <li><strong>Notes:</strong> {{ result.notes|length }}</li>
+        <li><strong>High / Critical:</strong> {{ high_critical_count }}</li>
+        <li><strong>Medium:</strong> {{ medium_count }}</li>
+        <li><strong>Low:</strong> {{ low_count }}</li>
+        <li><strong>Info:</strong> {{ info_count }}</li>
+        <li><strong>TLS posture:</strong> {{ result.tls_summary.get("status", "unknown") }}</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="section-header">
+        <h2>Severity Guide</h2>
+        <div class="section-hint">How to read the severity labels in this report</div>
+      </div>
+      <ul class="summary-list">
+        <li><strong>Critical:</strong> urgent, likely immediate risk</li>
+        <li><strong>High:</strong> important, should be handled first</li>
+        <li><strong>Medium:</strong> needs review and scheduling</li>
+        <li><strong>Low:</strong> useful hardening or hygiene item</li>
+        <li><strong>Info:</strong> context or supporting detail</li>
+      </ul>
+    </div>
+
+    {% if priority_findings %}
+    <div class="card">
+      <div class="section-header">
+        <h2>What to Fix First</h2>
+        <div class="section-hint">The first few items PsyberShield would hand to an operator</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Priority</th>
+            <th>Severity</th>
+            <th>Title</th>
+            <th>First Move</th>
+            <th>Impact</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in priority_findings %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td><span class="pill sev-{{ item.severity }}">{{ item.severity }}</span></td>
+            <td>{{ item.title }}</td>
+            <td>{{ suggest_first_move(item) }}</td>
+            <td>{{ item.expected_impact or "-" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    {% if result.notes %}
+    <div class="card">
+      <div class="section-header">
+        <h2>Notes</h2>
+        <div class="section-hint">Reasoning, discovery, and session clues PsyberShield captured during the run</div>
+      </div>
+      <ol class="crawl-list">
+        {% for note in result.notes %}
+        <li>{{ note }}</li>
+        {% endfor %}
+      </ol>
+    </div>
+    {% endif %}
+
     {% if result.scanned_urls|length > 1 %}
     <div class="card">
       <div class="section-header">
-        <h2>Scanned URLs</h2>
-        <div class="section-hint">These are the in-scope pages Turan visited in crawl mode</div>
+        <h2>Route Coverage</h2>
+        <div class="section-hint">These are the in-scope pages PsyberShield visited in crawl mode</div>
       </div>
       <ol class="crawl-list">
         {% for url in result.scanned_urls %}
@@ -430,7 +523,7 @@ _TEMPLATE = """
     {% if include_fix_plans and result.fix_plans %}
     <div class="card">
       <div class="section-header">
-        <h2>Proposed Fixes</h2>
+        <h2>Action Queue</h2>
         <div class="section-hint">Preview mode keeps this as a suggestion list</div>
       </div>
       <table>
@@ -483,10 +576,25 @@ def write_html_report(result: ScanResult, output_path: str | Path, include_fix_p
             key=lambda item: (category_priority.get(item[0], 99), -item[1], item[0]),
         )
     ]
+    severity_counts = Counter(finding.severity for finding in result.findings)
+    priority_findings = sorted(
+        result.findings,
+        key=lambda finding: (
+            _SEVERITY_ORDER.get(finding.severity, 99),
+            0 if finding.expected_impact and finding.expected_impact != "Report only; no system change required." else 1,
+            finding.title.lower(),
+        ),
+    )[:3]
     rendered = template.render(
         result=result,
         include_fix_plans=include_fix_plans,
         category_chips=category_chips,
+        high_critical_count=severity_counts.get("high", 0) + severity_counts.get("critical", 0),
+        medium_count=severity_counts.get("medium", 0),
+        low_count=severity_counts.get("low", 0),
+        info_count=severity_counts.get("info", 0),
+        priority_findings=priority_findings,
     )
     path.write_text(rendered, encoding="utf-8")
     return path
+

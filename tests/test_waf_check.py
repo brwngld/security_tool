@@ -1,4 +1,4 @@
-from app.checks.waf import detect_waf_signals
+from app.probes.waf import detect_waf_signals
 
 
 def test_detect_waf_signals_finds_known_markers() -> None:

@@ -1,2 +1,3 @@
-"""Hardening helpers for Turan."""
+"""Hardening helpers for PsyberShield."""
+
 

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from app.probes.server_info import *  # noqa: F401,F403
+
 
 def extract_server_banner(headers: dict[str, str]) -> str | None:
     for key in ("server", "x-powered-by"):
@@ -8,4 +10,3 @@ def extract_server_banner(headers: dict[str, str]) -> str | None:
                 if actual_key.lower() == key:
                     return value
     return None
-

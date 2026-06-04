@@ -3,7 +3,7 @@ from __future__ import annotations
 import httpx
 import re
 
-from app import scanner
+import app.engine as scanner
 from app.http.crawler import extract_links, extract_robots_sitemaps, extract_sitemap_urls
 
 
@@ -139,6 +139,9 @@ def test_crawl_target_walks_in_scope_pages(monkeypatch) -> None:
     assert any(finding.category == "server_info" for finding in result.findings)
     assert any(finding.category == "headers" for finding in result.findings)
     assert "Crawled 2 page(s) within scope." in result.notes
+    assert any(note.startswith("Why these pages?") for note in result.notes)
+    assert any(note.startswith("Scope:") for note in result.notes)
+    assert any(note.startswith("Discovery seeds:") for note in result.notes)
 
 
 def test_crawl_target_respects_include_scope(monkeypatch) -> None:

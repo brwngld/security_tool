@@ -1,4 +1,4 @@
-from app.checks.headers import check_security_headers
+from app.probes.headers import check_security_headers
 
 
 def test_check_security_headers_reports_only_missing_headers() -> None:

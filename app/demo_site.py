@@ -15,9 +15,9 @@ def demo_page(path: str) -> tuple[int, dict[str, str], str]:
             },
             """
             <html>
-                <head><title>Turan Demo</title></head>
+                <head><title>PsyberShield Demo</title></head>
                 <body>
-                    <h1>Turan Demo Site</h1>
+                    <h1>PsyberShield Demo Site</h1>
                     <a href=\"/.env\">.env</a>
                     <a href=\"/backup.zip\">backup</a>
                 </body>
@@ -74,7 +74,7 @@ class DemoSiteHandler(BaseHTTPRequestHandler):
 def serve_demo_site(port: int = 8000) -> None:
     server = ThreadingHTTPServer(("127.0.0.1", port), DemoSiteHandler)
     try:
-        print(f"Turan demo site running on http://127.0.0.1:{port}")
+        print(f"PsyberShield demo site running on http://127.0.0.1:{port}")
         server.serve_forever()
     except KeyboardInterrupt:
         pass

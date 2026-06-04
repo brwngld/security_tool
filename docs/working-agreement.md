@@ -1,6 +1,6 @@
-# Turan Working Agreement
+# PsyberShield Working Agreement
 
-These are the collaboration rules for building Turan:
+These are the collaboration rules for building PsyberShield:
 
 1. Comments should be short working notes, not tutorial prose.
 2. If a comment is needed, keep it close to the line and practical.

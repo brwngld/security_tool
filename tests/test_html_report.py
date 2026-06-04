@@ -115,6 +115,11 @@ def build_crawl_result() -> ScanResult:
         ],
         scanned_urls=["https://example.com/", "https://example.com/about"],
         crawl_seed_sources=["robots.txt", "sitemap.xml", "page links"],
+        notes=[
+            "Why these pages? PsyberShield starts at https://example.com/ and follows in-scope links until it reaches the crawl limits.",
+            "Scope: same-host only, max depth 2, max pages 20.",
+            "Discovery seeds: robots.txt, sitemap.xml, page links.",
+        ],
         tls_summary={"status": "ok", "expires_on": "2030-01-30"},
     )
 
@@ -125,8 +130,11 @@ def test_write_html_report_creates_file(workspace_temp_dir) -> None:
 
     assert output_path.exists()
     text = output_path.read_text(encoding="utf-8")
-    assert "<title>Turan Report</title>" in text
-    assert "Proposed Fixes" in text
+    assert "<title>PsyberShield Deployment Readiness Review</title>" in text
+    assert "Executive Summary" in text
+    assert "Severity Guide" in text
+    assert "What to Fix First" in text
+    assert "Action Queue" in text
     assert "Missing security header: x-content-type-options" in text
     assert "First Move" in text
     assert "Nginx" in text
@@ -155,3 +163,6 @@ def test_write_html_report_groups_findings_by_page(workspace_temp_dir) -> None:
     assert "https://example.com/" in text
     assert "https://example.com/about" in text
     assert "Seed sources: robots.txt, sitemap.xml, page links" in text
+    assert "Notes" in text
+    assert "Why these pages?" in text
+    assert "Executive Summary" in text

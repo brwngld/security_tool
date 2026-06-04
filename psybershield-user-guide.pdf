@@ -1,0 +1,1037 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+2 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>
+endobj
+3 0 obj
+<< /Length 3104 >>
+stream
+BT /F1 18 Tf 50 744 Td (PsyberShield User Guide) Tj ET
+BT /F2 10 Tf 50 716 Td () Tj ET
+BT /F2 10 Tf 50 702 Td (PsyberShield is a Python-based security visibility and response tool for small servers) Tj ET
+BT /F2 10 Tf 50 688 Td (and web applications.) Tj ET
+BT /F2 10 Tf 50 674 Td (This guide is a living document. It describes the current CLI behavior, the command) Tj ET
+BT /F2 10 Tf 50 660 Td (set, the important flags, and what to expect from each workflow.) Tj ET
+BT /F2 10 Tf 50 646 Td () Tj ET
+BT /F2 10 Tf 50 632 Td (The preferred CLI command is `pshield`. `psybershield` and `turan` remain) Tj ET
+BT /F2 10 Tf 50 618 Td (compatibility aliases during the transition.) Tj ET
+BT /F2 10 Tf 50 604 Td () Tj ET
+BT /F2 10 Tf 50 590 Td (For version history, see [docs/changelog.md]\(docs/changelog.md\).) Tj ET
+BT /F2 10 Tf 50 576 Td (This guide and the changelog should be updated together when PsyberShield's) Tj ET
+BT /F2 10 Tf 50 562 Td (user-facing behavior changes.) Tj ET
+BT /F2 10 Tf 50 548 Td () Tj ET
+BT /F1 13 Tf 50 534 Td (What PsyberShield Does) Tj ET
+BT /F2 10 Tf 50 514 Td () Tj ET
+BT /F2 10 Tf 50 500 Td (PsyberShield helps you:) Tj ET
+BT /F2 10 Tf 50 486 Td () Tj ET
+BT /F2 10 Tf 50 472 Td (- scan a target URL) Tj ET
+BT /F2 10 Tf 50 458 Td (- crawl in-scope pages) Tj ET
+BT /F2 10 Tf 50 444 Td (- discover a local app target on a VPS when no URL is supplied) Tj ET
+BT /F2 10 Tf 50 430 Td (- inspect local environment and server layout) Tj ET
+BT /F2 10 Tf 50 416 Td (- generate safe fix artifacts) Tj ET
+BT /F2 10 Tf 50 402 Td (- apply one real local fix lane with backup and validation) Tj ET
+BT /F2 10 Tf 50 388 Td (- save reports, baselines, audit history, and comparison summaries) Tj ET
+BT /F2 10 Tf 50 374 Td () Tj ET
+BT /F2 10 Tf 50 360 Td (PsyberShield is intentionally defensive:) Tj ET
+BT /F2 10 Tf 50 346 Td () Tj ET
+BT /F2 10 Tf 50 332 Td (- it warns before risky commands) Tj ET
+BT /F2 10 Tf 50 318 Td (- it never prints secret values) Tj ET
+BT /F2 10 Tf 50 304 Td (- it prefers read-only behavior unless you explicitly ask for fixes) Tj ET
+BT /F2 10 Tf 50 290 Td (- it keeps a clear trail in the terminal and in saved outputs) Tj ET
+BT /F2 10 Tf 50 276 Td () Tj ET
+BT /F1 13 Tf 50 262 Td (Command Map) Tj ET
+BT /F2 10 Tf 50 242 Td () Tj ET
+BT /F2 10 Tf 50 228 Td (| Command | What it does | Typical use |) Tj ET
+BT /F2 10 Tf 50 214 Td (| --- | --- | --- |) Tj ET
+BT /F2 10 Tf 50 200 Td (| `scan` | Scans one target page or a discovered local target; supports browser-assisted login and `--profile` presets | Quick vulnerability check |) Tj ET
+BT /F2 10 Tf 50 186 Td (| `crawl` | Crawls in-scope links across multiple pages; supports browser-assisted login and `--profile` presets | Broader site sweep |) Tj ET
+BT /F2 10 Tf 50 172 Td (| `report` | Re-renders or previews a saved report | Review an existing JSON, Markdown, or HTML report |) Tj ET
+BT /F2 10 Tf 50 158 Td (| `audit` | Shows the append-only audit trail | Review scans and fix events |) Tj ET
+BT /F2 10 Tf 50 144 Td (| `baseline` | Saves a scan snapshot for later comparison | Track a known-good state |) Tj ET
+endstream
+endobj
+4 0 obj
+<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 3 0 R >>
+endobj
+5 0 obj
+<< /Length 3783 >>
+stream
+BT /F2 10 Tf 50 744 Td (| `compare` | Compares two saved scans and crawl coverage | See what changed |) Tj ET
+BT /F2 10 Tf 50 730 Td (| `drift` | Compares saved reports and highlights baseline drift | Watch for scan, file, log, and config changes |) Tj ET
+BT /F2 10 Tf 50 716 Td (| `secrets` | Scans files for obvious secret exposure | Check logs and configs for leaked values |) Tj ET
+BT /F2 10 Tf 50 702 Td (| `vuln scan` | Inventories local software versions and matches a small bundled offline advisory ruleset | Start a vulnerability-scanner workflow without changing the system |) Tj ET
+BT /F2 10 Tf 50 688 Td (| `bundle` | Packages a report and related artifacts into a ZIP archive | Share a handoff bundle |) Tj ET
+BT /F2 10 Tf 50 674 Td (| `doctor` | Checks the local machine and app environment | Health check without a URL |) Tj ET
+BT /F2 10 Tf 50 660 Td (| `server-check` | Discovers the server layout and scans the local app target | VPS/server discovery mode |) Tj ET
+BT /F2 10 Tf 50 646 Td (| `incident` | Detects suspicious activity in logs and can apply a denylist or fail2ban snippet | Defensive incident response |) Tj ET
+BT /F2 10 Tf 50 632 Td (| `watch` | Monitors logs, file drift, and process activity in a snapshot or follow loop; writes reports under `outputs/` by default and can compare file drift against `--baseline` | Continuous defensive monitoring |) Tj ET
+BT /F2 10 Tf 50 618 Td (| `timeline` | Shows the chronological order of findings and containment actions | Saved incident report replay |) Tj ET
+BT /F2 10 Tf 50 604 Td (| `integrity` | Compares monitored files against a saved baseline | File integrity drift monitoring |) Tj ET
+BT /F2 10 Tf 50 590 Td (| `fix --local` | Applies the first real local edit lane | Backup, edit, validate, rollback if needed |) Tj ET
+BT /F2 10 Tf 50 576 Td (| `demo` | Runs the local demo site | Test target for development |) Tj ET
+BT /F2 10 Tf 50 562 Td (| `demo-site` | Compatibility alias for the local demo site | Legacy command support |) Tj ET
+BT /F2 10 Tf 50 548 Td () Tj ET
+BT /F1 13 Tf 50 534 Td (Quick Start) Tj ET
+BT /F2 10 Tf 50 514 Td () Tj ET
+BT /F2 10 Tf 50 500 Td (Scan a target:) Tj ET
+BT /F2 10 Tf 50 486 Td () Tj ET
+BT /F2 10 Tf 50 472 Td (.\\venv\\Scripts\\python.exe -m app.main scan https://example.com) Tj ET
+BT /F2 10 Tf 50 458 Td () Tj ET
+BT /F2 10 Tf 50 444 Td (Discover a VPS target without typing a URL:) Tj ET
+BT /F2 10 Tf 50 430 Td () Tj ET
+BT /F2 10 Tf 50 416 Td (.\\venv\\Scripts\\python.exe -m app.main scan) Tj ET
+BT /F2 10 Tf 50 402 Td () Tj ET
+BT /F2 10 Tf 50 388 Td (Crawl more than one page:) Tj ET
+BT /F2 10 Tf 50 374 Td () Tj ET
+BT /F2 10 Tf 50 360 Td (.\\venv\\Scripts\\python.exe -m app.main crawl https://example.com --max-pages 20 --max-depth 2) Tj ET
+BT /F2 10 Tf 50 346 Td (.\\venv\\Scripts\\python.exe -m app.main crawl https://example.com --profile safe-vps) Tj ET
+BT /F2 10 Tf 50 332 Td () Tj ET
+BT /F2 10 Tf 50 318 Td (Generate an HTML report with a default filename under `outputs/`:) Tj ET
+BT /F2 10 Tf 50 304 Td () Tj ET
+BT /F2 10 Tf 50 290 Td (.\\venv\\Scripts\\python.exe -m app.main crawl https://example.com --html-output) Tj ET
+BT /F2 10 Tf 50 276 Td () Tj ET
+BT /F2 10 Tf 50 262 Td (Run the server discovery workflow:) Tj ET
+BT /F2 10 Tf 50 248 Td () Tj ET
+BT /F2 10 Tf 50 234 Td (.\\venv\\Scripts\\python.exe -m app.main server-check --yes) Tj ET
+BT /F2 10 Tf 50 220 Td () Tj ET
+BT /F2 10 Tf 50 206 Td (Check logs for suspicious activity and optionally apply containment:) Tj ET
+BT /F2 10 Tf 50 192 Td () Tj ET
+BT /F2 10 Tf 50 178 Td (.\\venv\\Scripts\\python.exe -m app.main incident --logs outputs\\access.log --apply-blocks) Tj ET
+BT /F2 10 Tf 50 164 Td (.\\venv\\Scripts\\python.exe -m app.main integrity . --baseline baselines\\integrity.json) Tj ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 5 0 R >>
+endobj
+7 0 obj
+<< /Length 3346 >>
+stream
+BT /F2 10 Tf 50 744 Td (.\\venv\\Scripts\\python.exe -m app.main timeline outputs\\incident.json --audit-log outputs\\audit.log) Tj ET
+BT /F2 10 Tf 50 730 Td (.\\venv\\Scripts\\python.exe -m app.main watch --logs outputs\\access.log --json-output) Tj ET
+BT /F2 10 Tf 50 716 Td (.\\venv\\Scripts\\python.exe -m app.main watch --follow --interval 30 --tail-file outputs\\access.log --html-output) Tj ET
+BT /F2 10 Tf 50 702 Td (.\\venv\\Scripts\\python.exe -m app.main vuln scan --html-output) Tj ET
+BT /F2 10 Tf 50 688 Td () Tj ET
+BT /F2 10 Tf 50 674 Td (Capture fresh snapshots from live sources:) Tj ET
+BT /F2 10 Tf 50 660 Td () Tj ET
+BT /F2 10 Tf 50 646 Td (.\\venv\\Scripts\\python.exe -m app.main incident --live --tail-file outputs\\access.log) Tj ET
+BT /F2 10 Tf 50 632 Td (.\\venv\\Scripts\\python.exe -m app.main incident --live --event-log-name System --fail2ban-output outputs\\incident-fail2ban.conf) Tj ET
+BT /F2 10 Tf 50 618 Td () Tj ET
+BT /F2 10 Tf 50 604 Td (Write a fail2ban-style snippet:) Tj ET
+BT /F2 10 Tf 50 590 Td () Tj ET
+BT /F2 10 Tf 50 576 Td (.\\venv\\Scripts\\python.exe -m app.main incident --logs outputs\\access.log --fail2ban-output outputs\\incident-fail2ban.conf) Tj ET
+BT /F2 10 Tf 50 562 Td () Tj ET
+BT /F2 10 Tf 50 548 Td (View a saved incident timeline:) Tj ET
+BT /F2 10 Tf 50 534 Td () Tj ET
+BT /F2 10 Tf 50 520 Td (.\\venv\\Scripts\\python.exe -m app.main timeline outputs\\incident.json --audit-log outputs\\audit.log --markdown-output outputs\\timeline.md) Tj ET
+BT /F2 10 Tf 50 506 Td () Tj ET
+BT /F2 10 Tf 50 492 Td (Generate rate-limit and maintenance-mode presets:) Tj ET
+BT /F2 10 Tf 50 478 Td () Tj ET
+BT /F2 10 Tf 50 464 Td (.\\venv\\Scripts\\python.exe -m app.main incident --logs outputs\\access.log --rate-limit-output outputs\\incident-rate-limit.conf --maintenance-output outputs\\incident-maintenance.conf) Tj ET
+BT /F2 10 Tf 50 450 Td () Tj ET
+BT /F2 10 Tf 50 436 Td (Compare saved reports for drift:) Tj ET
+BT /F2 10 Tf 50 422 Td () Tj ET
+BT /F2 10 Tf 50 408 Td (.\\venv\\Scripts\\python.exe -m app.main drift baselines\\scan.json outputs\\scan.json --json-output outputs\\drift.json) Tj ET
+BT /F2 10 Tf 50 394 Td () Tj ET
+BT /F2 10 Tf 50 380 Td (Scan for obvious secret exposure:) Tj ET
+BT /F2 10 Tf 50 366 Td () Tj ET
+BT /F2 10 Tf 50 352 Td (.\\venv\\Scripts\\python.exe -m app.main secrets . --markdown-output outputs\\secrets.md) Tj ET
+BT /F2 10 Tf 50 338 Td () Tj ET
+BT /F2 10 Tf 50 324 Td (Inventory local software versions and match bundled offline advisories:) Tj ET
+BT /F2 10 Tf 50 310 Td () Tj ET
+BT /F2 10 Tf 50 296 Td (.\\venv\\Scripts\\python.exe -m app.main vuln scan) Tj ET
+BT /F2 10 Tf 50 282 Td (.\\venv\\Scripts\\python.exe -m app.main vuln scan --json-output outputs\\vuln.json --html-output outputs\\vuln.html) Tj ET
+BT /F2 10 Tf 50 268 Td (.\\venv\\Scripts\\python.exe -m app.main vuln scan --inventory-only) Tj ET
+BT /F2 10 Tf 50 254 Td () Tj ET
+BT /F2 10 Tf 50 240 Td (Bundle a report and related artifacts:) Tj ET
+BT /F2 10 Tf 50 226 Td () Tj ET
+BT /F2 10 Tf 50 212 Td (.\\venv\\Scripts\\python.exe -m app.main bundle outputs\\incident.json --artifact outputs\\incident-fail2ban.conf --bundle-output outputs\\incident-bundle.zip) Tj ET
+BT /F2 10 Tf 50 198 Td () Tj ET
+BT /F2 10 Tf 50 184 Td (Apply the first real local fix lane:) Tj ET
+BT /F2 10 Tf 50 170 Td () Tj ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 7 0 R >>
+endobj
+9 0 obj
+<< /Length 2105 >>
+stream
+BT /F2 10 Tf 50 744 Td (.\\venv\\Scripts\\python.exe -m app.main fix --local --yes) Tj ET
+BT /F2 10 Tf 50 730 Td () Tj ET
+BT /F1 13 Tf 50 716 Td (Safety and Permission Prompt) Tj ET
+BT /F2 10 Tf 50 696 Td () Tj ET
+BT /F2 10 Tf 50 682 Td (Risky commands ask for confirmation by default:) Tj ET
+BT /F2 10 Tf 50 668 Td () Tj ET
+BT /F2 10 Tf 50 654 Td (- `scan`) Tj ET
+BT /F2 10 Tf 50 640 Td (- `crawl`) Tj ET
+BT /F2 10 Tf 50 626 Td (- `server-check`) Tj ET
+BT /F2 10 Tf 50 612 Td (- `incident`) Tj ET
+BT /F2 10 Tf 50 598 Td (- `fix --local`) Tj ET
+BT /F2 10 Tf 50 584 Td () Tj ET
+BT /F2 10 Tf 50 570 Td (The prompt is a reminder that you should only test systems you own or have explicit) Tj ET
+BT /F2 10 Tf 50 556 Td (permission to test.) Tj ET
+BT /F2 10 Tf 50 542 Td () Tj ET
+BT /F2 10 Tf 50 528 Td (Use `--yes` to skip the prompt in trusted automation.) Tj ET
+BT /F2 10 Tf 50 514 Td () Tj ET
+BT /F2 10 Tf 50 500 Td (Read-only commands stay quiet:) Tj ET
+BT /F2 10 Tf 50 486 Td () Tj ET
+BT /F2 10 Tf 50 472 Td (- `doctor`) Tj ET
+BT /F2 10 Tf 50 458 Td (- `report`) Tj ET
+BT /F2 10 Tf 50 444 Td (- `audit`) Tj ET
+BT /F2 10 Tf 50 430 Td (- `compare`) Tj ET
+BT /F2 10 Tf 50 416 Td (- `baseline`) Tj ET
+BT /F2 10 Tf 50 402 Td () Tj ET
+BT /F1 13 Tf 50 388 Td (Target Resolution) Tj ET
+BT /F2 10 Tf 50 368 Td () Tj ET
+BT /F2 10 Tf 50 354 Td (`scan` and `crawl` accept a target URL directly.) Tj ET
+BT /F2 10 Tf 50 340 Td () Tj ET
+BT /F2 10 Tf 50 326 Td (If you omit the URL, PsyberShield resolves a target in this order:) Tj ET
+BT /F2 10 Tf 50 312 Td () Tj ET
+BT /F2 10 Tf 50 298 Td (1. explicit URL on the command line) Tj ET
+BT /F2 10 Tf 50 284 Td (2. `--env-file`) Tj ET
+BT /F2 10 Tf 50 270 Td (3. the apps own `.env`) Tj ET
+BT /F2 10 Tf 50 256 Td (4. OS environment variables) Tj ET
+BT /F2 10 Tf 50 242 Td (5. server discovery on a VPS) Tj ET
+BT /F2 10 Tf 50 228 Td () Tj ET
+BT /F2 10 Tf 50 214 Td (The common environment variables are:) Tj ET
+BT /F2 10 Tf 50 200 Td () Tj ET
+BT /F2 10 Tf 50 186 Td (- `APP_URL`) Tj ET
+BT /F2 10 Tf 50 172 Td (- `TARGET_URL`) Tj ET
+BT /F2 10 Tf 50 158 Td (- `BASE_URL`) Tj ET
+endstream
+endobj
+10 0 obj
+<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 9 0 R >>
+endobj
+11 0 obj
+<< /Length 2360 >>
+stream
+BT /F2 10 Tf 50 744 Td () Tj ET
+BT /F2 10 Tf 50 730 Td (When PsyberShield discovers a local app target, it prints a short `Discovery:` line) Tj ET
+BT /F2 10 Tf 50 716 Td (and then a fuller application context block.) Tj ET
+BT /F2 10 Tf 50 702 Td () Tj ET
+BT /F1 13 Tf 50 688 Td (Output Files and Paths) Tj ET
+BT /F2 10 Tf 50 668 Td () Tj ET
+BT /F2 10 Tf 50 654 Td (PsyberShield writes user-facing artifacts into `outputs/`.) Tj ET
+BT /F2 10 Tf 50 640 Td () Tj ET
+BT /F2 10 Tf 50 626 Td (Supported output flags:) Tj ET
+BT /F2 10 Tf 50 612 Td () Tj ET
+BT /F2 10 Tf 50 598 Td (- `--json-output`) Tj ET
+BT /F2 10 Tf 50 584 Td (- `--markdown-output`) Tj ET
+BT /F2 10 Tf 50 570 Td (- `--html-output`) Tj ET
+BT /F2 10 Tf 50 556 Td (- `--output`) Tj ET
+BT /F2 10 Tf 50 542 Td (- `--audit-log`) Tj ET
+BT /F2 10 Tf 50 528 Td (- `--log-file`) Tj ET
+BT /F2 10 Tf 50 514 Td () Tj ET
+BT /F2 10 Tf 50 500 Td (You can use them in three ways:) Tj ET
+BT /F2 10 Tf 50 486 Td () Tj ET
+BT /F2 10 Tf 50 472 Td (- pass a full path) Tj ET
+BT /F2 10 Tf 50 458 Td (- pass a relative path) Tj ET
+BT /F2 10 Tf 50 444 Td (- pass the flag without a path and let PsyberShield create a timestamped filename under) Tj ET
+BT /F2 10 Tf 50 430 Td (  `outputs/`) Tj ET
+BT /F2 10 Tf 50 416 Td () Tj ET
+BT /F2 10 Tf 50 402 Td (Examples:) Tj ET
+BT /F2 10 Tf 50 388 Td () Tj ET
+BT /F2 10 Tf 50 374 Td (.\\venv\\Scripts\\python.exe -m app.main scan https://example.com --html-output) Tj ET
+BT /F2 10 Tf 50 360 Td (.\\venv\\Scripts\\python.exe -m app.main crawl https://example.com --json-output outputs\\crawl.json) Tj ET
+BT /F2 10 Tf 50 346 Td (.\\venv\\Scripts\\python.exe -m app.main baseline https://example.com --output) Tj ET
+BT /F2 10 Tf 50 332 Td () Tj ET
+BT /F2 10 Tf 50 318 Td (If you use a Windows-rooted path like `\\outputs\\crawl.html`, PsyberShield treats it as) Tj ET
+BT /F2 10 Tf 50 304 Td (project-relative and prints the resolved path.) Tj ET
+BT /F2 10 Tf 50 290 Td () Tj ET
+BT /F1 13 Tf 50 276 Td (`scan`) Tj ET
+BT /F2 10 Tf 50 256 Td () Tj ET
+BT /F2 10 Tf 50 242 Td (`scan` checks a single target entrypoint.) Tj ET
+BT /F2 10 Tf 50 228 Td () Tj ET
+BT /F2 10 Tf 50 214 Td (Syntax:) Tj ET
+BT /F2 10 Tf 50 200 Td () Tj ET
+BT /F2 10 Tf 50 186 Td (.\\venv\\Scripts\\python.exe -m app.main scan [URL]) Tj ET
+BT /F2 10 Tf 50 172 Td () Tj ET
+BT /F2 10 Tf 50 158 Td (Important flags:) Tj ET
+endstream
+endobj
+12 0 obj
+<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 11 0 R >>
+endobj
+13 0 obj
+<< /Length 2788 >>
+stream
+BT /F2 10 Tf 50 744 Td () Tj ET
+BT /F2 10 Tf 50 730 Td (- `--env-file PATH` reads a specific `.env`) Tj ET
+BT /F2 10 Tf 50 716 Td (- `--timeout SECONDS` changes the request timeout) Tj ET
+BT /F2 10 Tf 50 702 Td (- `--profile quick`, `--profile full`, and `--profile safe-vps` tune the scan defaults) Tj ET
+BT /F2 10 Tf 50 688 Td (- `--policy PATH` loads a policy file) Tj ET
+BT /F2 10 Tf 50 674 Td (- `--yes` skips the permission prompt) Tj ET
+BT /F2 10 Tf 50 660 Td (- `--preview-fixes` shows proposed fixes only) Tj ET
+BT /F2 10 Tf 50 646 Td (- `--interactive` lets you choose generate artifacts or local fixes) Tj ET
+BT /F2 10 Tf 50 632 Td (- `--generate-fixes` generates safe local remediation artifacts) Tj ET
+BT /F2 10 Tf 50 618 Td (- `--apply-fixes` is a legacy alias for `--generate-fixes`) Tj ET
+BT /F2 10 Tf 50 604 Td (- `--login-url`, `--auth-method`, `--username`, `--password`, `--password-env`,) Tj ET
+BT /F2 10 Tf 50 590 Td (  `--cookie`, `--session-file`, `--storage-state`, and browser auth flags enable) Tj ET
+BT /F2 10 Tf 50 576 Td (  authenticated scanning) Tj ET
+BT /F2 10 Tf 50 562 Td (- `--json-output`, `--markdown-output`, `--html-output` save reports) Tj ET
+BT /F2 10 Tf 50 548 Td () Tj ET
+BT /F2 10 Tf 50 534 Td (What to expect:) Tj ET
+BT /F2 10 Tf 50 520 Td () Tj ET
+BT /F2 10 Tf 50 506 Td (- one target page) Tj ET
+BT /F2 10 Tf 50 492 Td (- headers, cookies, TLS summary, exposed files, WAF signals) Tj ET
+BT /F2 10 Tf 50 478 Td (- suggested fix plans when report-only findings exist) Tj ET
+BT /F2 10 Tf 50 464 Td (- each fix plan gets a confidence label: report only, generate artifact, safe local fix,) Tj ET
+BT /F2 10 Tf 50 450 Td (  or needs manual approval) Tj ET
+BT /F2 10 Tf 50 436 Td (- optional saved reports in JSON, Markdown, and HTML) Tj ET
+BT /F2 10 Tf 50 422 Td () Tj ET
+BT /F2 10 Tf 50 408 Td (Example:) Tj ET
+BT /F2 10 Tf 50 394 Td () Tj ET
+BT /F2 10 Tf 50 380 Td (.\\venv\\Scripts\\python.exe -m app.main scan https://example.com --json-output --markdown-output) Tj ET
+BT /F2 10 Tf 50 366 Td (.\\venv\\Scripts\\python.exe -m app.main scan https://example.com --profile quick) Tj ET
+BT /F2 10 Tf 50 352 Td () Tj ET
+BT /F1 13 Tf 50 338 Td (`crawl`) Tj ET
+BT /F2 10 Tf 50 318 Td () Tj ET
+BT /F2 10 Tf 50 304 Td (`crawl` starts from one page and follows in-scope links across multiple pages.) Tj ET
+BT /F2 10 Tf 50 290 Td () Tj ET
+BT /F2 10 Tf 50 276 Td (Syntax:) Tj ET
+BT /F2 10 Tf 50 262 Td () Tj ET
+BT /F2 10 Tf 50 248 Td (.\\venv\\Scripts\\python.exe -m app.main crawl [URL]) Tj ET
+BT /F2 10 Tf 50 234 Td () Tj ET
+BT /F2 10 Tf 50 220 Td (Important flags:) Tj ET
+BT /F2 10 Tf 50 206 Td () Tj ET
+BT /F2 10 Tf 50 192 Td (- `--max-pages N`) Tj ET
+BT /F2 10 Tf 50 178 Td (- `--max-depth N`) Tj ET
+BT /F2 10 Tf 50 164 Td (- `--include REGEX`) Tj ET
+endstream
+endobj
+14 0 obj
+<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 13 0 R >>
+endobj
+15 0 obj
+<< /Length 2363 >>
+stream
+BT /F2 10 Tf 50 744 Td (- `--exclude REGEX`) Tj ET
+BT /F2 10 Tf 50 730 Td (- `--same-host-only` and `--allow-offsite`) Tj ET
+BT /F2 10 Tf 50 716 Td (- `--seed-robots` and `--seed-sitemap`) Tj ET
+BT /F2 10 Tf 50 702 Td (- `--env-file PATH`) Tj ET
+BT /F2 10 Tf 50 688 Td (- `--yes`) Tj ET
+BT /F2 10 Tf 50 674 Td (- authentication and browser-auth flags from `scan`) Tj ET
+BT /F2 10 Tf 50 660 Td (- report output flags) Tj ET
+BT /F2 10 Tf 50 646 Td () Tj ET
+BT /F2 10 Tf 50 632 Td (What to expect:) Tj ET
+BT /F2 10 Tf 50 618 Td () Tj ET
+BT /F2 10 Tf 50 604 Td (- a crawl summary with pages visited, unique URLs, and seed sources) Tj ET
+BT /F2 10 Tf 50 590 Td (- findings grouped by page in the terminal and saved reports) Tj ET
+BT /F2 10 Tf 50 576 Td (- repeated findings collapsed into an `Affected URLs` list) Tj ET
+BT /F2 10 Tf 50 562 Td (- optional seeded discovery from `robots.txt` and `sitemap.xml`) Tj ET
+BT /F2 10 Tf 50 548 Td () Tj ET
+BT /F2 10 Tf 50 534 Td (Example:) Tj ET
+BT /F2 10 Tf 50 520 Td () Tj ET
+BT /F2 10 Tf 50 506 Td (.\\venv\\Scripts\\python.exe -m app.main crawl https://example.com --max-pages 20 --max-depth 2 --seed-robots --seed-sitemap) Tj ET
+BT /F2 10 Tf 50 492 Td () Tj ET
+BT /F1 13 Tf 50 478 Td (Authenticated Scanning and Crawling) Tj ET
+BT /F2 10 Tf 50 458 Td () Tj ET
+BT /F2 10 Tf 50 444 Td (PsyberShield supports generic authenticated flows for protected content.) Tj ET
+BT /F2 10 Tf 50 430 Td () Tj ET
+BT /F2 10 Tf 50 416 Td (Supported auth modes:) Tj ET
+BT /F2 10 Tf 50 402 Td () Tj ET
+BT /F2 10 Tf 50 388 Td (- HTTP JSON login) Tj ET
+BT /F2 10 Tf 50 374 Td (- HTTP form login) Tj ET
+BT /F2 10 Tf 50 360 Td (- raw cookie reuse) Tj ET
+BT /F2 10 Tf 50 346 Td (- saved session files) Tj ET
+BT /F2 10 Tf 50 332 Td (- browser storage-state reuse) Tj ET
+BT /F2 10 Tf 50 318 Td (- browser-assisted login for JS-heavy flows) Tj ET
+BT /F2 10 Tf 50 304 Td () Tj ET
+BT /F2 10 Tf 50 290 Td (Common flags:) Tj ET
+BT /F2 10 Tf 50 276 Td () Tj ET
+BT /F2 10 Tf 50 262 Td (- `--login-url`) Tj ET
+BT /F2 10 Tf 50 248 Td (- `--auth-method json|form|browser`) Tj ET
+BT /F2 10 Tf 50 234 Td (- `--username`) Tj ET
+BT /F2 10 Tf 50 220 Td (- `--password`) Tj ET
+BT /F2 10 Tf 50 206 Td (- `--password-env`) Tj ET
+BT /F2 10 Tf 50 192 Td (- `--user-field`) Tj ET
+BT /F2 10 Tf 50 178 Td (- `--pass-field`) Tj ET
+BT /F2 10 Tf 50 164 Td (- `--cookie`) Tj ET
+endstream
+endobj
+16 0 obj
+<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 15 0 R >>
+endobj
+17 0 obj
+<< /Length 2453 >>
+stream
+BT /F2 10 Tf 50 744 Td (- `--session-file`) Tj ET
+BT /F2 10 Tf 50 730 Td (- `--save-session`) Tj ET
+BT /F2 10 Tf 50 716 Td (- `--storage-state`) Tj ET
+BT /F2 10 Tf 50 702 Td (- `--save-storage-state`) Tj ET
+BT /F2 10 Tf 50 688 Td (- `--browser-username-selector`) Tj ET
+BT /F2 10 Tf 50 674 Td (- `--browser-password-selector`) Tj ET
+BT /F2 10 Tf 50 660 Td (- `--browser-submit-selector`) Tj ET
+BT /F2 10 Tf 50 646 Td (- `--browser-headless` and `--browser-headed`) Tj ET
+BT /F2 10 Tf 50 632 Td (- `--auth-check-url`) Tj ET
+BT /F2 10 Tf 50 618 Td () Tj ET
+BT /F2 10 Tf 50 604 Td (Recommended pattern:) Tj ET
+BT /F2 10 Tf 50 590 Td () Tj ET
+BT /F2 10 Tf 50 576 Td (.\\venv\\Scripts\\python.exe -m app.main crawl `) Tj ET
+BT /F2 10 Tf 50 562 Td (  https://example.com `) Tj ET
+BT /F2 10 Tf 50 548 Td (  --login-url /auth/login `) Tj ET
+BT /F2 10 Tf 50 534 Td (  --auth-method json `) Tj ET
+BT /F2 10 Tf 50 520 Td (  --username alice `) Tj ET
+BT /F2 10 Tf 50 506 Td (  --password-env PsyberShield_PASSWORD `) Tj ET
+BT /F2 10 Tf 50 492 Td (  --auth-check-url /account) Tj ET
+BT /F2 10 Tf 50 478 Td () Tj ET
+BT /F2 10 Tf 50 464 Td (Browser-assisted quick example:) Tj ET
+BT /F2 10 Tf 50 450 Td () Tj ET
+BT /F2 10 Tf 50 436 Td (Browser auth requires either `--login-url` or `--storage-state` so PsyberShield can) Tj ET
+BT /F2 10 Tf 50 422 Td (establish the session before it scans.) Tj ET
+BT /F2 10 Tf 50 408 Td () Tj ET
+BT /F2 10 Tf 50 394 Td (.\\venv\\Scripts\\python.exe -m app.main scan `) Tj ET
+BT /F2 10 Tf 50 380 Td (  https://example.com `) Tj ET
+BT /F2 10 Tf 50 366 Td (  --auth-method browser `) Tj ET
+BT /F2 10 Tf 50 352 Td (  --login-url /auth/login `) Tj ET
+BT /F2 10 Tf 50 338 Td (  --browser-username-selector 'input[name="identifier"]' `) Tj ET
+BT /F2 10 Tf 50 324 Td (  --browser-password-selector 'input[name="password"]' `) Tj ET
+BT /F2 10 Tf 50 310 Td (  --username alice `) Tj ET
+BT /F2 10 Tf 50 296 Td (  --password-env PsyberShield_PASSWORD `) Tj ET
+BT /F2 10 Tf 50 282 Td (  --auth-check-url /account) Tj ET
+BT /F2 10 Tf 50 268 Td () Tj ET
+BT /F2 10 Tf 50 254 Td (Storage-state reuse example:) Tj ET
+BT /F2 10 Tf 50 240 Td () Tj ET
+BT /F2 10 Tf 50 226 Td (.\\venv\\Scripts\\python.exe -m app.main crawl `) Tj ET
+BT /F2 10 Tf 50 212 Td (  https://example.com `) Tj ET
+BT /F2 10 Tf 50 198 Td (  --storage-state browser\\storage_state.json `) Tj ET
+BT /F2 10 Tf 50 184 Td (  --auth-check-url /account) Tj ET
+BT /F2 10 Tf 50 170 Td () Tj ET
+endstream
+endobj
+18 0 obj
+<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 17 0 R >>
+endobj
+19 0 obj
+<< /Length 2150 >>
+stream
+BT /F2 10 Tf 50 744 Td (What to expect:) Tj ET
+BT /F2 10 Tf 50 730 Td () Tj ET
+BT /F2 10 Tf 50 716 Td (- PsyberShield logs in before crawling or scanning protected pages) Tj ET
+BT /F2 10 Tf 50 702 Td (- it confirms that login worked by checking a protected URL when you provide) Tj ET
+BT /F2 10 Tf 50 688 Td (  `--auth-check-url`) Tj ET
+BT /F2 10 Tf 50 674 Td (- it reuses the same session for the scan or crawl) Tj ET
+BT /F2 10 Tf 50 660 Td () Tj ET
+BT /F1 13 Tf 50 646 Td (`report`) Tj ET
+BT /F2 10 Tf 50 626 Td () Tj ET
+BT /F2 10 Tf 50 612 Td (`report` re-renders or previews a saved scan report from disk.) Tj ET
+BT /F2 10 Tf 50 598 Td () Tj ET
+BT /F2 10 Tf 50 584 Td (Syntax:) Tj ET
+BT /F2 10 Tf 50 570 Td () Tj ET
+BT /F2 10 Tf 50 556 Td (.\\venv\\Scripts\\python.exe -m app.main report <REPORT_FILE>) Tj ET
+BT /F2 10 Tf 50 542 Td () Tj ET
+BT /F2 10 Tf 50 528 Td (Accepted inputs:) Tj ET
+BT /F2 10 Tf 50 514 Td () Tj ET
+BT /F2 10 Tf 50 500 Td (- `.json`) Tj ET
+BT /F2 10 Tf 50 486 Td (- `.md`) Tj ET
+BT /F2 10 Tf 50 472 Td (- `.html`) Tj ET
+BT /F2 10 Tf 50 458 Td (- `.htm`) Tj ET
+BT /F2 10 Tf 50 444 Td () Tj ET
+BT /F2 10 Tf 50 430 Td (Optional output flags:) Tj ET
+BT /F2 10 Tf 50 416 Td () Tj ET
+BT /F2 10 Tf 50 402 Td (- `--json-output`) Tj ET
+BT /F2 10 Tf 50 388 Td (- `--markdown-output`) Tj ET
+BT /F2 10 Tf 50 374 Td (- `--html-output`) Tj ET
+BT /F2 10 Tf 50 360 Td () Tj ET
+BT /F2 10 Tf 50 346 Td (What to expect:) Tj ET
+BT /F2 10 Tf 50 332 Td () Tj ET
+BT /F2 10 Tf 50 318 Td (- JSON reports are rendered back into the normal terminal report view) Tj ET
+BT /F2 10 Tf 50 304 Td (- Markdown and HTML files can be copied to new destinations) Tj ET
+BT /F2 10 Tf 50 290 Td (- bare output flags create files under `outputs/`) Tj ET
+BT /F2 10 Tf 50 276 Td () Tj ET
+BT /F1 13 Tf 50 262 Td (`audit`) Tj ET
+BT /F2 10 Tf 50 242 Td () Tj ET
+BT /F2 10 Tf 50 228 Td (`audit` shows the append-only audit history.) Tj ET
+BT /F2 10 Tf 50 214 Td () Tj ET
+BT /F2 10 Tf 50 200 Td (Important flags:) Tj ET
+BT /F2 10 Tf 50 186 Td () Tj ET
+BT /F2 10 Tf 50 172 Td (- `--audit-log` and legacy alias `--log-file`) Tj ET
+BT /F2 10 Tf 50 158 Td (- `--last N`) Tj ET
+endstream
+endobj
+20 0 obj
+<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 19 0 R >>
+endobj
+21 0 obj
+<< /Length 2072 >>
+stream
+BT /F2 10 Tf 50 744 Td (- `--event NAME`) Tj ET
+BT /F2 10 Tf 50 730 Td (- `--target TEXT`) Tj ET
+BT /F2 10 Tf 50 716 Td (- `--json-output`) Tj ET
+BT /F2 10 Tf 50 702 Td () Tj ET
+BT /F2 10 Tf 50 688 Td (What to expect:) Tj ET
+BT /F2 10 Tf 50 674 Td () Tj ET
+BT /F2 10 Tf 50 660 Td (- filtered audit events in the terminal) Tj ET
+BT /F2 10 Tf 50 646 Td (- optional JSON export of the filtered audit list) Tj ET
+BT /F2 10 Tf 50 632 Td (- audit entries for scans, baselines, and fix actions) Tj ET
+BT /F2 10 Tf 50 618 Td () Tj ET
+BT /F2 10 Tf 50 604 Td (Example:) Tj ET
+BT /F2 10 Tf 50 590 Td () Tj ET
+BT /F2 10 Tf 50 576 Td (.\\venv\\Scripts\\python.exe -m app.main audit --last 25 --json-output) Tj ET
+BT /F2 10 Tf 50 562 Td () Tj ET
+BT /F1 13 Tf 50 548 Td (`baseline`) Tj ET
+BT /F2 10 Tf 50 528 Td () Tj ET
+BT /F2 10 Tf 50 514 Td (`baseline` saves a scan snapshot for later comparison.) Tj ET
+BT /F2 10 Tf 50 500 Td () Tj ET
+BT /F2 10 Tf 50 486 Td (Important flags:) Tj ET
+BT /F2 10 Tf 50 472 Td () Tj ET
+BT /F2 10 Tf 50 458 Td (- `--label NAME`) Tj ET
+BT /F2 10 Tf 50 444 Td (- `--output`) Tj ET
+BT /F2 10 Tf 50 430 Td (- `--audit-log`) Tj ET
+BT /F2 10 Tf 50 416 Td (- `--timeout`) Tj ET
+BT /F2 10 Tf 50 402 Td (- `--policy`) Tj ET
+BT /F2 10 Tf 50 388 Td () Tj ET
+BT /F2 10 Tf 50 374 Td (What to expect:) Tj ET
+BT /F2 10 Tf 50 360 Td () Tj ET
+BT /F2 10 Tf 50 346 Td (- a baseline JSON snapshot) Tj ET
+BT /F2 10 Tf 50 332 Td (- a companion `.meta.json` metadata file) Tj ET
+BT /F2 10 Tf 50 318 Td (- discovery details saved alongside the snapshot) Tj ET
+BT /F2 10 Tf 50 304 Td () Tj ET
+BT /F2 10 Tf 50 290 Td (Example:) Tj ET
+BT /F2 10 Tf 50 276 Td () Tj ET
+BT /F2 10 Tf 50 262 Td (.\\venv\\Scripts\\python.exe -m app.main baseline https://example.com --label vps-west --output) Tj ET
+BT /F2 10 Tf 50 248 Td () Tj ET
+BT /F1 13 Tf 50 234 Td (`compare`) Tj ET
+BT /F2 10 Tf 50 214 Td () Tj ET
+BT /F2 10 Tf 50 200 Td (`compare` compares two saved scan files.) Tj ET
+BT /F2 10 Tf 50 186 Td () Tj ET
+BT /F2 10 Tf 50 172 Td (Important flags:) Tj ET
+BT /F2 10 Tf 50 158 Td () Tj ET
+endstream
+endobj
+22 0 obj
+<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 21 0 R >>
+endobj
+23 0 obj
+<< /Length 2506 >>
+stream
+BT /F2 10 Tf 50 744 Td (- `--markdown-output`) Tj ET
+BT /F2 10 Tf 50 730 Td (- `--html-output`) Tj ET
+BT /F2 10 Tf 50 716 Td () Tj ET
+BT /F2 10 Tf 50 702 Td (What to expect:) Tj ET
+BT /F2 10 Tf 50 688 Td () Tj ET
+BT /F2 10 Tf 50 674 Td (- fixed findings) Tj ET
+BT /F2 10 Tf 50 660 Td (- new findings) Tj ET
+BT /F2 10 Tf 50 646 Td (- unchanged findings) Tj ET
+BT /F2 10 Tf 50 632 Td (- crawl coverage deltas when the inputs come from `crawl`) Tj ET
+BT /F2 10 Tf 50 618 Td (- a short terminal note when crawl coverage changes) Tj ET
+BT /F2 10 Tf 50 604 Td () Tj ET
+BT /F2 10 Tf 50 590 Td (Example:) Tj ET
+BT /F2 10 Tf 50 576 Td () Tj ET
+BT /F2 10 Tf 50 562 Td (.\\venv\\Scripts\\python.exe -m app.main compare old.json new.json --html-output) Tj ET
+BT /F2 10 Tf 50 548 Td () Tj ET
+BT /F1 13 Tf 50 534 Td (`doctor`) Tj ET
+BT /F2 10 Tf 50 514 Td () Tj ET
+BT /F2 10 Tf 50 500 Td (`doctor` checks the local machine and app environment, including suspicious listeners) Tj ET
+BT /F2 10 Tf 50 486 Td (and outbound connections. It also adds a deployment profile hint so you can tell) Tj ET
+BT /F2 10 Tf 50 472 Td (whether the host looks like a local development box, a service-backed server, or a) Tj ET
+BT /F2 10 Tf 50 458 Td (likely VPS-style deployment. Its readiness score is paired with a short breakdown of) Tj ET
+BT /F2 10 Tf 50 444 Td (the checks that most affected it, and the report labels the overall state as `ready`,) Tj ET
+BT /F2 10 Tf 50 430 Td (`warning`, or `danger`.) Tj ET
+BT /F2 10 Tf 50 416 Td () Tj ET
+BT /F2 10 Tf 50 402 Td (`doctor` also accepts `--json-output`, `--markdown-output`, and `--html-output` if you) Tj ET
+BT /F2 10 Tf 50 388 Td (want a saved report file.) Tj ET
+BT /F2 10 Tf 50 374 Td () Tj ET
+BT /F2 10 Tf 50 360 Td (What it checks:) Tj ET
+BT /F2 10 Tf 50 346 Td () Tj ET
+BT /F2 10 Tf 50 332 Td (- OS info) Tj ET
+BT /F2 10 Tf 50 318 Td (- Python version) Tj ET
+BT /F2 10 Tf 50 304 Td (- `.env` presence) Tj ET
+BT /F2 10 Tf 50 290 Td (- output folder writability) Tj ET
+BT /F2 10 Tf 50 276 Td (- app config paths) Tj ET
+BT /F2 10 Tf 50 262 Td (- common Nginx config paths) Tj ET
+BT /F2 10 Tf 50 248 Td (- localhost ports) Tj ET
+BT /F2 10 Tf 50 234 Td (- safe secret-status signals without printing secret values) Tj ET
+BT /F2 10 Tf 50 220 Td () Tj ET
+BT /F2 10 Tf 50 206 Td (Example:) Tj ET
+BT /F2 10 Tf 50 192 Td () Tj ET
+BT /F2 10 Tf 50 178 Td (.\\venv\\Scripts\\python.exe -m app.main doctor --env-file C:\\path\\to\\autoentrytrack\\.env) Tj ET
+BT /F2 10 Tf 50 164 Td () Tj ET
+endstream
+endobj
+24 0 obj
+<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 23 0 R >>
+endobj
+25 0 obj
+<< /Length 2202 >>
+stream
+BT /F1 13 Tf 50 744 Td (`server-check`) Tj ET
+BT /F2 10 Tf 50 724 Td () Tj ET
+BT /F2 10 Tf 50 710 Td (`server-check` is the server-facing discovery flow.) Tj ET
+BT /F2 10 Tf 50 696 Td () Tj ET
+BT /F2 10 Tf 50 682 Td (What it does:) Tj ET
+BT /F2 10 Tf 50 668 Td () Tj ET
+BT /F2 10 Tf 50 654 Td (- checks Nginx and systemd hints) Tj ET
+BT /F2 10 Tf 50 640 Td (- discovers the app target) Tj ET
+BT /F2 10 Tf 50 626 Td (- resolves the apps own `.env` when possible) Tj ET
+BT /F2 10 Tf 50 612 Td (- scans the discovered local target) Tj ET
+BT /F2 10 Tf 50 598 Td (- surfaces the deployment profile hint and the overall `ready` / `warning` / `danger`) Tj ET
+BT /F2 10 Tf 50 584 Td (  state) Tj ET
+BT /F2 10 Tf 50 570 Td () Tj ET
+BT /F2 10 Tf 50 556 Td (Important flags:) Tj ET
+BT /F2 10 Tf 50 542 Td () Tj ET
+BT /F2 10 Tf 50 528 Td (- `--env-file`) Tj ET
+BT /F2 10 Tf 50 514 Td (- `--nginx-config`) Tj ET
+BT /F2 10 Tf 50 500 Td (- `--timeout`) Tj ET
+BT /F2 10 Tf 50 486 Td (- `--yes`) Tj ET
+BT /F2 10 Tf 50 472 Td () Tj ET
+BT /F2 10 Tf 50 458 Td (Example:) Tj ET
+BT /F2 10 Tf 50 444 Td () Tj ET
+BT /F2 10 Tf 50 430 Td (.\\venv\\Scripts\\python.exe -m app.main server-check --yes) Tj ET
+BT /F2 10 Tf 50 416 Td () Tj ET
+BT /F1 13 Tf 50 402 Td (`fix --local`) Tj ET
+BT /F2 10 Tf 50 382 Td () Tj ET
+BT /F2 10 Tf 50 368 Td (`fix --local` is the first real live-edit lane.) Tj ET
+BT /F2 10 Tf 50 354 Td () Tj ET
+BT /F2 10 Tf 50 340 Td (What it does:) Tj ET
+BT /F2 10 Tf 50 326 Td () Tj ET
+BT /F2 10 Tf 50 312 Td (1. discovers a supported local file) Tj ET
+BT /F2 10 Tf 50 298 Td (2. backs it up) Tj ET
+BT /F2 10 Tf 50 284 Td (3. applies the change) Tj ET
+BT /F2 10 Tf 50 270 Td (4. validates it) Tj ET
+BT /F2 10 Tf 50 256 Td (5. rolls back on failure) Tj ET
+BT /F2 10 Tf 50 242 Td () Tj ET
+BT /F2 10 Tf 50 228 Td (What to expect:) Tj ET
+BT /F2 10 Tf 50 214 Td () Tj ET
+BT /F2 10 Tf 50 200 Td (- the target file is backed up before any edit) Tj ET
+BT /F2 10 Tf 50 186 Td (- the terminal shows the backup path and validation command) Tj ET
+BT /F2 10 Tf 50 172 Td (- the chosen local fix must be supported by the current lane) Tj ET
+BT /F2 10 Tf 50 158 Td (- unsupported findings stay in generate-artifact mode) Tj ET
+endstream
+endobj
+26 0 obj
+<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 25 0 R >>
+endobj
+27 0 obj
+<< /Length 2594 >>
+stream
+BT /F2 10 Tf 50 744 Td () Tj ET
+BT /F2 10 Tf 50 730 Td (Example:) Tj ET
+BT /F2 10 Tf 50 716 Td () Tj ET
+BT /F2 10 Tf 50 702 Td (.\\venv\\Scripts\\python.exe -m app.main fix --local --yes) Tj ET
+BT /F2 10 Tf 50 688 Td () Tj ET
+BT /F1 13 Tf 50 674 Td (`--generate-fixes` and the legacy `--apply-fixes`) Tj ET
+BT /F2 10 Tf 50 654 Td () Tj ET
+BT /F2 10 Tf 50 640 Td (`--generate-fixes` creates local remediation artifacts and notes.) Tj ET
+BT /F2 10 Tf 50 626 Td () Tj ET
+BT /F2 10 Tf 50 612 Td (`--apply-fixes` still works as a backwards-compatible alias, but `--generate-fixes` is) Tj ET
+BT /F2 10 Tf 50 598 Td (the current name.) Tj ET
+BT /F2 10 Tf 50 584 Td () Tj ET
+BT /F2 10 Tf 50 570 Td (What to expect:) Tj ET
+BT /F2 10 Tf 50 556 Td () Tj ET
+BT /F2 10 Tf 50 542 Td (- a backup of the generated artifact, if one already exists) Tj ET
+BT /F2 10 Tf 50 528 Td (- a file under `outputs/generated/`) Tj ET
+BT /F2 10 Tf 50 514 Td (- a matching note and audit entry) Tj ET
+BT /F2 10 Tf 50 500 Td () Tj ET
+BT /F1 13 Tf 50 486 Td (`demo`) Tj ET
+BT /F2 10 Tf 50 466 Td () Tj ET
+BT /F2 10 Tf 50 452 Td (`demo` runs a local test target for development.) Tj ET
+BT /F2 10 Tf 50 438 Td () Tj ET
+BT /F2 10 Tf 50 424 Td (Example:) Tj ET
+BT /F2 10 Tf 50 410 Td () Tj ET
+BT /F2 10 Tf 50 396 Td (.\\venv\\Scripts\\python.exe -m app.main demo --port 8000) Tj ET
+BT /F2 10 Tf 50 382 Td () Tj ET
+BT /F2 10 Tf 50 368 Td (`demo-site` remains available as a compatibility alias.) Tj ET
+BT /F2 10 Tf 50 354 Td () Tj ET
+BT /F1 13 Tf 50 340 Td (`.env` Variables) Tj ET
+BT /F2 10 Tf 50 320 Td () Tj ET
+BT /F2 10 Tf 50 306 Td (These are the main environment variables PsyberShield reads:) Tj ET
+BT /F2 10 Tf 50 292 Td () Tj ET
+BT /F2 10 Tf 50 278 Td (| Variable | Used by | Purpose |) Tj ET
+BT /F2 10 Tf 50 264 Td (| --- | --- | --- |) Tj ET
+BT /F2 10 Tf 50 250 Td (| `APP_URL` | `scan` | Primary fallback target |) Tj ET
+BT /F2 10 Tf 50 236 Td (| `TARGET_URL` | `scan` | Secondary fallback target |) Tj ET
+BT /F2 10 Tf 50 222 Td (| `BASE_URL` | `scan` | Final fallback target |) Tj ET
+BT /F2 10 Tf 50 208 Td (| `DEBUG` | `doctor`, `server-check` | Warns about noisy debug mode |) Tj ET
+BT /F2 10 Tf 50 194 Td (| `SECRET_KEY` | `doctor`, `server-check` | Presence/weakness check only |) Tj ET
+BT /F2 10 Tf 50 180 Td (| `SERVER_NAME` | `doctor`, `server-check` | Reported as present or missing |) Tj ET
+BT /F2 10 Tf 50 166 Td (| `DATABASE_URL` | `doctor`, `server-check` | Reported as present or missing |) Tj ET
+BT /F2 10 Tf 50 152 Td (| `SMTP_PASSWORD` | `doctor`, `server-check` | Reported as present or missing |) Tj ET
+endstream
+endobj
+28 0 obj
+<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 27 0 R >>
+endobj
+29 0 obj
+<< /Length 2419 >>
+stream
+BT /F2 10 Tf 50 744 Td (| `PsyberShield_PASSWORD` | `scan`, `crawl` | Secret value read by `--password-env` from the shell or the active `.env` / `--env-file` for browser auth or other password-based login flows |) Tj ET
+BT /F2 10 Tf 50 730 Td () Tj ET
+BT /F1 13 Tf 50 716 Td (Saved Outputs) Tj ET
+BT /F2 10 Tf 50 696 Td () Tj ET
+BT /F2 10 Tf 50 682 Td (Current output folders:) Tj ET
+BT /F2 10 Tf 50 668 Td () Tj ET
+BT /F2 10 Tf 50 654 Td (- `outputs/` for user-facing artifacts) Tj ET
+BT /F2 10 Tf 50 640 Td (- `outputs/generated/` for generated fix artifacts) Tj ET
+BT /F2 10 Tf 50 626 Td (- `outputs/backups/` for backup files) Tj ET
+BT /F2 10 Tf 50 612 Td (- `outputs/remediation/` for remediation notes) Tj ET
+BT /F2 10 Tf 50 598 Td () Tj ET
+BT /F2 10 Tf 50 584 Td (Useful output examples:) Tj ET
+BT /F2 10 Tf 50 570 Td () Tj ET
+BT /F2 10 Tf 50 556 Td (.\\venv\\Scripts\\python.exe -m app.main scan https://example.com --html-output) Tj ET
+BT /F2 10 Tf 50 542 Td (.\\venv\\Scripts\\python.exe -m app.main crawl https://example.com --markdown-output outputs\\crawl.md) Tj ET
+BT /F2 10 Tf 50 528 Td (.\\venv\\Scripts\\python.exe -m app.main audit --json-output) Tj ET
+BT /F2 10 Tf 50 514 Td () Tj ET
+BT /F1 13 Tf 50 500 Td (What the Output Means) Tj ET
+BT /F2 10 Tf 50 480 Td () Tj ET
+BT /F2 10 Tf 50 466 Td (Typical scan output includes:) Tj ET
+BT /F2 10 Tf 50 452 Td () Tj ET
+BT /F2 10 Tf 50 438 Td (- target summary) Tj ET
+BT /F2 10 Tf 50 424 Td (- finding counts) Tj ET
+BT /F2 10 Tf 50 410 Td (- severity counts) Tj ET
+BT /F2 10 Tf 50 396 Td (- top categories) Tj ET
+BT /F2 10 Tf 50 382 Td (- WAF or CDN signals) Tj ET
+BT /F2 10 Tf 50 368 Td (- TLS summary when available) Tj ET
+BT /F2 10 Tf 50 354 Td (- a findings table) Tj ET
+BT /F2 10 Tf 50 340 Td (- proposed fixes for report-only issues) Tj ET
+BT /F2 10 Tf 50 326 Td () Tj ET
+BT /F2 10 Tf 50 312 Td (Typical crawl output adds:) Tj ET
+BT /F2 10 Tf 50 298 Td () Tj ET
+BT /F2 10 Tf 50 284 Td (- pages visited) Tj ET
+BT /F2 10 Tf 50 270 Td (- unique URLs) Tj ET
+BT /F2 10 Tf 50 256 Td (- seed sources) Tj ET
+BT /F2 10 Tf 50 242 Td (- per-page findings) Tj ET
+BT /F2 10 Tf 50 228 Td (- grouped repeated findings with affected URL lists) Tj ET
+BT /F2 10 Tf 50 214 Td () Tj ET
+BT /F2 10 Tf 50 200 Td (Typical doctor or server-check output adds:) Tj ET
+BT /F2 10 Tf 50 186 Td () Tj ET
+BT /F2 10 Tf 50 172 Td (- root path) Tj ET
+BT /F2 10 Tf 50 158 Td (- OS) Tj ET
+endstream
+endobj
+30 0 obj
+<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 29 0 R >>
+endobj
+31 0 obj
+<< /Length 2850 >>
+stream
+BT /F2 10 Tf 50 744 Td (- Python version) Tj ET
+BT /F2 10 Tf 50 730 Td (- environment file discovery) Tj ET
+BT /F2 10 Tf 50 716 Td (- Nginx/systemd hints) Tj ET
+BT /F2 10 Tf 50 702 Td (- suspicious listener and outbound connection activity) Tj ET
+BT /F2 10 Tf 50 688 Td (- localhost port checks) Tj ET
+BT /F2 10 Tf 50 674 Td () Tj ET
+BT /F2 10 Tf 50 660 Td (Typical incident output adds:) Tj ET
+BT /F2 10 Tf 50 646 Td () Tj ET
+BT /F2 10 Tf 50 632 Td (- source log paths) Tj ET
+BT /F2 10 Tf 50 618 Td (- suspect IPs and blocked IPs) Tj ET
+BT /F2 10 Tf 50 604 Td (- log family hints such as `apache-access`, `apache-error`, `auth`, `auth-middleware`,) Tj ET
+BT /F2 10 Tf 50 590 Td (  `gunicorn`, `ssh`, `sudo`, `systemd`, and `uwsgi`) Tj ET
+BT /F2 10 Tf 50 576 Td (- optional denylist, fail2ban, rate-limit, or maintenance-mode containment artifacts) Tj ET
+BT /F2 10 Tf 50 562 Td () Tj ET
+BT /F2 10 Tf 50 548 Td (Typical timeline output adds:) Tj ET
+BT /F2 10 Tf 50 534 Td () Tj ET
+BT /F2 10 Tf 50 520 Td (- ordered finding and containment events) Tj ET
+BT /F2 10 Tf 50 506 Td (- timestamps when the log lines or audit entries provided them) Tj ET
+BT /F2 10 Tf 50 492 Td (- source paths and audit log references for each event) Tj ET
+BT /F2 10 Tf 50 478 Td () Tj ET
+BT /F1 13 Tf 50 464 Td (Limitations and Boundaries) Tj ET
+BT /F2 10 Tf 50 444 Td () Tj ET
+BT /F2 10 Tf 50 430 Td (PsyberShield is intentionally defensive and best effort:) Tj ET
+BT /F2 10 Tf 50 416 Td () Tj ET
+BT /F2 10 Tf 50 402 Td (- it is not a substitute for a full SIEM, IDS, or dedicated EDR platform) Tj ET
+BT /F2 10 Tf 50 388 Td (- browser auth depends on the page structure, selectors, and whether the app accepts the) Tj ET
+BT /F2 10 Tf 50 374 Td (  login flow you provide) Tj ET
+BT /F2 10 Tf 50 360 Td (- some findings are heuristic and may need manual review before you treat them as) Tj ET
+BT /F2 10 Tf 50 346 Td (  confirmed issues) Tj ET
+BT /F2 10 Tf 50 332 Td (- WAF, TLS, and process/port signals may be unavailable or incomplete depending on the) Tj ET
+BT /F2 10 Tf 50 318 Td (  target and local environment) Tj ET
+BT /F2 10 Tf 50 304 Td (- saved reports and bundles only include what you asked PsyberShield to capture) Tj ET
+BT /F2 10 Tf 50 290 Td (- only the supported local fix lane is applied automatically; other findings stay in) Tj ET
+BT /F2 10 Tf 50 276 Td (  report or artifact form unless you act on them yourself) Tj ET
+BT /F2 10 Tf 50 262 Td (- you should only scan systems you own or have explicit permission to test) Tj ET
+BT /F2 10 Tf 50 248 Td () Tj ET
+BT /F1 13 Tf 50 234 Td (Integrity) Tj ET
+BT /F2 10 Tf 50 214 Td () Tj ET
+BT /F2 10 Tf 50 200 Td (`integrity` compares monitored files in a root directory against an optional saved) Tj ET
+BT /F2 10 Tf 50 186 Td (baseline.) Tj ET
+BT /F2 10 Tf 50 172 Td () Tj ET
+BT /F2 10 Tf 50 158 Td (Example:) Tj ET
+endstream
+endobj
+32 0 obj
+<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 31 0 R >>
+endobj
+33 0 obj
+<< /Length 2676 >>
+stream
+BT /F2 10 Tf 50 744 Td () Tj ET
+BT /F2 10 Tf 50 730 Td (.\\venv\\Scripts\\python.exe -m app.main integrity . --baseline baselines\\integrity.json --json-output outputs\\integrity.json) Tj ET
+BT /F2 10 Tf 50 716 Td () Tj ET
+BT /F2 10 Tf 50 702 Td (Typical integrity output adds:) Tj ET
+BT /F2 10 Tf 50 688 Td () Tj ET
+BT /F2 10 Tf 50 674 Td (- the monitored root) Tj ET
+BT /F2 10 Tf 50 660 Td (- the baseline path when one is supplied) Tj ET
+BT /F2 10 Tf 50 646 Td (- changed, missing, and new monitored files) Tj ET
+BT /F2 10 Tf 50 632 Td (- the file category, kind, hash, size, and timestamp for each tracked file) Tj ET
+BT /F2 10 Tf 50 618 Td () Tj ET
+BT /F1 11 Tf 50 604 Td (Baseline Workflow) Tj ET
+BT /F2 10 Tf 50 588 Td () Tj ET
+BT /F2 10 Tf 50 574 Td (Create a baseline after a known-good deployment:) Tj ET
+BT /F2 10 Tf 50 560 Td () Tj ET
+BT /F2 10 Tf 50 546 Td (.\\venv\\Scripts\\python.exe -m app.main integrity . --create-baseline baselines\\integrity.json) Tj ET
+BT /F2 10 Tf 50 532 Td () Tj ET
+BT /F2 10 Tf 50 518 Td (Refresh the baseline after approved changes only:) Tj ET
+BT /F2 10 Tf 50 504 Td () Tj ET
+BT /F2 10 Tf 50 490 Td (.\\venv\\Scripts\\python.exe -m app.main integrity . --create-baseline baselines\\integrity.json) Tj ET
+BT /F2 10 Tf 50 476 Td () Tj ET
+BT /F2 10 Tf 50 462 Td (Use the baseline in `watch` when you want live drift checks:) Tj ET
+BT /F2 10 Tf 50 448 Td () Tj ET
+BT /F2 10 Tf 50 434 Td (.\\venv\\Scripts\\python.exe -m app.main watch --baseline baselines\\integrity.json --logs outputs\\access.log) Tj ET
+BT /F2 10 Tf 50 420 Td () Tj ET
+BT /F2 10 Tf 50 406 Td (Operational notes:) Tj ET
+BT /F2 10 Tf 50 392 Td () Tj ET
+BT /F2 10 Tf 50 378 Td (- keep the baseline file in a team-owned location) Tj ET
+BT /F2 10 Tf 50 364 Td (- refresh it only after approved changes land) Tj ET
+BT /F2 10 Tf 50 350 Td (- expect ordinary drift from releases, config edits, and content updates) Tj ET
+BT /F2 10 Tf 50 336 Td (- record what changed when you refresh it so the baseline stays trusted) Tj ET
+BT /F2 10 Tf 50 322 Td () Tj ET
+BT /F1 13 Tf 50 308 Td (Drift) Tj ET
+BT /F2 10 Tf 50 288 Td () Tj ET
+BT /F2 10 Tf 50 274 Td (`drift` compares two saved reports of the same type and surfaces changes that matter) Tj ET
+BT /F2 10 Tf 50 260 Td (for defensive operations.) Tj ET
+BT /F2 10 Tf 50 246 Td () Tj ET
+BT /F2 10 Tf 50 232 Td (Example:) Tj ET
+BT /F2 10 Tf 50 218 Td () Tj ET
+BT /F2 10 Tf 50 204 Td (.\\venv\\Scripts\\python.exe -m app.main drift baselines\\scan.json outputs\\scan.json --html-output outputs\\drift.html) Tj ET
+BT /F2 10 Tf 50 190 Td () Tj ET
+BT /F2 10 Tf 50 176 Td (Typical drift output adds:) Tj ET
+BT /F2 10 Tf 50 162 Td () Tj ET
+endstream
+endobj
+34 0 obj
+<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 33 0 R >>
+endobj
+35 0 obj
+<< /Length 2933 >>
+stream
+BT /F2 10 Tf 50 744 Td (- the report type being compared) Tj ET
+BT /F2 10 Tf 50 730 Td (- baseline and current report paths) Tj ET
+BT /F2 10 Tf 50 716 Td (- changed findings or checks) Tj ET
+BT /F2 10 Tf 50 702 Td (- file, log, header, or config drift summaries depending on the report type) Tj ET
+BT /F2 10 Tf 50 688 Td () Tj ET
+BT /F1 13 Tf 50 674 Td (Secret Exposure) Tj ET
+BT /F2 10 Tf 50 654 Td () Tj ET
+BT /F2 10 Tf 50 640 Td (`secrets` scans likely config and log files for obvious secret exposure and redacts) Tj ET
+BT /F2 10 Tf 50 626 Td (the evidence before it is stored in the report.) Tj ET
+BT /F2 10 Tf 50 612 Td () Tj ET
+BT /F2 10 Tf 50 598 Td (Example:) Tj ET
+BT /F2 10 Tf 50 584 Td () Tj ET
+BT /F2 10 Tf 50 570 Td (.\\venv\\Scripts\\python.exe -m app.main secrets . --json-output outputs\\secrets.json) Tj ET
+BT /F2 10 Tf 50 556 Td () Tj ET
+BT /F2 10 Tf 50 542 Td (If you do not pass any output flags, `secrets` writes JSON, Markdown, and HTML reports) Tj ET
+BT /F2 10 Tf 50 528 Td (under `outputs/` automatically.) Tj ET
+BT /F2 10 Tf 50 514 Td () Tj ET
+BT /F2 10 Tf 50 500 Td (Typical secret-exposure output adds:) Tj ET
+BT /F2 10 Tf 50 486 Td () Tj ET
+BT /F2 10 Tf 50 472 Td (- the monitored root) Tj ET
+BT /F2 10 Tf 50 458 Td (- candidate source file count) Tj ET
+BT /F2 10 Tf 50 444 Td (- redacted snippets from matching lines) Tj ET
+BT /F2 10 Tf 50 430 Td (- a short recommendation for each exposure) Tj ET
+BT /F2 10 Tf 50 416 Td () Tj ET
+BT /F1 13 Tf 50 402 Td (Vulnerability Inventory) Tj ET
+BT /F2 10 Tf 50 382 Td () Tj ET
+BT /F2 10 Tf 50 368 Td (`vuln scan` inventories local software versions, parses pinned Python dependencies,) Tj ET
+BT /F2 10 Tf 50 354 Td (and compares discovered versions with advisory sources.) Tj ET
+BT /F2 10 Tf 50 340 Td () Tj ET
+BT /F2 10 Tf 50 326 Td (Example:) Tj ET
+BT /F2 10 Tf 50 312 Td () Tj ET
+BT /F2 10 Tf 50 298 Td (.\\venv\\Scripts\\python.exe -m app.main vuln scan) Tj ET
+BT /F2 10 Tf 50 284 Td (.\\venv\\Scripts\\python.exe -m app.main vuln scan --json-output outputs\\vuln.json --html-output outputs\\vuln.html) Tj ET
+BT /F2 10 Tf 50 270 Td (.\\venv\\Scripts\\python.exe -m app.main vuln scan --inventory-only) Tj ET
+BT /F2 10 Tf 50 256 Td (.\\venv\\Scripts\\python.exe -m app.main vuln scan --osv --osv-cache outputs\\advisory-cache\\osv) Tj ET
+BT /F2 10 Tf 50 242 Td () Tj ET
+BT /F2 10 Tf 50 228 Td (This version checks common local commands such as Nginx, Apache, OpenSSL, Python,) Tj ET
+BT /F2 10 Tf 50 214 Td (Node, npm, and PHP, then records the versions it can prove. It also parses simple) Tj ET
+BT /F2 10 Tf 50 200 Td (pinned Python dependencies from `requirements.txt` and `pyproject.toml`.) Tj ET
+BT /F2 10 Tf 50 186 Td () Tj ET
+BT /F2 10 Tf 50 172 Td (Default behavior stays offline and uses bundled rules for a few well-known advisories,) Tj ET
+BT /F2 10 Tf 50 158 Td (including Apache HTTP Server 2.4.49/2.4.50 and OpenSSL 3.0.0 through 3.0.6. Use) Tj ET
+endstream
+endobj
+36 0 obj
+<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 35 0 R >>
+endobj
+37 0 obj
+<< /Length 2863 >>
+stream
+BT /F2 10 Tf 50 744 Td (`--osv` to explicitly query OSV for parsed Python dependency manifests. OSV responses) Tj ET
+BT /F2 10 Tf 50 730 Td (are cached under `outputs\\advisory-cache\\osv` by default, or under the path supplied) Tj ET
+BT /F2 10 Tf 50 716 Td (with `--osv-cache`.) Tj ET
+BT /F2 10 Tf 50 702 Td () Tj ET
+BT /F2 10 Tf 50 688 Td (Important limitation: this is still not a full NVD, distro-advisory, or) Tj ET
+BT /F2 10 Tf 50 674 Td (vendor-backport scanner. Treat dependency matches as strong signals, and confirm) Tj ET
+BT /F2 10 Tf 50 660 Td (system package findings against the operating-system vendor before making production) Tj ET
+BT /F2 10 Tf 50 646 Td (decisions.) Tj ET
+BT /F2 10 Tf 50 632 Td () Tj ET
+BT /F2 10 Tf 50 618 Td (Typical vulnerability-inventory output adds:) Tj ET
+BT /F2 10 Tf 50 604 Td () Tj ET
+BT /F2 10 Tf 50 590 Td (- the monitored root) Tj ET
+BT /F2 10 Tf 50 576 Td (- the software components checked) Tj ET
+BT /F2 10 Tf 50 562 Td (- versions discovered from local command output) Tj ET
+BT /F2 10 Tf 50 548 Td (- pinned Python dependency versions discovered from dependency manifests) Tj ET
+BT /F2 10 Tf 50 534 Td (- local advisory matches when the bundled ruleset applies) Tj ET
+BT /F2 10 Tf 50 520 Td (- OSV dependency matches when `--osv` is enabled) Tj ET
+BT /F2 10 Tf 50 506 Td (- source and confidence labels for each advisory finding) Tj ET
+BT /F2 10 Tf 50 492 Td (- a note that distro backports and vendor advisories should be confirmed) Tj ET
+BT /F2 10 Tf 50 478 Td () Tj ET
+BT /F1 13 Tf 50 464 Td (Bundle) Tj ET
+BT /F2 10 Tf 50 444 Td () Tj ET
+BT /F2 10 Tf 50 430 Td (`bundle` packages a report together with related artifacts into a ZIP archive.) Tj ET
+BT /F2 10 Tf 50 416 Td () Tj ET
+BT /F2 10 Tf 50 402 Td (Example:) Tj ET
+BT /F2 10 Tf 50 388 Td () Tj ET
+BT /F2 10 Tf 50 374 Td (.\\venv\\Scripts\\python.exe -m app.main bundle outputs\\incident.json --artifact outputs\\incident-fail2ban.conf --bundle-output outputs\\incident-bundle.zip) Tj ET
+BT /F2 10 Tf 50 360 Td () Tj ET
+BT /F2 10 Tf 50 346 Td (If you omit `--bundle-output`, PsyberShield creates a report-named archive like) Tj ET
+BT /F2 10 Tf 50 332 Td (`incident.bundle.zip` and writes a matching manifest inside the ZIP.) Tj ET
+BT /F2 10 Tf 50 318 Td () Tj ET
+BT /F2 10 Tf 50 304 Td (Typical bundle output adds:) Tj ET
+BT /F2 10 Tf 50 290 Td () Tj ET
+BT /F2 10 Tf 50 276 Td (- the archive path) Tj ET
+BT /F2 10 Tf 50 262 Td (- the source report path) Tj ET
+BT /F2 10 Tf 50 248 Td (- the files included in the archive) Tj ET
+BT /F2 10 Tf 50 234 Td (- a small manifest inside the ZIP) Tj ET
+BT /F2 10 Tf 50 220 Td () Tj ET
+BT /F1 13 Tf 50 206 Td (Notifications) Tj ET
+BT /F2 10 Tf 50 186 Td () Tj ET
+BT /F2 10 Tf 50 172 Td (`incident`, `integrity`, and `timeline` can send a short report summary after they) Tj ET
+BT /F2 10 Tf 50 158 Td (finish.) Tj ET
+endstream
+endobj
+38 0 obj
+<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 37 0 R >>
+endobj
+39 0 obj
+<< /Length 2809 >>
+stream
+BT /F2 10 Tf 50 744 Td () Tj ET
+BT /F2 10 Tf 50 730 Td (Common flags:) Tj ET
+BT /F2 10 Tf 50 716 Td () Tj ET
+BT /F2 10 Tf 50 702 Td (- `--webhook-url`) Tj ET
+BT /F2 10 Tf 50 688 Td (- `--slack-webhook-url`) Tj ET
+BT /F2 10 Tf 50 674 Td (- `--discord-webhook-url`) Tj ET
+BT /F2 10 Tf 50 660 Td (- `--email-to`) Tj ET
+BT /F2 10 Tf 50 646 Td (- `--email-from`) Tj ET
+BT /F2 10 Tf 50 632 Td (- `--smtp-host`) Tj ET
+BT /F2 10 Tf 50 618 Td (- `--smtp-port`) Tj ET
+BT /F2 10 Tf 50 604 Td (- `--smtp-username`) Tj ET
+BT /F2 10 Tf 50 590 Td (- `--smtp-password-env`) Tj ET
+BT /F2 10 Tf 50 576 Td (- `--smtp-starttls` and `--no-smtp-starttls`) Tj ET
+BT /F2 10 Tf 50 562 Td () Tj ET
+BT /F2 10 Tf 50 548 Td (Example:) Tj ET
+BT /F2 10 Tf 50 534 Td () Tj ET
+BT /F2 10 Tf 50 520 Td (.\\venv\\Scripts\\python.exe -m app.main incident --logs outputs\\access.log --webhook-url https://hooks.example/webhook) Tj ET
+BT /F2 10 Tf 50 506 Td (.\\venv\\Scripts\\python.exe -m app.main integrity . --baseline baselines\\integrity.json --email-to security@example.com --email-from PsyberShield@example.com --smtp-host smtp.example.com --smtp-username PsyberShield --smtp-password-env SMTP_PASSWORD) Tj ET
+BT /F2 10 Tf 50 492 Td (.\\venv\\Scripts\\python.exe -m app.main timeline outputs\\incident.json --audit-log outputs\\audit.log --slack-webhook-url https://hooks.slack.com/services/...) Tj ET
+BT /F2 10 Tf 50 478 Td () Tj ET
+BT /F1 13 Tf 50 464 Td (Troubleshooting) Tj ET
+BT /F2 10 Tf 50 444 Td () Tj ET
+BT /F2 10 Tf 50 430 Td (If a bare output flag creates a file and you cannot find it:) Tj ET
+BT /F2 10 Tf 50 416 Td () Tj ET
+BT /F2 10 Tf 50 402 Td (- PsyberShield writes under `outputs/` in the current project directory) Tj ET
+BT /F2 10 Tf 50 388 Td (- if you pass `\\outputs\\file.html`, PsyberShield treats it as project-relative and tells) Tj ET
+BT /F2 10 Tf 50 374 Td (  you the resolved path) Tj ET
+BT /F2 10 Tf 50 360 Td (- if you pass a full absolute path, PsyberShield respects it) Tj ET
+BT /F2 10 Tf 50 346 Td () Tj ET
+BT /F2 10 Tf 50 332 Td (If `crawl` only reaches login or redirect pages:) Tj ET
+BT /F2 10 Tf 50 318 Td () Tj ET
+BT /F2 10 Tf 50 304 Td (- add auth flags) Tj ET
+BT /F2 10 Tf 50 290 Td (- add `--auth-check-url`) Tj ET
+BT /F2 10 Tf 50 276 Td (- confirm that the login worked before you trust the crawl results) Tj ET
+BT /F2 10 Tf 50 262 Td () Tj ET
+BT /F2 10 Tf 50 248 Td (If `server-check` finds a local app target but still points to the repo `.env`:) Tj ET
+BT /F2 10 Tf 50 234 Td () Tj ET
+BT /F2 10 Tf 50 220 Td (- make sure the discovered `EnvironmentFile` or working directory is correct) Tj ET
+BT /F2 10 Tf 50 206 Td (- pass `--env-file` if you want to override discovery) Tj ET
+BT /F2 10 Tf 50 192 Td () Tj ET
+BT /F1 13 Tf 50 178 Td (Maintaining This Guide) Tj ET
+BT /F2 10 Tf 50 158 Td () Tj ET
+endstream
+endobj
+40 0 obj
+<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 39 0 R >>
+endobj
+41 0 obj
+<< /Length 509 >>
+stream
+BT /F2 10 Tf 50 744 Td (This guide is meant to be updated as PsyberShield grows.) Tj ET
+BT /F2 10 Tf 50 730 Td () Tj ET
+BT /F2 10 Tf 50 716 Td (When you add a new command or flag:) Tj ET
+BT /F2 10 Tf 50 702 Td () Tj ET
+BT /F2 10 Tf 50 688 Td (1. update the CLI help in `app/main.py`) Tj ET
+BT /F2 10 Tf 50 674 Td (2. update this guide) Tj ET
+BT /F2 10 Tf 50 660 Td (3. update the README quick-start sections if needed) Tj ET
+BT /F2 10 Tf 50 646 Td (4. regenerate the PDF) Tj ET
+BT /F2 10 Tf 50 632 Td () Tj ET
+endstream
+endobj
+42 0 obj
+<< /Type /Page /Parent 43 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 41 0 R >>
+endobj
+43 0 obj
+<< /Type /Pages /Kids [4 0 R 6 0 R 8 0 R 10 0 R 12 0 R 14 0 R 16 0 R 18 0 R 20 0 R 22 0 R 24 0 R 26 0 R 28 0 R 30 0 R 32 0 R 34 0 R 36 0 R 38 0 R 40 0 R 42 0 R] /Count 20 >>
+endobj
+44 0 obj
+<< /Title (PsyberShield User Guide) /Author (OpenAI Codex) /Subject (Living user guide for the PsyberShield scanner and hardening assistant) /Producer (Custom PDF generator) >>
+endobj
+45 0 obj
+<< /Type /Catalog /Pages 43 0 R >>
+endobj
+xref
+0 46
+0000000000 65535 f 
+0000000015 00000 n 
+0000000085 00000 n 
+0000000153 00000 n 
+0000003309 00000 n 
+0000003446 00000 n 
+0000007281 00000 n 
+0000007418 00000 n 
+0000010816 00000 n 
+0000010953 00000 n 
+0000013110 00000 n 
+0000013248 00000 n 
+0000015661 00000 n 
+0000015800 00000 n 
+0000018641 00000 n 
+0000018780 00000 n 
+0000021196 00000 n 
+0000021335 00000 n 
+0000023841 00000 n 
+0000023980 00000 n 
+0000026183 00000 n 
+0000026322 00000 n 
+0000028447 00000 n 
+0000028586 00000 n 
+0000031145 00000 n 
+0000031284 00000 n 
+0000033539 00000 n 
+0000033678 00000 n 
+0000036325 00000 n 
+0000036464 00000 n 
+0000038936 00000 n 
+0000039075 00000 n 
+0000041978 00000 n 
+0000042117 00000 n 
+0000044846 00000 n 
+0000044985 00000 n 
+0000047971 00000 n 
+0000048110 00000 n 
+0000051026 00000 n 
+0000051165 00000 n 
+0000054027 00000 n 
+0000054166 00000 n 
+0000054727 00000 n 
+0000054866 00000 n 
+0000055056 00000 n 
+0000055249 00000 n 
+trailer
+<< /Size 46 /Root 45 0 R /Info 44 0 R >>
+startxref
+55300
+%%EOF

@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.pytest-temp/
+.pytest-temp2/
+pytesttemp/
+outputs/incident-live/
+tmp*/
+*.egg-info/
+dist/
+build/

@@ -275,6 +275,61 @@ def test_incident_command_applies_containment(monkeypatch, workspace_temp_dir) -
     assert "Containment" in text
 
 
+def test_incident_command_keeps_running_when_bundle_creation_fails(monkeypatch, workspace_temp_dir) -> None:
+    access_log = workspace_temp_dir / "access.log"
+    access_log.write_text(
+        '10.0.0.1 - - [27/May/2026:10:00:00 +0000] "GET /.env HTTP/1.1" 404 0 "-" "sqlmap/1.6"\n',
+        encoding="utf-8",
+    )
+    nginx_config = workspace_temp_dir / "nginx.conf"
+    nginx_config.write_text("server {\n    listen 80;\n}\n", encoding="utf-8")
+
+    report = IncidentReport(
+        context=ApplicationContext(
+            root=str(workspace_temp_dir),
+            discovery=DiscoveryReport(discovered=True, nginx_config=str(nginx_config)),
+        ),
+        target="http://127.0.0.1:8000",
+        source_files=[str(access_log)],
+        total_lines=1,
+        findings=[],
+        suspect_ips=["10.0.0.1"],
+        blocked_ips=["10.0.0.1"],
+        notes=["Auto-block threshold reached for: 10.0.0.1"],
+    )
+
+    recorded_console = Console(record=True, width=120)
+    output_calls = []
+    notification_calls = []
+    monkeypatch.setattr(main, "console", recorded_console)
+    monkeypatch.setattr(main, "confirm_risky_command", lambda action, assume_yes=False: True)
+    monkeypatch.setattr(main, "load_app_config", lambda policy_file: AppConfig(audit_log_path=str(workspace_temp_dir / "audit.log")))
+    monkeypatch.setattr(main, "resolve_application_context", lambda url, root, env_file, nginx_config=None, require_target=False: report.context)
+    monkeypatch.setattr(main, "analyze_incident_sources", lambda sources, **kwargs: report)
+    monkeypatch.setattr(main, "default_output_path", lambda command_name, option_name, stamp=None: workspace_temp_dir / "outputs" / "incident-bundle.zip" if option_name == "--bundle-output" else workspace_temp_dir / "outputs" / "incident.json")
+    monkeypatch.setattr(main, "apply_nginx_denylist", lambda config_path, blocked_ips: LocalFixResult(
+        target_path=str(config_path),
+        status="applied",
+        reason="Added a denylist include for 1 blocked IPs and the validation check passed.",
+        backup_path=str(config_path.with_suffix(".conf.bak")),
+        validation_command=f"nginx -t -c {config_path}",
+        validation_output="syntax is ok",
+        notes=["Reload the service when you are ready."],
+    ))
+    monkeypatch.setattr(main, "append_audit_event", lambda path, event: None)
+    monkeypatch.setattr(main, "bundle_report_files", lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("zip failed")))
+    monkeypatch.setattr(main, "send_notification_outputs", lambda *args, **kwargs: notification_calls.append(True))
+    monkeypatch.setattr(main, "write_incident_outputs", lambda *args, **kwargs: output_calls.append(True))
+
+    main.incident(None, logs=access_log, nginx_config=nginx_config, apply_blocks=True, yes=True, json_output=workspace_temp_dir / "incident.json")
+
+    text = recorded_console.export_text()
+    assert "Bundle creation failed" in text
+    assert notification_calls
+    assert output_calls
+    assert any("Bundle creation failed" in note for note in report.notes)
+
+
 def test_incident_command_uses_live_tail_snapshots(monkeypatch, workspace_temp_dir) -> None:
     live_log = workspace_temp_dir / "live.log"
     live_log.write_text(
@@ -381,9 +436,9 @@ def test_incident_command_forwards_notification_targets(monkeypatch, workspace_t
         slack_webhook_url=["https://hooks.example/slack"],
         discord_webhook_url=["https://hooks.example/discord"],
         email_to=["ops@example.com"],
-        email_from="turan@example.com",
+        email_from="PsyberShield@example.com",
         smtp_host="smtp.example.com",
-        smtp_username="turan",
+        smtp_username="PsyberShield",
         smtp_password_env="SMTP_PASSWORD",
         yes=True,
     )
@@ -394,4 +449,5 @@ def test_incident_command_forwards_notification_targets(monkeypatch, workspace_t
     assert forwarded["slack_webhook_urls"] == ["https://hooks.example/slack"]
     assert forwarded["discord_webhook_urls"] == ["https://hooks.example/discord"]
     assert forwarded["email_recipients"] == ["ops@example.com"]
-    assert forwarded["email_sender"] == "turan@example.com"
+    assert forwarded["email_sender"] == "PsyberShield@example.com"
+

@@ -27,4 +27,4 @@ def test_scan_command_uses_env_target_when_url_is_missing(monkeypatch, workspace
     text = recorded_console.export_text()
     assert "Using APP_URL from" in text
     assert env_file.name in text
-    assert "Turan Scan" in text
+    assert "PsyberShield Scan" in text

@@ -1,11 +1,13 @@
-# Turan Architecture
+# PsyberShield Architecture
 
 ## Purpose
 
-Turan is a Python-based web security scanner and hardening assistant.
-It supports HTTP/HTTPS scanning, passive crawling, detection of common website/server misconfigurations, WAF/firewall impact notes, incident log analysis for Apache/auth/systemd-style logs, file integrity monitoring, baseline drift detection, secret exposure checks, report bundling, report notifications, and safe defensive fixes where possible.
+PsyberShield is a Python-based security visibility and response tool for small servers and web applications.
+It supports HTTP/HTTPS scanning, passive crawling, detection of common website/server misconfigurations, WAF/firewall impact notes, incident log analysis for Apache/auth/systemd-style logs, continuous watch monitoring for logs/files/process activity, file integrity monitoring, baseline drift detection, secret exposure checks, report bundling, report notifications, and safe defensive fixes where possible.
 
-For a command-by-command usage guide, see [docs/turan-user-guide.md](docs/turan-user-guide.md) and the matching PDF at [turan-user-guide.pdf](turan-user-guide.pdf).
+The preferred CLI command is `pshield`. `psybershield` and `turan` remain compatibility aliases during the transition.
+
+For a command-by-command usage guide, see [docs/turan-user-guide.md](docs/turan-user-guide.md) and the matching PDF at [psybershield-user-guide.pdf](psybershield-user-guide.pdf).
 For a short version history, see [docs/changelog.md](docs/changelog.md).
 
 The core flow is:
@@ -35,10 +37,11 @@ That gate lives in one place only: the remediation executor.
 - All other modules produce findings, plans, or recommendations only.
 - The first live-edit lane is `fix --local`, and it only touches a discovered server file after backup and validation.
 - The incident-response lane is `incident`, and it only writes a denylist include after analysis and confirmation.
+- The watch lane is `watch`, and it stays log-only in v1: it observes, scores, and recommends containment without auto-blocking.
 
 ## Working Agreement
 
-These rules govern how we build Turan together:
+These rules govern how we build PsyberShield together:
 
 1. Comments should be short working notes, not tutorial prose.
 2. If a comment is needed, keep it close to the code and make it practical.
@@ -63,7 +66,7 @@ See also: [docs/working-agreement.md](docs/working-agreement.md)
 ## Cleaned Project Tree
 
 ```text
-turan/
+PsyberShield/
 |-- app/
 |   |-- __init__.py
 |   |-- main.py                 # CLI entry point
@@ -72,6 +75,7 @@ turan/
 |   |-- comparison.py           # compare two saved scan reports
 |   |-- doctor.py               # local machine and environment checks
 |   |-- incident.py             # suspicious activity analysis and containment planning
+|   |-- watch.py                # continuous monitoring and risk scoring
 |   |-- scanner.py              # coordinates scan flow
 |   |-- models.py               # Target, Finding, FixPlan, ScanResult, ComparisonResult
 |   |-- policy.py               # fix levels, approval rules, redaction rules
@@ -107,6 +111,7 @@ turan/
 |       |-- __init__.py
 |       |-- console.py          # terminal output
 |       |-- incident_report.py  # incident report export
+|       |-- watch_report.py     # watch report export
 |       |-- json_report.py      # JSON export
 |       |-- markdown_report.py  # Markdown export
 |       `-- html_report.py      # optional later
@@ -401,12 +406,12 @@ Authenticated crawl roadmap:
 - Phase 1, implemented: HTTP login/session reuse, JSON or form payloads, custom field names, raw cookie reuse, and an optional protected-page check after login.
 - Phase 2, implemented: saved session import/export with `--session-file` and `--save-session`.
 - Phase 3, implemented: browser storage-state import/export with `--storage-state` and `--save-storage-state`.
-- Phase 4, implemented: browser automation support for JS-heavy login flows when HTTP/session reuse is not enough. Install the optional browser extra with `pip install .[browser]`.
+- Phase 4, implemented: browser automation support for JS-heavy login flows when HTTP/session reuse is not enough. Install the optional browser extra with `pip install .[browser]`. Browser auth requires `--login-url` or `--storage-state` so the session can be established first.
 
 Example phase-1 commands:
 
 ```powershell
-.\venv\Scripts\python.exe -m app.main crawl https://example.com --login-url /auth/login --auth-method json --username alice --password-env TURAN_PASSWORD --auth-check-url /account
+.\venv\Scripts\python.exe -m app.main crawl https://example.com --login-url /auth/login --auth-method json --username alice --password-env PsyberShield_PASSWORD --auth-check-url /account
 .\venv\Scripts\python.exe -m app.main crawl https://example.com --cookie "session=abc123; csrf_token=..."
 ```
 
@@ -422,11 +427,124 @@ Example phase-3 commands:
 .\venv\Scripts\python.exe -m app.main crawl https://example.com --storage-state browser\storage_state.json --save-storage-state --auth-check-url /account
 ```
 
+To reuse an existing browser session without refreshing it, point `--storage-state` at the saved file and omit `--save-storage-state`.
+
 Example phase-4 command:
 
 ```powershell
-.\venv\Scripts\python.exe -m app.main crawl https://example.com --auth-method browser --browser-username-selector 'input[name="identifier"]' --browser-password-selector 'input[name="password"]' --username alice --password-env TURAN_PASSWORD --auth-check-url /account
+.\venv\Scripts\python.exe -m app.main crawl https://example.com --auth-method browser --login-url /auth/login --browser-username-selector 'input[name="identifier"]' --browser-password-selector 'input[name="password"]' --username alice --password-env PsyberShield_PASSWORD --auth-check-url /account
 ```
+
+## Improvement Roadmap
+
+The planned phases are complete. We are keeping the app stable while doing final release prep and cleanup.
+
+Phase 1: onboarding and packaging
+
+- clearer `pshield --help` output
+- `pshield demo` and `pshield doctor` first-run guidance
+- packaged `.exe` build path and release notes
+
+Phase 2: crawl and auth UX
+
+- better page discovery explanations
+- smarter auth/session handling
+- clearer `why only these pages?` messaging
+- polished sitemap and robots support
+
+Phase 3: reports
+
+- cleaner HTML report
+- executive summary
+- severity explanation
+- `what to fix first`
+
+Phase 4: doctor and server-check
+
+- better VPS detection
+- Nginx, systemd, and env checks
+- clear `ready`, `warning`, and `danger` status
+
+Phase 5: profiles
+
+- `--profile quick` for a fast, shallow pass
+- `--profile full` for a broader crawl with robots and sitemap hints
+- `--profile safe-vps` for a balanced VPS-friendly pass
+
+Example:
+
+```powershell
+.\venv\Scripts\python.exe -m app.main crawl https://example.com --profile safe-vps
+.\venv\Scripts\python.exe -m app.main scan https://example.com --profile quick
+```
+
+Phase 6: fix confidence
+
+- `report only`
+- `generate artifact`
+- `safe local fix`
+- `needs manual approval`
+
+Release prep:
+
+- verify the packaged `.exe`
+- refresh the user guide PDF if the docs change again
+- run a final focused test pass before cutting a release
+
+## Defensive Engine Roadmap
+
+The next major evolution is split into advisory intelligence and containment planning. The guiding rule is that destructive actions must be explicit, reversible where possible, and audited.
+
+Phase 1: advisory abstraction
+
+- add `AdvisorySource`
+- add `AdvisoryQuery`
+- add `LocalRulesSource`
+- route the existing bundled offline CVE rules through the source abstraction
+- keep `vuln scan` behavior compatible
+
+Phase 2: OSV dependency advisories
+
+- support Python dependency manifests first
+- parse simple pinned versions from `requirements.txt`
+- parse simple pinned versions from `pyproject.toml`
+- keep live OSV API calls disabled unless `--osv` is supplied
+- add local cache and graceful offline handling
+- label findings as confirmed, potential, or unknown
+
+Phase 3: version and distro awareness
+
+- normalize package names and versions
+- separate upstream version matches from distro-patched package status
+- report vendor backport uncertainty clearly
+
+Phase 4: containment planning
+
+- add `ContainmentRecommendation`
+- add `ContainmentAction`
+- add `ContainmentResult`
+- make `watch` produce recommendations before any action execution exists
+
+Phase 5: containment artifacts
+
+- generate Windows Firewall, iptables/nftables, Nginx denylist, and fail2ban artifacts
+- keep artifact generation separate from application
+
+Phase 6: dry-run containment
+
+- add `watch --contain --dry-run`
+- audit the plan without changing the system
+
+Phase 7: low-risk temporary blocking
+
+- add explicit temporary IP containment behind policy approval
+- audit every applied action
+- include rollback guidance
+
+Phase 8: high-risk actions
+
+- consider process kill, account disablement, and file quarantine only behind strict policy
+- require explicit flags, confidence thresholds, audit records, and rollback or restoration guidance
 
 Optional report exports:
 
@@ -442,13 +560,13 @@ Optional report exports:
 .\venv\Scripts\python.exe -m app.main scan https://example.com --html-output
 ```
 
-If you pass one of the report output flags without a path, Turan creates a timestamped file under `outputs/`.
+If you pass one of the report output flags without a path, PsyberShield creates a timestamped file under `outputs/`.
 
 When discovery resolves a local app target, the saved JSON, Markdown, and HTML reports include an `Application Context` section with the resolved target, env source, server hints, and discovery notes.
-When crawl mode visits multiple pages, the saved JSON, Markdown, and HTML reports also include a `Scanned URLs` section with the in-scope pages Turan visited, and repeated findings are grouped with an `Affected URLs` list instead of being repeated on every page.
-If you pass a Windows-rooted output path like `\outputs\scan.html`, Turan treats it as project-relative and prints the resolved path instead of silently writing to the drive root.
+When crawl mode visits multiple pages, the saved JSON, Markdown, and HTML reports also include a `Scanned URLs` section with the in-scope pages PsyberShield visited, and repeated findings are grouped with an `Affected URLs` list instead of being repeated on every page.
+If you pass a Windows-rooted output path like `\outputs\scan.html`, PsyberShield treats it as project-relative and prints the resolved path instead of silently writing to the drive root.
 
-Cookie findings stay cautious about CSRF-style values: when the cookie name looks like a CSRF/XSRF token, Turan lowers confidence and recommends reviewing the issuance location before making a flag change.
+Cookie findings stay cautious about CSRF-style values: when the cookie name looks like a CSRF/XSRF token, PsyberShield lowers confidence and recommends reviewing the issuance location before making a flag change.
 
 Saved report rendering:
 
@@ -479,7 +597,9 @@ Doctor:
 .\venv\Scripts\python.exe -m app.main doctor
 ```
 
-`doctor` checks the local machine, config paths, open localhost ports, safe environment status, and any resolved app target without taking a target URL.
+`doctor` checks the local machine, config paths, open localhost ports, safe environment status, a deployment profile hint, and any resolved app target without taking a target URL. The readiness score includes a short breakdown of the checks that most affected it, and the report also labels the overall state as `ready`, `warning`, or `danger`.
+
+`doctor` also supports `--json-output`, `--markdown-output`, and `--html-output` for saved reports.
 
 `doctor` can also read a specific env file:
 
@@ -493,7 +613,7 @@ Server check:
 .\venv\Scripts\python.exe -m app.main server-check
 ```
 
-`server-check` stays focused on server-facing paths, local service signals, and config checks, then scans the resolved local target when one is found.
+`server-check` stays focused on server-facing paths, local service signals, and config checks, then scans the resolved local target when one is found. It also prints the deployment profile hint and the overall readiness state so the host state is easier to read at a glance.
 
 `server-check` can also read a specific env file and a specific Nginx config:
 
@@ -517,9 +637,9 @@ Scan fallback:
 .\venv\Scripts\python.exe -m app.main scan
 ```
 
-When `scan` runs without a URL, Turan looks for `APP_URL`, then `TARGET_URL`, then `BASE_URL` in `.env` or the current environment. If those are missing, it checks the server layout first and prefers the app's own `.env` when Nginx or systemd point to an app root or an explicit `EnvironmentFile`. If discovery still can't resolve a target, Turan falls back to the project `.env` only as the last local fallback.
+When `scan` runs without a URL, PsyberShield looks for `APP_URL`, then `TARGET_URL`, then `BASE_URL` in `.env` or the current environment. If those are missing, it checks the server layout first and prefers the app's own `.env` when Nginx or systemd point to an app root or an explicit `EnvironmentFile`. If discovery still can't resolve a target, PsyberShield falls back to the project `.env` only as the last local fallback.
 
-When discovery finds a local target, Turan prints a short `Discovery:` line first and then the fuller context block.
+When discovery finds a local target, PsyberShield prints a short `Discovery:` line first and then the fuller context block.
 
 `scan` can also read a specific env file:
 
@@ -580,7 +700,7 @@ Comparison reports:
 Local demo site:
 
 ```powershell
-.\venv\Scripts\python.exe -m app.main demo-site --port 8000
+.\venv\Scripts\python.exe -m app.main demo --port 8000
 .\venv\Scripts\python.exe -m app.main scan http://127.0.0.1:8000
 ```
 
@@ -610,9 +730,9 @@ Interactive fixes:
 .\venv\Scripts\python.exe -m app.main scan http://127.0.0.1:8000 --interactive
 ```
 
-Interactive mode shows a numbered fix list, asks whether you want to generate artifacts or apply fixes locally, and then lets you choose all fixes or a numbered subset.
-If there are more than ten fixes, Turan shows a paged list and lets you move with `n` and `p`.
-For `fix-local`, Turan shows the target file, backup path, validation command, and rollback state before the final apply confirmation.
+Interactive mode shows a numbered fix list, labels each one as report only, generate artifact, safe local fix, or needs manual approval, asks whether you want to generate artifacts or apply fixes locally, and then lets you choose all fixes or a numbered subset.
+If there are more than ten fixes, PsyberShield shows a paged list and lets you move with `n` and `p`.
+For `fix-local`, PsyberShield shows the target file, backup path, validation command, and rollback state before the final apply confirmation.
 
 Apply fixes:
 
@@ -622,7 +742,7 @@ Apply fixes:
 
 Apply mode creates the backup first, then writes the local remediation note for each allowed safe fix.
 `--apply-fixes` is kept as a legacy alias for `--generate-fixes` so older muscle memory still works.
-Each remediation note keeps the backup path in the footer when Turan creates one.
+Each remediation note keeps the backup path in the footer when PsyberShield creates one.
 The generated fix artifact itself lands under `outputs/generated/` so it stays app-owned and easy to review.
 
 Real local edit lane:
@@ -632,3 +752,4 @@ Real local edit lane:
 ```
 
 `fix --local` is the first live-edit path. It discovers a supported server file, backs up the real file first, applies one small reversible edit, validates the config, and rolls back on failure.
+

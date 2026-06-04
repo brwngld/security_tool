@@ -27,13 +27,13 @@ def create_applied_artifact_backup(finding: Finding, output_dir: str | Path = "o
 
 def build_applied_artifact_text(finding: Finding, plan: FixPlan) -> str:
     header_lines = [
-        "# Turan reversible hardening artifact",
+        "# PsyberShield reversible hardening artifact",
         "",
         f"# Finding: {finding.title}",
         f"# Category: {finding.category}",
         f"# Target: {finding.target_url}",
         "",
-        "# This file is local to the Turan workspace.",
+        "# This file is local to the PsyberShield workspace.",
         "# It is safe to review, edit, or delete after the change is copied elsewhere.",
         "",
     ]
@@ -79,7 +79,7 @@ def build_applied_artifact_text(finding: Finding, plan: FixPlan) -> str:
         finding.category,
         [
             "# Keep this as a small reversible placeholder.",
-            "# Turan did not match a category-specific patch here, so this stays generic on purpose.",
+            "# PsyberShield did not match a category-specific patch here, so this stays generic on purpose.",
             f"# Suggested next step: {plan.expected_impact}",
             f"# Rollback: {plan.rollback_command or 'Restore the previous version of this file.'}",
         ],
@@ -101,3 +101,4 @@ def write_applied_artifact(
     artifact_path = applied_artifact_path(finding, output_dir)
     artifact_path.write_text(build_applied_artifact_text(finding, plan), encoding="utf-8")
     return artifact_path
+

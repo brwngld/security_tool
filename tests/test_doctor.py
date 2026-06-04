@@ -9,6 +9,7 @@ from app.context import ApplicationContext
 from app.doctor import DoctorCheck, DoctorReport, run_doctor_checks, run_server_checks
 from app.environment import ResolvedScanTarget
 from app.models import ScanResult, Target
+from app.reports.console import render_doctor_report
 
 
 def test_process_and_port_activity_flags_public_listener_and_outbound_connection(monkeypatch) -> None:
@@ -68,6 +69,8 @@ def test_doctor_checks_flag_local_settings(workspace_temp_dir) -> None:
     assert checks["App config paths"].status == "ok"
     assert checks["Nginx config paths"].status == "ok"
     assert checks["Nginx hardening"].status == "warn"
+    assert checks["Deployment profile"].status == "info"
+    assert "likely" in checks["Deployment profile"].summary
     assert checks["Process and port activity"].status == "warn"
     assert checks["Open local ports"].status == "info"
     assert checks["DEBUG"].status == "warn"
@@ -75,6 +78,11 @@ def test_doctor_checks_flag_local_settings(workspace_temp_dir) -> None:
     assert checks["SERVER_NAME"].status == "warn"
     assert checks["DATABASE_URL"].status == "ok"
     assert checks["SMTP_PASSWORD"].status == "ok"
+    assert report.readiness_score is not None
+    assert report.readiness_score < 100
+    assert report.readiness_state in {"warning", "danger"}
+    assert report.readiness_notes
+    assert any("Main drag from warnings" in note for note in report.readiness_notes)
 
 
 def test_server_checks_focus_on_server_signals(workspace_temp_dir) -> None:
@@ -98,6 +106,7 @@ def test_server_checks_focus_on_server_signals(workspace_temp_dir) -> None:
     assert "DEBUG" not in names
     assert "SECRET_KEY" not in names
     assert ".env" in names
+    assert "Deployment profile" in names
     assert "Output folder" in names
     assert "App config paths" in names
     assert "Process and port activity" in names
@@ -110,6 +119,9 @@ def test_doctor_command_prints_safe_statuses(monkeypatch, workspace_temp_dir) ->
         os_name="Windows",
         os_release="11",
         python_version="3.14.0",
+        readiness_score=88,
+        readiness_state="warning",
+        readiness_notes=["Readiness score is a weighted average across 2 check(s).", "Main drag from warnings: DEBUG."],
         checks=[
             DoctorCheck(name="SECRET_KEY", status="ok", summary="present", details={"source": ".env"}),
             DoctorCheck(name="DEBUG", status="warn", summary="enabled", details={"source": ".env"}),
@@ -127,6 +139,60 @@ def test_doctor_command_prints_safe_statuses(monkeypatch, workspace_temp_dir) ->
     assert "SECRET_KEY" in text
     assert "present" in text
     assert "supersecret" not in text
+    assert "Readiness state" in text
+    assert "WARNING" in text
+    assert "Readiness score" in text
+    assert "weighted average" in text
+    assert "Main drag from warnings" in text
+
+
+def test_doctor_command_writes_html_output(monkeypatch, workspace_temp_dir) -> None:
+    report = DoctorReport(
+        root=str(workspace_temp_dir),
+        os_name="Windows",
+        os_release="11",
+        python_version="3.14.0",
+        readiness_score=88,
+        readiness_state="ready",
+        readiness_notes=["Readiness score is a weighted average across 1 check(s)."],
+        checks=[DoctorCheck(name="SECRET_KEY", status="ok", summary="present", details={"source": ".env"})],
+    )
+
+    recorded_console = Console(record=True, width=100)
+    monkeypatch.setattr(main, "console", recorded_console)
+    monkeypatch.setattr(main, "run_doctor_checks", lambda env_file=None: report)
+
+    output_path = workspace_temp_dir / "outputs" / "doctor.html"
+    main.doctor(env_file=workspace_temp_dir / "autoentrytrack.env", html_output=output_path)
+
+    assert output_path.exists()
+    text = output_path.read_text(encoding="utf-8")
+    assert "PsyberShield Doctor Report" in text
+    assert "Readiness state" in text
+    assert "Readiness score" in text
+    assert "weighted average" in text
+
+
+def test_render_doctor_report_shows_readiness_score() -> None:
+    report = DoctorReport(
+        root="C:/workspace",
+        os_name="Windows",
+        os_release="11",
+        python_version="3.14.0",
+        readiness_score=88,
+        readiness_state="ready",
+        readiness_notes=["Readiness score is a weighted average across 1 check(s)."],
+        checks=[DoctorCheck(name="SECRET_KEY", status="ok", summary="present", details={"source": ".env"})],
+    )
+
+    console = Console(record=True, width=100)
+    console.print(render_doctor_report(report))
+    text = console.export_text()
+
+    assert "Readiness score" in text
+    assert "Readiness state" in text
+    assert "88%" in text
+    assert "weighted average" in text
 
 
 def test_server_check_command_uses_server_view(monkeypatch, workspace_temp_dir) -> None:

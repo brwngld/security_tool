@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from app.probes.waf import *  # noqa: F401,F403
+
 
 def detect_waf_signals(headers: dict[str, str]) -> list[str]:
     signals = []
@@ -8,4 +10,3 @@ def detect_waf_signals(headers: dict[str, str]) -> list[str]:
         if marker in lowered:
             signals.append(marker)
     return signals
-

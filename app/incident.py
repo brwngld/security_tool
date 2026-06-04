@@ -253,7 +253,7 @@ def _read_tail_file(path: Path, line_count: int) -> str:
     try:
         text = path.read_text(encoding="utf-8", errors="ignore")
     except OSError as exc:
-        return f"# Turan could not read {path}: {exc.__class__.__name__}"
+        return f"# PsyberShield could not read {path}: {exc.__class__.__name__}"
     return _tail_text(text, line_count)
 
 
@@ -886,3 +886,4 @@ def analyze_incident_sources(
         notes=notes,
         containment_applied=False,
     )
+

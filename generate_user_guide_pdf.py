@@ -94,9 +94,9 @@ class PdfWriter:
 
         info_obj = self.add_object(
             (
-                "<< /Title (Turan User Guide) "
+                "<< /Title (PsyberShield User Guide) "
                 "/Author (OpenAI Codex) "
-                "/Subject (Living user guide for the Turan scanner and hardening assistant) "
+                "/Subject (Living user guide for the PsyberShield scanner and hardening assistant) "
                 "/Producer (Custom PDF generator) >>"
             ).encode("ascii")
         )
@@ -231,7 +231,7 @@ def paginate(items: list[PdfLine], max_lines_per_page: int = 42) -> list[list[Pd
 def main() -> None:
     root = Path(__file__).resolve().parent
     source_path = root / "docs" / "turan-user-guide.md"
-    output_path = root / "turan-user-guide.pdf"
+    output_path = root / "psybershield-user-guide.pdf"
     markdown = source_path.read_text(encoding="utf-8")
     items = render_markdown_lines(markdown)
     pages = paginate(items)

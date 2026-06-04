@@ -43,7 +43,7 @@ def _validate_nginx_config(config_path: Path) -> tuple[bool, str, str]:
 
 def _build_denylist_text(blocked_ips: list[str]) -> str:
     lines = [
-        "# Turan incident denylist",
+        "# PsyberShield incident denylist",
         "# Generated automatically from suspicious log activity.",
         "",
     ]
@@ -92,7 +92,7 @@ def build_fail2ban_artifact(report: IncidentReport) -> str:
     primary_log_path = log_paths[0] if log_paths else "/var/log/nginx/access.log"
     failregexes = _collect_failregexes(report)
     lines = [
-        "# Turan fail2ban-style incident filter",
+        "# PsyberShield fail2ban-style incident filter",
         "# Generated from suspicious activity analysis.",
         "",
         "[INCLUDES]",
@@ -107,9 +107,9 @@ def build_fail2ban_artifact(report: IncidentReport) -> str:
         [
             "ignoreregex =",
             "",
-            "[turan-incident]",
+            "[PsyberShield-incident]",
             "enabled = true",
-            "filter = turan-incident",
+            "filter = PsyberShield-incident",
             f"logpath = {primary_log_path}",
             "maxretry = 5",
             "findtime = 600",
@@ -129,10 +129,10 @@ def write_fail2ban_artifact(report: IncidentReport, output_path: str | Path) -> 
 
 
 def build_rate_limit_artifact(report: IncidentReport) -> str:
-    zone_name = "turan_rate_limit"
+    zone_name = "PsyberShield_rate_limit"
     target_label = report.target or "incident"
     lines = [
-        "# Turan rate-limit containment preset",
+        "# PsyberShield rate-limit containment preset",
         "# Generated automatically from suspicious activity analysis.",
         "",
         f"limit_req_zone $binary_remote_addr zone={zone_name}:10m rate=10r/s;",
@@ -148,7 +148,7 @@ def build_rate_limit_artifact(report: IncidentReport) -> str:
         lines.extend(
             [
                 "",
-                "    # Suspicious IPs identified by Turan can be denied separately.",
+                "    # Suspicious IPs identified by PsyberShield can be denied separately.",
             ]
         )
         for ip in report.blocked_ips:
@@ -174,7 +174,7 @@ def write_rate_limit_artifact(report: IncidentReport, output_path: str | Path) -
 def build_maintenance_mode_artifact(report: IncidentReport) -> str:
     target_label = report.target or "incident"
     lines = [
-        "# Turan maintenance-mode containment preset",
+        "# PsyberShield maintenance-mode containment preset",
         "# Generated automatically from suspicious activity analysis.",
         "",
         "server {",
@@ -239,7 +239,7 @@ def apply_nginx_denylist(
         return LocalFixResult(
             target_path=str(config_path),
             status="blocked",
-            reason="Turan could not create a backup for the discovered Nginx config.",
+            reason="PsyberShield could not create a backup for the discovered Nginx config.",
             notes=["No file was changed."],
         )
 
@@ -260,7 +260,7 @@ def apply_nginx_denylist(
         return LocalFixResult(
             target_path=str(config_path),
             status="rolled_back",
-            reason="The Nginx validation check failed, so Turan restored the backup.",
+            reason="The Nginx validation check failed, so PsyberShield restored the backup.",
             backup_path=str(backup_path),
             validation_command=validation_command,
             validation_output=validation_output,
@@ -280,3 +280,4 @@ def apply_nginx_denylist(
 
 def apply_incident_containment(report: IncidentReport, config_path: Path) -> LocalFixResult:
     return apply_nginx_denylist(config_path, report.blocked_ips)
+

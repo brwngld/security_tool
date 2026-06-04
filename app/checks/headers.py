@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from app.probes.headers import *  # noqa: F401,F403
+
 
 def check_security_headers(headers: dict[str, str]) -> list[str]:
     # Check the v1 headers.

@@ -6,6 +6,7 @@ import types
 from pathlib import Path
 
 import httpx
+import pytest
 
 from app.http.auth import CrawlAuthConfig, authenticate_client
 
@@ -73,8 +74,8 @@ def test_authenticate_client_accepts_cookie_header() -> None:
     assert requests == [("GET", "/account", "session_id=session-123; csrf_token=abc123")]
 
 
-def test_authenticate_client_loads_and_saves_session_file(tmp_path: Path) -> None:
-    session_file = tmp_path / "session.json"
+def test_authenticate_client_loads_and_saves_session_file(workspace_temp_dir) -> None:
+    session_file = workspace_temp_dir / "session.json"
     session_file.write_text(json.dumps({"cookies": {"session_id": "from-file"}}), encoding="utf-8")
 
     requests: list[tuple[str, str, str]] = []
@@ -101,8 +102,8 @@ def test_authenticate_client_loads_and_saves_session_file(tmp_path: Path) -> Non
     assert requests == [("GET", "/account", "session_id=from-file")]
 
 
-def test_authenticate_client_loads_and_saves_storage_state(tmp_path: Path) -> None:
-    storage_state = tmp_path / "storage_state.json"
+def test_authenticate_client_loads_and_saves_storage_state(workspace_temp_dir) -> None:
+    storage_state = workspace_temp_dir / "storage_state.json"
     storage_state.write_text(
         json.dumps(
             {
@@ -150,8 +151,8 @@ def test_authenticate_client_loads_and_saves_storage_state(tmp_path: Path) -> No
     assert requests == [("GET", "/account", "session_id=from-storage")]
 
 
-def test_authenticate_client_uses_browser_auth_and_saves_storage_state(tmp_path: Path, monkeypatch) -> None:
-    storage_state = tmp_path / "browser_state.json"
+def test_authenticate_client_uses_browser_auth_and_saves_storage_state(workspace_temp_dir, monkeypatch) -> None:
+    storage_state = workspace_temp_dir / "browser_state.json"
     storage_state.write_text(
         json.dumps(
             {
@@ -327,9 +328,256 @@ def test_authenticate_client_uses_browser_auth_and_saves_storage_state(tmp_path:
     payload = json.loads(storage_state.read_text(encoding="utf-8"))
     assert payload["cookies"][0]["name"] == "session_id"
     assert payload["cookies"][0]["value"] == "browser-session"
-    assert any("Authenticated via browser" in note for note in notes)
-    assert any("Loaded browser storage state from" in note for note in notes)
-    assert any("Authenticated check passed" in note for note in notes)
-    assert any("Saved browser storage state to" in note for note in notes)
+    assert any("Browser auth: started" in note for note in notes)
+    assert any("Browser auth: password provided directly" in note for note in notes)
+    assert any("Browser auth/session inputs were merged" in note for note in notes)
+    assert any("Browser auth: login submitted" in note for note in notes)
+    assert any("Browser auth: storage-state preload" in note for note in notes)
+    assert any("Browser auth: check passed" in note for note in notes)
+    assert any("Browser auth: storage-state saved" in note for note in notes)
     assert client.cookies.get("session_id") == "browser-session"
     assert requests == []
+
+
+def test_authenticate_client_uses_password_env_from_env_file(workspace_temp_dir, monkeypatch) -> None:
+    env_file = workspace_temp_dir / ".env"
+    env_file.write_text("PsyberShield_PASSWORD=from-env-file\n", encoding="utf-8")
+    monkeypatch.delenv("PsyberShield_PASSWORD", raising=False)
+
+    class FakeResponse:
+        def __init__(self, status: int = 200) -> None:
+            self.status = status
+
+    class FakePage:
+        def __init__(self, context: "FakeContext") -> None:
+            self._context = context
+            self.url = ""
+            self.keyboard = self
+
+        async def goto(self, url: str, wait_until: str = "domcontentloaded") -> FakeResponse:  # noqa: ARG002
+            self.url = url
+            if url.endswith("/user/dashboard") and not self._context.authenticated:
+                self.url = "https://example.com/auth/login"
+            return FakeResponse(200)
+
+        async def fill(self, selector: str, value: str) -> None:
+            self._context.filled.append((selector, value))
+            if selector == "#password" and value == "from-env-file":
+                self._context.authenticated = True
+
+        async def click(self, selector: str) -> None:
+            self._context.clicked.append(selector)
+            if self._context.authenticated:
+                self._context.cookies_data["session_id"] = "browser-session"
+
+        async def wait_for_load_state(self, state: str) -> None:  # noqa: ARG002
+            return None
+
+        async def press(self, key: str) -> None:
+            self._context.keys.append(key)
+
+    class FakeContext:
+        def __init__(self) -> None:
+            self.cookies_data: dict[str, str] = {}
+            self.filled: list[tuple[str, str]] = []
+            self.clicked: list[str] = []
+            self.keys: list[str] = []
+            self.authenticated = False
+
+        async def add_cookies(self, cookies: list[dict[str, object]]) -> None:
+            for cookie in cookies:
+                self.cookies_data[str(cookie["name"])] = str(cookie["value"])
+
+        async def new_page(self) -> FakePage:
+            return FakePage(self)
+
+        async def cookies(self) -> list[dict[str, object]]:
+            return [
+                {
+                    "name": name,
+                    "value": value,
+                    "domain": "example.com",
+                    "path": "/",
+                    "expires": -1,
+                    "httpOnly": False,
+                    "secure": True,
+                    "sameSite": "Lax",
+                }
+                for name, value in self.cookies_data.items()
+            ]
+
+        async def storage_state(self, path: str | None = None) -> dict[str, object]:  # noqa: ARG002
+            return {"cookies": [], "origins": []}
+
+        async def close(self) -> None:
+            return None
+
+    class FakeBrowser:
+        async def new_context(self, storage_state: str | None = None) -> FakeContext:  # noqa: ARG002
+            return FakeContext()
+
+        async def close(self) -> None:
+            return None
+
+    class FakeChromium:
+        async def launch(self, headless: bool = True) -> FakeBrowser:  # noqa: ARG002
+            return FakeBrowser()
+
+    class FakeAsyncPlaywright:
+        def __init__(self) -> None:
+            self.chromium = FakeChromium()
+
+        async def __aenter__(self) -> "FakeAsyncPlaywright":
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb) -> None:  # noqa: ANN001
+            return None
+
+    def async_playwright() -> FakeAsyncPlaywright:
+        return FakeAsyncPlaywright()
+
+    fake_async_api = types.ModuleType("playwright.async_api")
+    fake_async_api.async_playwright = async_playwright
+    fake_playwright = types.ModuleType("playwright")
+    monkeypatch.setitem(sys.modules, "playwright", fake_playwright)
+    monkeypatch.setitem(sys.modules, "playwright.async_api", fake_async_api)
+
+    client = httpx.Client(transport=httpx.MockTransport(lambda request: httpx.Response(200, text="ok")), follow_redirects=True)
+    notes = authenticate_client(
+        client,
+        "https://example.com",
+        CrawlAuthConfig(
+            login_url="/auth/login",
+            auth_method="browser",
+            username="alice",
+            password_env="PsyberShield_PASSWORD",
+            env_file=str(env_file),
+            browser_username_selector="#identifier",
+            browser_password_selector="#password",
+            browser_submit_selector='button[type="submit"]',
+            auth_check_url="/user/dashboard",
+        ),
+    )
+
+    assert any("Browser auth: started" in note for note in notes)
+    assert any("Browser auth: password resolved from env-file" in note for note in notes)
+    assert any("Browser auth: login submitted" in note for note in notes)
+    assert any("Browser auth: check passed" in note for note in notes)
+
+
+def test_authenticate_client_reports_missing_password_env_for_browser_auth(workspace_temp_dir, monkeypatch) -> None:
+    class FakeResponse:
+        def __init__(self, status: int = 200) -> None:
+            self.status = status
+
+    class FakePage:
+        def __init__(self, context: "FakeContext") -> None:
+            self._context = context
+            self.url = ""
+            self.keyboard = self
+
+        async def goto(self, url: str, wait_until: str = "domcontentloaded") -> FakeResponse:  # noqa: ARG002
+            self.url = url
+            return FakeResponse(200)
+
+        async def fill(self, selector: str, value: str) -> None:
+            self._context.filled.append((selector, value))
+
+        async def click(self, selector: str) -> None:
+            self._context.clicked.append(selector)
+
+        async def wait_for_load_state(self, state: str) -> None:  # noqa: ARG002
+            return None
+
+        async def press(self, key: str) -> None:
+            self._context.keys.append(key)
+
+    class FakeContext:
+        def __init__(self) -> None:
+            self.filled: list[tuple[str, str]] = []
+            self.clicked: list[str] = []
+            self.keys: list[str] = []
+
+        async def add_cookies(self, cookies: list[dict[str, object]]) -> None:  # noqa: ARG002
+            return None
+
+        async def new_page(self) -> FakePage:
+            return FakePage(self)
+
+        async def cookies(self) -> list[dict[str, object]]:
+            return []
+
+        async def close(self) -> None:
+            return None
+
+    class FakeBrowser:
+        async def new_context(self, storage_state: str | None = None) -> FakeContext:  # noqa: ARG002
+            return FakeContext()
+
+        async def close(self) -> None:
+            return None
+
+    class FakeChromium:
+        async def launch(self, headless: bool = True) -> FakeBrowser:  # noqa: ARG002
+            return FakeBrowser()
+
+    class FakeAsyncPlaywright:
+        def __init__(self) -> None:
+            self.chromium = FakeChromium()
+
+        async def __aenter__(self) -> "FakeAsyncPlaywright":
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb) -> None:  # noqa: ANN001
+            return None
+
+    def async_playwright() -> FakeAsyncPlaywright:
+        return FakeAsyncPlaywright()
+
+    fake_async_api = types.ModuleType("playwright.async_api")
+    fake_async_api.async_playwright = async_playwright
+    fake_playwright = types.ModuleType("playwright")
+    monkeypatch.setitem(sys.modules, "playwright", fake_playwright)
+    monkeypatch.setitem(sys.modules, "playwright.async_api", fake_async_api)
+    monkeypatch.delenv("PsyberShield_PASSWORD", raising=False)
+    env_file = workspace_temp_dir / ".env"
+    env_file.write_text("", encoding="utf-8")
+    monkeypatch.chdir(workspace_temp_dir)
+
+    client = httpx.Client(transport=httpx.MockTransport(lambda request: httpx.Response(200, text="ok")), follow_redirects=True)
+    notes = authenticate_client(
+        client,
+        "https://example.com",
+        CrawlAuthConfig(
+            login_url="/auth/login",
+            auth_method="browser",
+            username="alice",
+            password_env="PsyberShield_PASSWORD",
+            env_file=str(env_file),
+            browser_username_selector="#identifier",
+            browser_password_selector="#password",
+            browser_submit_selector='button[type="submit"]',
+        ),
+    )
+
+    assert any("Browser auth: password env PsyberShield_PASSWORD was not found" in note for note in notes)
+    assert any("Browser auth: password was not resolved" in note for note in notes)
+    assert any("Browser auth: login submitted" in note for note in notes)
+
+
+def test_authenticate_client_requires_login_url_or_storage_state_for_browser_auth() -> None:
+    client = httpx.Client(transport=httpx.MockTransport(lambda request: httpx.Response(200, text="ok")), follow_redirects=True)
+
+    with pytest.raises(ValueError, match="Browser auth requires a login URL or a storage-state file."):
+        authenticate_client(
+            client,
+            "https://example.com",
+            CrawlAuthConfig(
+                auth_method="browser",
+                username="alice",
+                password="secret",
+                browser_username_selector='input[name="identifier"]',
+                browser_password_selector='input[name="password"]',
+                auth_check_url="/account",
+            ),
+        )

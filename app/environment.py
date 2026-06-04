@@ -28,7 +28,7 @@ def build_no_scan_target_message(keys: Sequence[str] = SCAN_TARGET_KEYS) -> str:
             "Or set:",
             "  APP_URL=http://127.0.0.1:5000",
             "",
-            "Or point Turan at a file:",
+            "Or point PsyberShield at a file:",
             "  python -m app.main scan --env-file /path/to/autoentrytrack/.env",
         ]
     )
@@ -118,3 +118,4 @@ def resolve_scan_target(
     if target is None:
         raise ValueError(NO_SCAN_TARGET_MESSAGE)
     return target
+

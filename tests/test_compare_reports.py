@@ -52,7 +52,7 @@ def test_write_markdown_comparison_report_creates_file(workspace_temp_dir) -> No
 
     assert output_path.exists()
     text = output_path.read_text(encoding="utf-8")
-    assert "# Turan Comparison" in text
+    assert "# PsyberShield Comparison" in text
     assert "## Comparison Context" in text
     assert "## Crawl Coverage" in text
     assert "Risk trend: worsened" in text
@@ -65,7 +65,7 @@ def test_write_html_comparison_report_creates_file(workspace_temp_dir) -> None:
 
     assert output_path.exists()
     text = output_path.read_text(encoding="utf-8")
-    assert "Turan Comparison" in text
+    assert "PsyberShield Comparison" in text
     assert "Comparison Context" in text
     assert "Crawl Coverage" in text
     assert "Fixed findings" in text

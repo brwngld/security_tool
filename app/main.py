@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import time
 import sys
 from pathlib import Path
 
@@ -15,11 +16,13 @@ from app.audit import (
     build_incident_audit_event,
     build_local_fix_audit_event,
     build_scan_audit_event,
+    build_vuln_audit_event,
+    build_watch_audit_event,
     filter_audit_events,
     read_audit_events,
     write_audit_events_json,
 )
-from app.doctor import run_doctor_checks, run_server_checks
+from app.diagnostics import run_doctor_checks, run_server_checks
 from app.config import load_app_config
 from app.approvals import (
     ask_to_apply_local_fix,
@@ -38,21 +41,25 @@ from app.integrity import analyze_integrity_sources
 from app.incident import analyze_incident_sources, collect_live_incident_sources, default_incident_sources
 from app.notifications import send_report_notifications, summarize_notification_results
 from app.secrets import analyze_secret_exposures
+from app.profiles import profile_summary_notes, resolve_profile_preset
 from app.timeline import load_timeline_report_from_path
+from app.vuln import scan_software_inventory
+from app.watch import run_watch_snapshot
 from app.http.auth import CrawlAuthConfig
-from app.hardening.backup import create_backup
-from app.hardening.applied_artifacts import applied_artifact_path, create_applied_artifact_backup
-from app.hardening.executor import evaluate_fix_plan, execute_fix
-from app.hardening.incident import (
+from app.http.normalizer import normalize_url
+from app.remediation.backup import create_backup
+from app.remediation.applied_artifacts import applied_artifact_path, create_applied_artifact_backup
+from app.remediation.executor import evaluate_fix_plan, execute_fix
+from app.remediation.incident import (
     apply_nginx_denylist,
     write_fail2ban_artifact,
     write_maintenance_mode_artifact,
     write_rate_limit_artifact,
 )
-from app.hardening.local_fixes import apply_local_nginx_hardening_fix, choose_local_fix_target
+from app.remediation.local_fixes import apply_local_nginx_hardening_fix, choose_local_fix_target
 from app.output_paths import default_output_path, expand_optional_output_arguments, normalize_output_path
 from app.models import LocalFixResult
-from app.scanner import crawl_target, scan_target
+from app.engine import crawl_target, scan_target
 from app.reports.comparison_report import write_html_comparison_report, write_markdown_comparison_report
 from app.reports.console import (
     render_audit_log,
@@ -71,13 +78,18 @@ from app.reports.console import (
     render_local_fix_result,
     render_policy,
     render_secret_report,
+    render_watch_report,
     render_timeline_report,
+    render_vuln_report,
 )
 from app.reports.drift_report import write_html_drift_report, write_json_drift_report, write_markdown_drift_report
+from app.reports.doctor_report import write_html_doctor_report, write_json_doctor_report, write_markdown_doctor_report
 from app.reports.integrity_report import write_html_integrity_report, write_json_integrity_report, write_markdown_integrity_report
 from app.reports.incident_report import write_html_incident_report, write_json_incident_report, write_markdown_incident_report
+from app.reports.watch_report import write_html_watch_report, write_json_watch_report, write_markdown_watch_report
 from app.reports.secret_report import write_html_secret_report, write_json_secret_report, write_markdown_secret_report
 from app.reports.timeline_report import write_html_timeline_report, write_json_timeline_report, write_markdown_timeline_report
+from app.reports.vuln_report import write_html_vuln_report, write_json_vuln_report, write_markdown_vuln_report
 from app.reports.html_report import write_html_report
 from app.reports.json_report import write_json_report
 from app.reports.markdown_report import write_markdown_report
@@ -88,7 +100,8 @@ app = typer.Typer(
     add_completion=False,
     rich_markup_mode="markdown",
     help=(
-        "Turan web security scanner and local hardening assistant.\n\n"
+        "PsyberShield security visibility and response for small servers and web applications.\n"
+        "The preferred CLI command is `pshield`; `psybershield` and `turan` remain compatibility aliases.\n\n"
         "**What it does now**\n"
         "- Normalizes a target URL\n"
         "- Fetches one page safely\n"
@@ -97,6 +110,7 @@ app = typer.Typer(
         "- Can import and export saved session cookies\n"
         "- Can import and export browser storage-state files\n"
         "- Can drive browser logins for JS-heavy auth flows when needed\n"
+        "- Offers preset profiles for quick, full, and safe-vps scan/crawl defaults\n"
         "- Checks security headers\n"
         "- Checks cookie flags\n"
         "- Flags server banners\n"
@@ -118,15 +132,18 @@ app = typer.Typer(
         "- Checks suspicious listeners and outbound connections on the local machine\n"
         "- Detects suspicious server or app activity from logs and can write denylist, fail2ban, rate-limit, and maintenance-mode containment artifacts\n"
         "- Monitors key files for integrity drift against a saved baseline\n"
+        "- Watches logs, file drift, and process/port activity in a snapshot or follow loop\n"
         "- Detects drift between saved baseline and current reports across scans, files, logs, and config checks\n"
         "- Scans files for obvious secret exposure with redacted evidence\n"
+        "- Inventories local software versions for future CVE matching with `vuln scan`\n"
         "- Packages related reports and containment artifacts into a ZIP bundle\n"
         "- Sends incident, integrity, and timeline notifications via webhooks, Slack, Discord, or email\n"
-        "- Runs a local demo site for testing\n\n"
+        "- Runs a local demo site for testing (`demo` alias)\n\n"
         "**Safety**\n"
         "- `--yes` skips the permission prompt for trusted automation\n\n"
         "**Browser auth**\n"
         "- `--auth-method browser` logs in with a browser session for JS-heavy auth flows\n"
+        "- browser auth requires `--login-url` or `--storage-state`\n"
         "- `--browser-username-selector` and `--browser-password-selector` target login fields\n"
         "- `--browser-submit-selector` clicks the submit control when needed\n"
         "- `--browser-headless/--browser-headed` chooses whether the browser runs visibly\n"
@@ -152,6 +169,7 @@ app = typer.Typer(
         "- `--interactive` lets you choose generate artifacts or fix locally, then pick fixes from a paged list\n"
         "- `--generate-fixes` creates a backup, then generates allowed safe fix artifacts as local remediation notes\n"
         "- `--apply-fixes` still works as a backwards-compatible alias for `--generate-fixes` and is kept for older muscle memory\n\n"
+        "- fix plans now show a confidence label: report only, generate artifact, safe local fix, or needs manual approval\n"
         "- `fix --local` discovers a supported server file, backs it up, and applies one real local edit\n\n"
         "**Examples**\n"
         "```powershell\n"
@@ -162,10 +180,12 @@ app = typer.Typer(
         "crawl http://127.0.0.1:8000\n"
         "scan --env-file /path/to/autoentrytrack/.env\n"
         "crawl https://example.com --seed-robots --seed-sitemap\n"
-        "crawl https://example.com --login-url /auth/login --auth-method json --username alice --password-env TURAN_PASSWORD --auth-check-url /account\n"
+        "crawl https://example.com --profile quick\n"
+        "scan http://127.0.0.1:8000 --profile safe-vps\n"
+        "crawl https://example.com --login-url /auth/login --auth-method json --username alice --password-env PsyberShield_PASSWORD --auth-check-url /account\n"
         "crawl https://example.com --session-file sessions\\autoentrytrack.json --save-session --auth-check-url /account\n"
         "crawl https://example.com --storage-state browser\\storage_state.json --save-storage-state --auth-check-url /account\n"
-        "crawl https://example.com --auth-method browser --browser-username-selector input[name='email'] --browser-password-selector input[name='password'] --username alice --password-env TURAN_PASSWORD --auth-check-url /account\n"
+        "crawl https://example.com --auth-method browser --login-url /auth/login --browser-username-selector input[name='email'] --browser-password-selector input[name='password'] --username alice --password-env PsyberShield_PASSWORD --auth-check-url /account\n"
         "scan http://127.0.0.1:8000 --timeout 5\n"
         "scan http://127.0.0.1:8000 --policy policy.json\n"
         "scan http://127.0.0.1:8000 --yes\n"
@@ -198,6 +218,9 @@ app = typer.Typer(
         "incident --logs outputs\\access.log --apply-blocks\n"
         "integrity . --baseline baselines\\integrity.json\n"
         "incident --logs C:\\logs --html-output\n"
+        "watch --logs outputs\\access.log --json-output outputs\\watch.json\n"
+        "watch --follow --interval 30 --tail-file outputs\\access.log --html-output\n"
+        "vuln scan --html-output\n"
         "baseline http://127.0.0.1:8000 --label vps-west\n"
         "baseline http://127.0.0.1:8000 --output baselines\\vps-west.json\n"
         "compare old.json new.json --markdown-output compare.md\n"
@@ -209,12 +232,17 @@ app = typer.Typer(
         "```"
     ),
 )
+vuln_app = typer.Typer(help="Inventory local software versions and match bundled offline advisories.")
 console = Console()
 CLI_OPTIONAL_OUTPUT_NOTES: list[str] = []
 
 
 def flag_is_enabled(value: object) -> bool:
     return value is True
+
+
+def flag_is_not_disabled(value: object) -> bool:
+    return value is not False
 
 
 def path_option_value(value: object) -> Path | None:
@@ -244,6 +272,23 @@ def display_path_value(value: str | Path | None) -> str | None:
     return path_value.as_posix()
 
 
+def browser_auth_summary_notes(base_url: str, auth_config: CrawlAuthConfig | None) -> list[str]:
+    if auth_config is None or auth_config.auth_method != "browser":
+        return []
+    notes = ["Browser auth: enabled"]
+    if auth_config.login_url and auth_config.storage_state:
+        notes.append("Browser auth mode: login flow with storage-state preload")
+    elif auth_config.login_url:
+        notes.append("Browser auth mode: fresh login flow")
+    elif auth_config.storage_state:
+        notes.append("Browser auth mode: storage-state reuse")
+    if auth_config.login_url:
+        notes.append(f"Browser login URL: {normalize_url(base_url, auth_config.login_url)}")
+    if auth_config.storage_state:
+        notes.append(f"Browser storage state: {display_path_value(auth_config.storage_state) or auth_config.storage_state}")
+    return notes
+
+
 def normalize_output_option(value: Path | None) -> tuple[Path | None, str | None]:
     normalized = normalize_output_path(value, cwd=Path.cwd())
     if normalized is None:
@@ -254,6 +299,12 @@ def normalize_output_option(value: Path | None) -> tuple[Path | None, str | None
 def print_optional_output_notes() -> None:
     while CLI_OPTIONAL_OUTPUT_NOTES:
         console.print(f"[info] {CLI_OPTIONAL_OUTPUT_NOTES.pop(0)}")
+
+
+def print_browser_auth_notes(notes: list[str]) -> None:
+    for note in notes:
+        if note.startswith("Browser auth:"):
+            console.print(f"[info] {note}")
 
 
 def int_option_value(value: object) -> int | None:
@@ -276,6 +327,7 @@ def build_auth_config(
     username: str | None,
     password: str | None,
     password_env: str | None,
+    env_file: Path | None,
     user_field: str,
     pass_field: str,
     cookie: str | None,
@@ -289,6 +341,14 @@ def build_auth_config(
     browser_headless: bool,
     auth_check_url: str | None,
 ) -> CrawlAuthConfig | None:
+    auth_method_value = auth_method.strip().lower() or "json"
+    browser_requested = auth_method_value == "browser"
+    login_url_present = text_option_value(login_url) is not None
+    storage_state_present = path_option_value(storage_state) is not None
+
+    if browser_requested and not login_url_present and not storage_state_present:
+        raise typer.BadParameter("Browser auth requires --login-url or --storage-state.")
+
     if not any(
         [
             login_url,
@@ -297,11 +357,11 @@ def build_auth_config(
             password_env,
             user_field != "identifier",
             pass_field != "password",
-            auth_method.strip().lower() != "json",
+            auth_method_value != "json",
             cookie,
             session_file is not None,
             save_session,
-            storage_state is not None,
+            storage_state_present,
             save_storage_state,
             browser_username_selector,
             browser_password_selector,
@@ -313,10 +373,11 @@ def build_auth_config(
         return None
     return CrawlAuthConfig(
         login_url=text_option_value(login_url),
-        auth_method=auth_method.strip().lower() or "json",
+        auth_method=auth_method_value,
         username=text_option_value(username),
         password=text_option_value(password),
         password_env=text_option_value(password_env),
+        env_file=display_path_value(env_file),
         user_field=text_option_value(user_field) or "identifier",
         pass_field=text_option_value(pass_field) or "password",
         cookie=text_option_value(cookie),
@@ -519,6 +580,72 @@ def write_secret_outputs(
         console.print(f"Wrote HTML report to {html_output_path}")
 
 
+def write_doctor_outputs(
+    report,
+    json_output_path: Path | None,
+    markdown_output_path: Path | None,
+    html_output_path: Path | None,
+) -> None:
+    if json_output_path is not None:
+        json_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_json_doctor_report(report, json_output_path)
+        console.print(f"Wrote JSON report to {json_output_path}")
+
+    if markdown_output_path is not None:
+        markdown_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_markdown_doctor_report(report, markdown_output_path)
+        console.print(f"Wrote Markdown report to {markdown_output_path}")
+
+    if html_output_path is not None:
+        html_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_html_doctor_report(report, html_output_path)
+        console.print(f"Wrote HTML report to {html_output_path}")
+
+
+def write_watch_outputs(
+    report,
+    json_output_path: Path | None,
+    markdown_output_path: Path | None,
+    html_output_path: Path | None,
+) -> None:
+    if json_output_path is not None:
+        json_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_json_watch_report(report, json_output_path)
+        console.print(f"Wrote JSON report to {json_output_path}")
+
+    if markdown_output_path is not None:
+        markdown_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_markdown_watch_report(report, markdown_output_path)
+        console.print(f"Wrote Markdown report to {markdown_output_path}")
+
+    if html_output_path is not None:
+        html_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_html_watch_report(report, html_output_path)
+        console.print(f"Wrote HTML report to {html_output_path}")
+
+
+def write_vuln_outputs(
+    report,
+    json_output_path: Path | None,
+    markdown_output_path: Path | None,
+    html_output_path: Path | None,
+) -> None:
+    if json_output_path is not None:
+        json_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_json_vuln_report(report, json_output_path)
+        console.print(f"Wrote JSON report to {json_output_path}")
+
+    if markdown_output_path is not None:
+        markdown_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_markdown_vuln_report(report, markdown_output_path)
+        console.print(f"Wrote Markdown report to {markdown_output_path}")
+
+    if html_output_path is not None:
+        html_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_html_vuln_report(report, html_output_path)
+        console.print(f"Wrote HTML report to {html_output_path}")
+
+
 def send_notification_outputs(
     report,
     *,
@@ -566,15 +693,22 @@ def send_notification_outputs(
 
 @app.callback(invoke_without_command=True)
 def main(ctx: typer.Context) -> None:
-    # Show the top-level help when the user runs Turan without a subcommand.
+    # Show the top-level help when the user runs PsyberShield without a subcommand.
     if ctx.invoked_subcommand is None:
         console.print(ctx.get_help())
 
 
+def cli_main() -> None:
+    global CLI_OPTIONAL_OUTPUT_NOTES
+    sys.argv, CLI_OPTIONAL_OUTPUT_NOTES = expand_optional_output_arguments(sys.argv)
+    app()
+
+
 @app.command(help="Scan a target URL, or discover one from the local server layout when no URL is supplied.")
 def scan(
-    url: str | None = typer.Argument(None, metavar="URL", help="Target URL. If omitted, Turan looks for APP_URL, TARGET_URL, or BASE_URL in .env."),
+    url: str | None = typer.Argument(None, metavar="URL", help="Target URL. If omitted, PsyberShield looks for APP_URL, TARGET_URL, or BASE_URL in .env."),
     env_file: Path | None = typer.Option(None, "--env-file", help="Read target defaults from a specific .env file"),
+    profile: str | None = typer.Option(None, "--profile", help="Apply a preset: quick, full, or safe-vps"),
     timeout: float | None = typer.Option(None, "--timeout", min=0.1, help="Request and TLS timeout in seconds"),
     yes: bool = typer.Option(False, "--yes", help="Skip the permission prompt for trusted automation"),
     policy_file: Path | None = typer.Option(None, "--policy", help="Load scan settings from a JSON file"),
@@ -583,7 +717,7 @@ def scan(
     auth_method: str = typer.Option("json", "--auth-method", help="Login payload format: json or form"),
     username: str | None = typer.Option(None, "--username", help="Username, email, or identifier for the login payload"),
     password: str | None = typer.Option(None, "--password", help="Password for the login payload"),
-    password_env: str | None = typer.Option(None, "--password-env", help="Read the password from this environment variable"),
+    password_env: str | None = typer.Option(None, "--password-env", help="Read the password from this environment variable or matching .env file"),
     user_field: str = typer.Option("identifier", "--user-field", help="Field name for the username or identifier"),
     pass_field: str = typer.Option("password", "--pass-field", help="Field name for the password"),
     cookie: str | None = typer.Option(None, "--cookie", help="Raw Cookie header to preload into the session"),
@@ -622,6 +756,10 @@ def scan(
 
     policy_file_path = path_option_value(policy_file)
     env_file_path = path_option_value(env_file)
+    profile_value = text_option_value(profile)
+    profile_preset = resolve_profile_preset(profile_value)
+    if profile_value is not None and profile_preset is None:
+        raise typer.BadParameter("Unknown profile. Use quick, full, or safe-vps.")
     audit_log_path, audit_log_note = normalize_output_option(path_option_value(audit_log))
     json_output_path, json_output_note = normalize_output_option(path_option_value(json_output))
     markdown_output_path, markdown_output_note = normalize_output_option(path_option_value(markdown_output))
@@ -633,6 +771,7 @@ def scan(
         username=text_option_value(username),
         password=text_option_value(password),
         password_env=text_option_value(password_env),
+        env_file=env_file_path,
         user_field=text_option_value(user_field) or "identifier",
         pass_field=text_option_value(pass_field) or "password",
         cookie=text_option_value(cookie),
@@ -653,6 +792,8 @@ def scan(
 
     policy = load_app_config(policy_file_path)
     timeout_seconds = timeout_seconds_option if timeout_seconds_option is not None else policy.timeout_seconds
+    if timeout_seconds_option is None and profile_preset is not None and profile_preset.timeout_seconds is not None:
+        timeout_seconds = profile_preset.timeout_seconds
     try:
         context = resolve_application_context(url, Path.cwd(), env_file_path, require_target=True)
     except ValueError as exc:
@@ -661,12 +802,18 @@ def scan(
         raise
     if context.target is None:
         raise typer.BadParameter("No scan target could be resolved.")
+    if auth_config is not None and auth_config.env_file is None and context.discovery.env_file is not None:
+        auth_config.env_file = context.discovery.env_file
     if context.target.source == "discovery":
         console.print("No URL supplied. Discovery:")
         console.print(f"Discovery: {summarize_application_context(context)}")
         console.print(render_application_context(context))
     elif context.target.source != "command line":
         console.print(f"Using {context.target.key} from {context.target.source} for the scan target.")
+    for note in browser_auth_summary_notes(context.target.value, auth_config):
+        console.print(f"[info] {note}")
+    for note in profile_summary_notes(profile_preset, "scan"):
+        console.print(f"[info] {note}")
     try:
         if auth_config is None:
             result = scan_target(context.target.value, timeout_seconds=timeout_seconds)
@@ -675,6 +822,7 @@ def scan(
     except ValueError as exc:
         raise typer.BadParameter(str(exc)) from exc
     result.context = context
+    print_browser_auth_notes(result.notes)
     console.print(render_policy(policy))
     console.print(render_console(result, include_fix_plans=preview_fixes_enabled or generate_fixes_enabled))
     write_audit_path = audit_log_path or Path(policy.audit_log_path)
@@ -781,7 +929,7 @@ def scan(
                         target_path=context.discovery.nginx_config or context.discovery.systemd_service or context.root,
                         status="blocked",
                         reason="No supported local fix target was discovered for the first live edit lane.",
-                        notes=["Turan found the server layout, but not a supported file to edit yet."],
+                        notes=["PsyberShield found the server layout, but not a supported file to edit yet."],
                     )
                     console.print(render_local_fix_result(local_fix_result))
                     append_audit_event(
@@ -912,8 +1060,9 @@ def scan(
 
 @app.command(help="Crawl in-scope links from a target URL or a discovered app target.")
 def crawl(
-    url: str | None = typer.Argument(None, metavar="URL", help="Start URL. If omitted, Turan looks for APP_URL, TARGET_URL, or BASE_URL in .env."),
+    url: str | None = typer.Argument(None, metavar="URL", help="Start URL. If omitted, PsyberShield looks for APP_URL, TARGET_URL, or BASE_URL in .env."),
     env_file: Path | None = typer.Option(None, "--env-file", help="Read target defaults from a specific .env file"),
+    profile: str | None = typer.Option(None, "--profile", help="Apply a preset: quick, full, or safe-vps"),
     timeout: float | None = typer.Option(None, "--timeout", min=0.1, help="Request and TLS timeout in seconds"),
     yes: bool = typer.Option(False, "--yes", help="Skip the permission prompt for trusted automation"),
     policy_file: Path | None = typer.Option(None, "--policy", help="Load crawl settings from a JSON file"),
@@ -922,7 +1071,7 @@ def crawl(
     auth_method: str = typer.Option("json", "--auth-method", help="Login payload format: json or form"),
     username: str | None = typer.Option(None, "--username", help="Username, email, or identifier for the login payload"),
     password: str | None = typer.Option(None, "--password", help="Password for the login payload"),
-    password_env: str | None = typer.Option(None, "--password-env", help="Read the password from this environment variable"),
+    password_env: str | None = typer.Option(None, "--password-env", help="Read the password from this environment variable or matching .env file"),
     user_field: str = typer.Option("identifier", "--user-field", help="Field name for the username or identifier"),
     pass_field: str = typer.Option("password", "--pass-field", help="Field name for the password"),
     cookie: str | None = typer.Option(None, "--cookie", help="Raw Cookie header to preload into the session"),
@@ -939,9 +1088,9 @@ def crawl(
     max_depth: int | None = typer.Option(None, "--max-depth", min=0, help="Maximum crawl depth"),
     include: list[str] | None = typer.Option(None, "--include", help="Only follow URLs matching this regex; repeat the flag to add more"),
     exclude: list[str] | None = typer.Option(None, "--exclude", help="Skip URLs matching this regex; repeat the flag to add more"),
-    same_host_only: bool = typer.Option(True, "--same-host-only/--allow-offsite", help="Limit crawling to the current host"),
-    seed_robots: bool = typer.Option(False, "--seed-robots/--no-seed-robots", help="Seed crawl from robots.txt sitemap hints"),
-    seed_sitemap: bool = typer.Option(False, "--seed-sitemap/--no-seed-sitemap", help="Seed crawl from sitemap.xml"),
+    same_host_only: bool | None = typer.Option(None, "--same-host-only/--allow-offsite", help="Limit crawling to the current host"),
+    seed_robots: bool | None = typer.Option(None, "--seed-robots/--no-seed-robots", help="Seed crawl from robots.txt sitemap hints"),
+    seed_sitemap: bool | None = typer.Option(None, "--seed-sitemap/--no-seed-sitemap", help="Seed crawl from sitemap.xml"),
     json_output: Path | None = typer.Option(None, "--json-output", help="Write a JSON report"),
     markdown_output: Path | None = typer.Option(None, "--markdown-output", help="Write a Markdown report"),
     html_output: Path | None = typer.Option(None, "--html-output", help="Write an HTML report"),
@@ -951,6 +1100,10 @@ def crawl(
 
     policy_file_path = path_option_value(policy_file)
     env_file_path = path_option_value(env_file)
+    profile_value = text_option_value(profile)
+    profile_preset = resolve_profile_preset(profile_value)
+    if profile_value is not None and profile_preset is None:
+        raise typer.BadParameter("Unknown profile. Use quick, full, or safe-vps.")
     audit_log_path, audit_log_note = normalize_output_option(path_option_value(audit_log))
     json_output_path, json_output_note = normalize_output_option(path_option_value(json_output))
     markdown_output_path, markdown_output_note = normalize_output_option(path_option_value(markdown_output))
@@ -966,6 +1119,7 @@ def crawl(
         username=text_option_value(username),
         password=text_option_value(password),
         password_env=text_option_value(password_env),
+        env_file=env_file_path,
         user_field=text_option_value(user_field) or "identifier",
         pass_field=text_option_value(pass_field) or "password",
         cookie=text_option_value(cookie),
@@ -986,8 +1140,23 @@ def crawl(
 
     policy = load_app_config(policy_file_path)
     timeout_seconds = timeout_seconds_option if timeout_seconds_option is not None else policy.timeout_seconds
-    max_pages_value = int_option_value(max_pages) if max_pages is not None else policy.max_pages
-    max_depth_value = int_option_value(max_depth) if max_depth is not None else policy.max_crawl_depth
+    if timeout_seconds_option is None and profile_preset is not None and profile_preset.timeout_seconds is not None:
+        timeout_seconds = profile_preset.timeout_seconds
+    max_pages_value = int_option_value(max_pages)
+    if max_pages_value is None:
+        max_pages_value = profile_preset.max_pages if profile_preset and profile_preset.max_pages is not None else policy.max_pages
+    max_depth_value = int_option_value(max_depth)
+    if max_depth_value is None:
+        max_depth_value = profile_preset.max_crawl_depth if profile_preset and profile_preset.max_crawl_depth is not None else policy.max_crawl_depth
+    same_host_only_value = same_host_only if isinstance(same_host_only, bool) else None
+    if same_host_only_value is None:
+        same_host_only_value = profile_preset.same_host_only if profile_preset and profile_preset.same_host_only is not None else True
+    seed_robots_value = seed_robots if isinstance(seed_robots, bool) else None
+    if seed_robots_value is None:
+        seed_robots_value = profile_preset.seed_robots if profile_preset and profile_preset.seed_robots is not None else False
+    seed_sitemap_value = seed_sitemap if isinstance(seed_sitemap, bool) else None
+    if seed_sitemap_value is None:
+        seed_sitemap_value = profile_preset.seed_sitemap if profile_preset and profile_preset.seed_sitemap is not None else False
 
     try:
         context = resolve_application_context(url, Path.cwd(), env_file_path, require_target=True)
@@ -997,12 +1166,18 @@ def crawl(
         raise
     if context.target is None:
         raise typer.BadParameter("No scan target could be resolved.")
+    if auth_config is not None and auth_config.env_file is None and context.discovery.env_file is not None:
+        auth_config.env_file = context.discovery.env_file
     if context.target.source == "discovery":
         console.print("No URL supplied. Discovery:")
         console.print(f"Discovery: {summarize_application_context(context)}")
         console.print(render_application_context(context))
     elif context.target.source != "command line":
         console.print(f"Using {context.target.key} from {context.target.source} for the crawl target.")
+    for note in browser_auth_summary_notes(context.target.value, auth_config):
+        console.print(f"[info] {note}")
+    for note in profile_summary_notes(profile_preset, "crawl"):
+        console.print(f"[info] {note}")
 
     try:
         if auth_config is None:
@@ -1011,11 +1186,11 @@ def crawl(
                 timeout_seconds=timeout_seconds,
                 max_pages=max_pages_value,
                 max_crawl_depth=max_depth_value,
-                same_host_only=same_host_only,
+                same_host_only=same_host_only_value,
                 include_patterns=include_patterns,
                 exclude_patterns=exclude_patterns,
-                seed_robots=seed_robots,
-                seed_sitemap=seed_sitemap,
+                seed_robots=seed_robots_value,
+                seed_sitemap=seed_sitemap_value,
             )
         else:
             result = crawl_target(
@@ -1023,16 +1198,17 @@ def crawl(
                 timeout_seconds=timeout_seconds,
                 max_pages=max_pages_value,
                 max_crawl_depth=max_depth_value,
-                same_host_only=same_host_only,
+                same_host_only=same_host_only_value,
                 include_patterns=include_patterns,
                 exclude_patterns=exclude_patterns,
-                seed_robots=seed_robots,
-                seed_sitemap=seed_sitemap,
+                seed_robots=seed_robots_value,
+                seed_sitemap=seed_sitemap_value,
                 auth_config=auth_config,
             )
     except ValueError as exc:
         raise typer.BadParameter(str(exc)) from exc
     result.context = context
+    print_browser_auth_notes(result.notes)
     console.print(render_policy(policy))
     console.print(render_crawl_summary(result))
     console.print(render_console(result, include_fix_plans=False))
@@ -1053,9 +1229,18 @@ def crawl(
     )
 
 
-@app.command(help="Run the local demo site for testing the scanner.")
-def demo_site(port: int = typer.Option(8000, "--port", min=1, max=65535, help="Port for the local demo site")) -> None:
+def _run_demo_site(port: int) -> None:
     serve_demo_site(port)
+
+
+@app.command("demo", help="Run the local demo site for testing the scanner.")
+def demo(port: int = typer.Option(8000, "--port", min=1, max=65535, help="Port for the local demo site")) -> None:
+    _run_demo_site(port)
+
+
+@app.command("demo-site", help="Run the local demo site for testing the scanner.")
+def demo_site(port: int = typer.Option(8000, "--port", min=1, max=65535, help="Port for the local demo site")) -> None:
+    _run_demo_site(port)
 
 
 @app.command(help="Show the append-only audit history.")
@@ -1147,9 +1332,20 @@ def timeline(
 @app.command(help="Check the local machine and app environment.")
 def doctor(
     env_file: Path | None = typer.Option(None, "--env-file", help="Read local status defaults from a specific .env file"),
+    json_output: Path | None = typer.Option(None, "--json-output", help="Write a JSON doctor report here"),
+    markdown_output: Path | None = typer.Option(None, "--markdown-output", help="Write a Markdown doctor report here"),
+    html_output: Path | None = typer.Option(None, "--html-output", help="Write an HTML doctor report here"),
 ) -> None:
     report = run_doctor_checks(env_file=path_option_value(env_file))
     console.print(render_doctor_report(report))
+    json_output_path, json_output_note = normalize_output_option(path_option_value(json_output))
+    markdown_output_path, markdown_output_note = normalize_output_option(path_option_value(markdown_output))
+    html_output_path, html_output_note = normalize_output_option(path_option_value(html_output))
+    for note in (json_output_note, markdown_output_note, html_output_note):
+        if note is not None:
+            console.print(f"[info] {note}")
+    print_optional_output_notes()
+    write_doctor_outputs(report, json_output_path, markdown_output_path, html_output_path)
 
 
 @app.command(name="server-check", help="Check the server-facing config, discover the app target, and scan it locally.")
@@ -1181,7 +1377,7 @@ def incident(
     url: str | None = typer.Argument(
         None,
         metavar="URL",
-        help="Target URL. If omitted, Turan discovers the local app target before analyzing logs.",
+        help="Target URL. If omitted, PsyberShield discovers the local app target before analyzing logs.",
     ),
     logs: Path | None = typer.Option(None, "--logs", help="Log file or directory to analyze"),
     live: bool = typer.Option(False, "--live", help="Capture a fresh snapshot from live log sources before analysis"),
@@ -1338,9 +1534,14 @@ def incident(
         ]
         if report.containment_artifact:
             bundle_items.append(Path(report.containment_artifact))
-        bundle_report = bundle_report_files(primary_report_path, output_path=bundle_output_path, extra_artifacts=bundle_items)
-        console.print(render_bundle_report(bundle_report))
-        console.print(f"Wrote ZIP bundle to {bundle_output_path}")
+        try:
+            bundle_report = bundle_report_files(primary_report_path, output_path=bundle_output_path, extra_artifacts=bundle_items)
+        except Exception as exc:  # pragma: no cover - defensive safety net
+            report.notes.append(f"Bundle creation failed: {exc.__class__.__name__}")
+            console.print(f"[warning] Bundle creation failed: {exc.__class__.__name__}: {exc}")
+        else:
+            console.print(render_bundle_report(bundle_report))
+            console.print(f"Wrote ZIP bundle to {bundle_output_path}")
     if bundle_output_note is not None:
         console.print(f"[info] {bundle_output_note}")
     send_notification_outputs(
@@ -1378,6 +1579,7 @@ def integrity(
         help="Directory to monitor. Defaults to the current working directory.",
     ),
     baseline: Path | None = typer.Option(None, "--baseline", help="Compare against a saved integrity snapshot"),
+    create_baseline: Path | None = typer.Option(None, "--create-baseline", help="Write the current integrity snapshot here without comparing against a baseline"),
     path: list[Path] = typer.Option([], "--path", help="Add a specific file or directory to monitor"),
     audit_log: Path | None = typer.Option(None, "--audit-log", help="Write the integrity event to a specific audit log"),
     json_output: Path | None = typer.Option(None, "--json-output", help="Write a JSON report here"),
@@ -1396,6 +1598,7 @@ def integrity(
 ) -> None:
     root_path = Path.cwd() if root is None else Path(root)
     baseline_path = path_option_value(baseline)
+    create_baseline_path = path_option_value(create_baseline)
     extra_paths = [Path(item) for item in list_option_value(path)]
     audit_log_path, audit_log_note = normalize_output_option(path_option_value(audit_log))
     json_output_path, json_output_note = normalize_output_option(path_option_value(json_output))
@@ -1405,6 +1608,22 @@ def integrity(
     slack_webhook_urls = [str(value).strip() for value in list_option_value(slack_webhook_url) if str(value).strip()]
     discord_webhook_urls = [str(value).strip() for value in list_option_value(discord_webhook_url) if str(value).strip()]
     email_recipients = [str(value).strip() for value in list_option_value(email_to) if str(value).strip()]
+    write_audit_path = audit_log_path or Path("outputs") / "audit.log"
+
+    if create_baseline_path is not None:
+        baseline_output_path, baseline_output_note = normalize_output_option(create_baseline_path)
+        report = analyze_integrity_sources(root_path, baseline_path=None)
+        console.print(render_integrity_report(report))
+        if baseline_output_path is None:
+            baseline_output_path = default_output_path("integrity", "--output")
+            baseline_output_note = f"Using default output path for --create-baseline: {baseline_output_path.as_posix()}"
+        baseline_output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_json_integrity_report(report, baseline_output_path)
+        append_audit_event(write_audit_path, build_integrity_audit_event(report))
+        if baseline_output_note is not None:
+            console.print(f"[info] {baseline_output_note}")
+        console.print(f"Wrote integrity baseline to {baseline_output_path}")
+        return
 
     report = analyze_integrity_sources(root_path, baseline_path=baseline_path, extra_paths=extra_paths)
     console.print(render_integrity_report(report))
@@ -1433,6 +1652,167 @@ def integrity(
     )
     print_optional_output_notes()
     write_integrity_outputs(report, json_output_path, markdown_output_path, html_output_path)
+
+
+@app.command(help="Watch logs, file drift, and process activity for suspicious changes.")
+def watch(
+    root: Path | None = typer.Argument(
+        None,
+        metavar="ROOT",
+        help="Directory to monitor. Defaults to the current working directory.",
+    ),
+    logs: list[Path] = typer.Option([], "--logs", help="Log file or directory to analyze"),
+    journal_unit: list[str] = typer.Option([], "--journal-unit", help="Collect recent journalctl output for a systemd unit"),
+    event_log_name: list[str] = typer.Option([], "--event-log-name", help="Collect a Windows Event Log channel snapshot"),
+    tail_file: list[Path] = typer.Option([], "--tail-file", help="Include the tail of a specific log file"),
+    tail_lines: int = typer.Option(250, "--tail-lines", min=1, help="Number of recent lines to capture for live sources"),
+    baseline: Path | None = typer.Option(None, "--baseline", help="Compare file drift against this saved integrity snapshot"),
+    follow: bool = typer.Option(False, "--follow/--no-follow", help="Keep taking snapshots on an interval"),
+    compact: bool = typer.Option(False, "--compact/--no-compact", help="Use a shorter terminal summary that is easier to read during follow mode"),
+    interval: float = typer.Option(30.0, "--interval", min=1.0, help="Seconds between follow-up snapshots"),
+    max_cycles: int | None = typer.Option(None, "--max-cycles", min=1, hidden=True, help="Stop follow mode after this many cycles"),
+    env_file: Path | None = typer.Option(None, "--env-file", help="Read local defaults from a specific .env file"),
+    nginx_config: Path | None = typer.Option(None, "--nginx-config", help="Use a specific Nginx config file for context discovery"),
+    policy_file: Path | None = typer.Option(None, "--policy", help="Load watch settings from a JSON file"),
+    audit_log: Path | None = typer.Option(None, "--audit-log", help="Write audit events to a specific file"),
+    json_output: Path | None = typer.Option(None, "--json-output", help="Write a JSON watch report"),
+    markdown_output: Path | None = typer.Option(None, "--markdown-output", help="Write a Markdown watch report"),
+    html_output: Path | None = typer.Option(None, "--html-output", help="Write an HTML watch report"),
+) -> None:
+    root_path = Path.cwd() if root is None else Path(root)
+    policy_file_path = path_option_value(policy_file)
+    env_file_path = path_option_value(env_file)
+    nginx_config_path = path_option_value(nginx_config)
+    baseline_path = path_option_value(baseline)
+    audit_log_path, audit_log_note = normalize_output_option(path_option_value(audit_log))
+    json_output_path, json_output_note = normalize_output_option(path_option_value(json_output))
+    markdown_output_path, markdown_output_note = normalize_output_option(path_option_value(markdown_output))
+    html_output_path, html_output_note = normalize_output_option(path_option_value(html_output))
+    follow_enabled = flag_is_enabled(follow)
+    compact_enabled = flag_is_enabled(compact)
+
+    policy = load_app_config(policy_file_path)
+    context = resolve_application_context(None, root_path, env_file_path, nginx_config_path, require_target=False)
+    if context.target is None and context.discovery.discovered:
+        console.print("No URL supplied. Discovery:")
+        console.print(f"Discovery: {summarize_application_context(context)}")
+        console.print(render_application_context(context))
+    elif context.target is not None and context.target.source != "command line":
+        console.print(f"Using {context.target.key} from {context.target.source} for the watch target.")
+
+    logs_values = [Path(value) for value in list_option_value(logs)]
+    journal_unit_values = [str(value) for value in list_option_value(journal_unit) if str(value).strip()]
+    event_log_name_values = [str(value) for value in list_option_value(event_log_name) if str(value).strip()]
+    tail_file_values = [value for value in list_option_value(tail_file) if isinstance(value, Path)]
+    tail_lines_value = int_option_value(tail_lines) or 250
+    interval_seconds = timeout_option_value(interval) or 30.0
+    max_cycles_value = int_option_value(max_cycles)
+
+    if json_output_path is None and markdown_output_path is None and html_output_path is None:
+        json_output_path = default_output_path("watch", "--json-output")
+        markdown_output_path = default_output_path("watch", "--markdown-output")
+        html_output_path = default_output_path("watch", "--html-output")
+        json_output_note = f"Using default output path for --json-output: {json_output_path.as_posix()}"
+        markdown_output_note = f"Using default output path for --markdown-output: {markdown_output_path.as_posix()}"
+        html_output_note = f"Using default output path for --html-output: {html_output_path.as_posix()}"
+
+    for note in (audit_log_note, json_output_note, markdown_output_note, html_output_note):
+        if note is not None:
+            console.print(f"[info] {note}")
+
+    print_optional_output_notes()
+    write_audit_path = audit_log_path or Path(policy.audit_log_path)
+    mode = "follow" if follow_enabled else "snapshot"
+    cycle = 0
+
+    try:
+        while True:
+            cycle += 1
+            if follow_enabled:
+                console.print(f"Watch cycle {cycle} starting...")
+            report = run_watch_snapshot(
+                root=root_path,
+                env_file=env_file_path,
+                nginx_config=nginx_config_path,
+                logs=logs_values,
+                journal_units=journal_unit_values,
+                event_log_names=event_log_name_values,
+                tail_files=tail_file_values,
+                tail_lines=tail_lines_value,
+                baseline_path=baseline_path,
+                policy_path=policy_file_path,
+                mode=mode,
+                interval_seconds=interval_seconds,
+                compact=compact_enabled,
+            )
+            report.mode = mode
+            report.interval_seconds = interval_seconds
+            report.cycles = cycle
+            report.compact = compact_enabled
+            report.policy_path = str(policy_file_path) if policy_file_path is not None else report.policy_path
+            if report.context is None:
+                report.context = context
+            console.print(render_watch_report(report))
+            append_audit_event(write_audit_path, build_watch_audit_event(report, policy.allowed_fix_level))
+            write_watch_outputs(report, json_output_path, markdown_output_path, html_output_path)
+            if not follow_enabled:
+                break
+            if max_cycles_value is not None and cycle >= max_cycles_value:
+                console.print(f"Watch max cycles reached ({max_cycles_value}); stopping.")
+                break
+            time.sleep(interval_seconds)
+    except KeyboardInterrupt:
+        console.print("[warning] Watch loop interrupted.")
+
+
+@vuln_app.command("scan", help="Inventory local software versions and match bundled offline advisories.")
+def vuln_scan(
+    root: Path | None = typer.Argument(
+        None,
+        metavar="ROOT",
+        help="Directory to use as the inventory root. Defaults to the current working directory.",
+    ),
+    audit_log: Path | None = typer.Option(None, "--audit-log", help="Write the vulnerability inventory event to a specific audit log"),
+    match_cves: bool = typer.Option(True, "--match-cves/--inventory-only", help="Match discovered versions against the bundled offline advisory ruleset"),
+    osv: bool = typer.Option(False, "--osv/--no-osv", help="Opt in to OSV dependency advisory lookups for parsed Python manifests"),
+    osv_cache: Path | None = typer.Option(None, "--osv-cache", help="Cache OSV API responses under this directory"),
+    json_output: Path | None = typer.Option(None, "--json-output", help="Write a JSON vulnerability inventory report"),
+    markdown_output: Path | None = typer.Option(None, "--markdown-output", help="Write a Markdown vulnerability inventory report"),
+    html_output: Path | None = typer.Option(None, "--html-output", help="Write an HTML vulnerability inventory report"),
+) -> None:
+    root_path = Path.cwd() if root is None else Path(root)
+    audit_log_path, audit_log_note = normalize_output_option(path_option_value(audit_log))
+    json_output_path, json_output_note = normalize_output_option(path_option_value(json_output))
+    markdown_output_path, markdown_output_note = normalize_output_option(path_option_value(markdown_output))
+    html_output_path, html_output_note = normalize_output_option(path_option_value(html_output))
+    osv_cache_path = path_option_value(osv_cache)
+
+    if json_output_path is None and markdown_output_path is None and html_output_path is None:
+        json_output_path = default_output_path("vuln", "--json-output")
+        markdown_output_path = default_output_path("vuln", "--markdown-output")
+        html_output_path = default_output_path("vuln", "--html-output")
+        json_output_note = f"Using default output path for --json-output: {json_output_path.as_posix()}"
+        markdown_output_note = f"Using default output path for --markdown-output: {markdown_output_path.as_posix()}"
+        html_output_note = f"Using default output path for --html-output: {html_output_path.as_posix()}"
+
+    if flag_is_enabled(osv) and osv_cache_path is None:
+        osv_cache_path = Path("outputs") / "advisory-cache" / "osv"
+
+    report = scan_software_inventory(
+        root_path,
+        match_cves=flag_is_not_disabled(match_cves),
+        include_osv=flag_is_enabled(osv),
+        osv_cache_dir=osv_cache_path,
+    )
+    console.print(render_vuln_report(report))
+    write_audit_path = audit_log_path or Path("outputs") / "audit.log"
+    append_audit_event(write_audit_path, build_vuln_audit_event(report))
+
+    for note in (audit_log_note, json_output_note, markdown_output_note, html_output_note):
+        if note is not None:
+            console.print(f"[info] {note}")
+    print_optional_output_notes()
+    write_vuln_outputs(report, json_output_path, markdown_output_path, html_output_path)
 
 
 @app.command(help="Detect baseline drift across saved reports for scan, integrity, incident, or doctor data.")
@@ -1474,6 +1854,14 @@ def secrets(
     markdown_output_path, markdown_output_note = normalize_output_option(path_option_value(markdown_output))
     html_output_path, html_output_note = normalize_output_option(path_option_value(html_output))
 
+    if json_output_path is None and markdown_output_path is None and html_output_path is None:
+        json_output_path = default_output_path("secrets", "--json-output")
+        markdown_output_path = default_output_path("secrets", "--markdown-output")
+        html_output_path = default_output_path("secrets", "--html-output")
+        json_output_note = f"Using default output path for --json-output: {json_output_path.as_posix()}"
+        markdown_output_note = f"Using default output path for --markdown-output: {markdown_output_path.as_posix()}"
+        html_output_note = f"Using default output path for --html-output: {html_output_path.as_posix()}"
+
     for note in (json_output_note, markdown_output_note, html_output_note):
         if note is not None:
             console.print(f"[info] {note}")
@@ -1498,7 +1886,7 @@ def bundle(
 @app.command(help="Apply one real local fix to a discovered server file.")
 def fix(
     local_fix: bool = typer.Option(False, "--local", help="Run the first real local fix lane"),
-    url: str | None = typer.Argument(None, metavar="URL", help="Target URL. If omitted, Turan discovers the local app target."),
+    url: str | None = typer.Argument(None, metavar="URL", help="Target URL. If omitted, PsyberShield discovers the local app target."),
     env_file: Path | None = typer.Option(None, "--env-file", help="Read target defaults from a specific .env file"),
     nginx_config: Path | None = typer.Option(None, "--nginx-config", help="Check a specific Nginx config file"),
     timeout: float | None = typer.Option(None, "--timeout", min=0.1, help="Request and TLS timeout in seconds for the discovery scan"),
@@ -1546,7 +1934,7 @@ def fix(
             target_path=context.discovery.nginx_config or context.discovery.systemd_service or context.root,
             status="blocked",
             reason="No supported local fix target was discovered for the first live edit lane.",
-            notes=["Turan found the server layout, but not a supported file to edit yet."],
+            notes=["PsyberShield found the server layout, but not a supported file to edit yet."],
         )
         console.print(render_local_fix_result(local_fix_result))
         append_audit_event(
@@ -1745,6 +2133,9 @@ def compare(
     compare_outputs(comparison, markdown_output_path, html_output_path)
 
 
+app.add_typer(vuln_app, name="vuln")
+
+
 if __name__ == "__main__":
-    sys.argv, CLI_OPTIONAL_OUTPUT_NOTES = expand_optional_output_arguments(sys.argv)
-    app()
+    cli_main()
+

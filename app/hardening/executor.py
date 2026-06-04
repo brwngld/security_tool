@@ -8,12 +8,24 @@ from app.hardening.local_notes import write_remediation_note
 from app.models import Finding, FixDecision, FixPlan
 
 
+def describe_fix_confidence(plan: FixPlan) -> str:
+    if plan.fix_level <= 0:
+        return "Report only"
+    if plan.fix_level == 1:
+        return "Generate artifact"
+    if plan.fix_level == 2:
+        return "Safe local fix"
+    return "Needs manual approval"
+
+
 def evaluate_fix_plan(finding: Finding, plan: FixPlan, policy: AppConfig) -> FixDecision:
+    confidence_label = describe_fix_confidence(plan)
     if finding.fix_level > policy.allowed_fix_level:
         return FixDecision(
             finding_id=finding.id,
             finding_title=finding.title,
             status="approval_required",
+            confidence_label=confidence_label,
             reason="Finding exceeds the allowed fix level.",
             next_step=plan.expected_impact,
             rollback_command=plan.rollback_command,
@@ -24,6 +36,7 @@ def evaluate_fix_plan(finding: Finding, plan: FixPlan, policy: AppConfig) -> Fix
             finding_id=finding.id,
             finding_title=finding.title,
             status="approval_required",
+            confidence_label=confidence_label,
             reason="Fix plan exceeds the allowed fix level.",
             next_step=plan.expected_impact,
             rollback_command=plan.rollback_command,
@@ -34,6 +47,7 @@ def evaluate_fix_plan(finding: Finding, plan: FixPlan, policy: AppConfig) -> Fix
             finding_id=finding.id,
             finding_title=finding.title,
             status="approval_required",
+            confidence_label=confidence_label,
             reason="Level 2 needs approval.",
             next_step=plan.expected_impact,
             rollback_command=plan.rollback_command,
@@ -44,6 +58,7 @@ def evaluate_fix_plan(finding: Finding, plan: FixPlan, policy: AppConfig) -> Fix
             finding_id=finding.id,
             finding_title=finding.title,
             status="blocked",
+            confidence_label=confidence_label,
             reason="Level 3 is blocked by policy.",
             next_step=plan.expected_impact,
             rollback_command=plan.rollback_command,
@@ -54,6 +69,7 @@ def evaluate_fix_plan(finding: Finding, plan: FixPlan, policy: AppConfig) -> Fix
             finding_id=finding.id,
             finding_title=finding.title,
             status="blocked",
+            confidence_label=confidence_label,
             reason="Level 1 fixes need a backup.",
             next_step=plan.expected_impact,
             rollback_command=plan.rollback_command,
@@ -64,6 +80,7 @@ def evaluate_fix_plan(finding: Finding, plan: FixPlan, policy: AppConfig) -> Fix
             finding_id=finding.id,
             finding_title=finding.title,
             status="blocked",
+            confidence_label=confidence_label,
             reason="A rollback command is missing.",
             next_step=plan.expected_impact,
             rollback_command=plan.rollback_command,
@@ -73,6 +90,7 @@ def evaluate_fix_plan(finding: Finding, plan: FixPlan, policy: AppConfig) -> Fix
         finding_id=finding.id,
         finding_title=finding.title,
         status="ready",
+        confidence_label=confidence_label,
         reason="Policy allows this plan.",
         next_step=plan.expected_impact,
         rollback_command=plan.rollback_command,

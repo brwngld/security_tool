@@ -1,2 +1,3 @@
-"""Check modules for Turan."""
+"""Compatibility shims for the legacy check modules."""
+
 

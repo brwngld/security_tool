@@ -109,9 +109,9 @@ def apply_local_nginx_hardening_fix(
             target_path=str(config_path),
             status="blocked",
             reason=(
-                "Turan could not create a backup for the discovered Nginx config. "
-                "If you are in the Turan project root, try: sudo -E ./venv/bin/python -m app.main fix --local. "
-                "Or point Turan at an app-owned file."
+                "PsyberShield could not create a backup for the discovered Nginx config. "
+                "If you are in the PsyberShield project root, try: sudo -E ./venv/bin/python -m app.main fix --local. "
+                "Or point PsyberShield at an app-owned file."
             ),
             notes=["No file was changed."],
         )
@@ -123,9 +123,9 @@ def apply_local_nginx_hardening_fix(
             target_path=str(config_path),
             status="blocked",
             reason=(
-                "Turan could not write the local fix to the discovered Nginx config. "
-                "If you are in the Turan project root, try: sudo -E ./venv/bin/python -m app.main fix --local. "
-                "Or point Turan at an app-owned file."
+                "PsyberShield could not write the local fix to the discovered Nginx config. "
+                "If you are in the PsyberShield project root, try: sudo -E ./venv/bin/python -m app.main fix --local. "
+                "Or point PsyberShield at an app-owned file."
             ),
             backup_path=str(backup_path),
             notes=["The backup was created, but the file could not be updated."],
@@ -138,7 +138,7 @@ def apply_local_nginx_hardening_fix(
         return LocalFixResult(
             target_path=str(config_path),
             status="rolled_back",
-            reason="The Nginx validation check failed, so Turan restored the backup.",
+            reason="The Nginx validation check failed, so PsyberShield restored the backup.",
             backup_path=str(backup_path),
             validation_command=validation_command,
             validation_output=validation_output,
@@ -166,3 +166,4 @@ def apply_local_nginx_hardening_fix(
 
 def apply_local_nginx_banner_fix(config_path: Path, backup_path: Path | None = None) -> LocalFixResult:
     return apply_local_nginx_hardening_fix(config_path, categories=["server_info"], backup_path=backup_path)
+
